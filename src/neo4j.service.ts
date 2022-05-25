@@ -19,6 +19,7 @@ import {
 import { successResponse } from "./constant/success.response.object";
 import { failedResponse } from "./constant/failed.response.object";
 import { PaginationNeo4jParams } from "./constant/pagination.param";
+import { has_children_error } from "./constant/costom.error.object";
 
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
@@ -119,7 +120,7 @@ export class Neo4jService implements OnApplicationShutdown {
     let tree = await this.findWithChildrenByIdAsTree(id);
 
     if (!tree) {
-      return tree;
+      return null;
     } else if (Object.keys(tree[0]).length === 0) {
       tree = await this.findById(id);
       const rootNodeObject = { root: tree };
@@ -447,7 +448,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenCount = await this.getChildrenCount(id);
 
       if (childrenCount > 0) {
-        throw new HttpException("cannot delete node with children", 400);
+        throw new HttpException(has_children_error, 400);
       } else {
         const parent = await this.getParentById(id);
 
@@ -462,10 +463,14 @@ export class Neo4jService implements OnApplicationShutdown {
         return deletedNode;
       }
     } catch (error) {
-      throw new HttpException(
-        { message: "error", code: 200 },
-        HttpStatus.NOT_ACCEPTABLE
-      );
+      if (error.response.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.NOT_ACCEPTABLE);
+      }
     }
   }
 
