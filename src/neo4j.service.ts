@@ -19,7 +19,7 @@ import {
 import { successResponse } from "./constant/success.response.object";
 import { failedResponse } from "./constant/failed.response.object";
 import { PaginationNeo4jParams } from "./constant/pagination.param";
-import { has_children_error } from "./constant/costom.error.object";
+import { has_children_error } from "./constant/custom.error.object";
 
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
