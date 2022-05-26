@@ -1,7 +1,7 @@
 /**
  * Common Pagination DTO for all  APIs
  */
-export class PaginationNeo4jParams {
+export class PaginationNeo4jParamsWithClassName {
   page?: number;
 
   limit?: number;

@@ -18,7 +18,7 @@ import {
 } from "./func/common.func";
 import { successResponse } from "./constant/success.response.object";
 import { failedResponse } from "./constant/failed.response.object";
-import { PaginationNeo4jParams } from "./constant/pagination.param";
+import { PaginationNeo4jParamsWithClassName } from "./constant/pagination.param";
 import { has_children_error } from "./constant/custom.error.object";
 
 @Injectable()
@@ -474,7 +474,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async findAllByClassName(data: PaginationNeo4jParams) {
+  async findAllByClassName(data: PaginationNeo4jParamsWithClassName) {
     let { page = 0, orderByColumn = "name" } = data;
     const { limit = 10, class_name, orderBy = "DESC" } = data;
 

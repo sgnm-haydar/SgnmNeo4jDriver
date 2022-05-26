@@ -1,6 +1,6 @@
 {
   "name": "sgnm-neo4j",
-  "version": "0.0.80",
+  "version": "0.0.82",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.js",
