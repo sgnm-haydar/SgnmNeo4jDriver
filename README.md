@@ -12,10 +12,9 @@
 This repository provides [Neo4j](https://www.neo4j.com) integration for [Nest](http://nestjs.com/).
 
 ## Description of Library
-
-This package convenient for tree structure .
 (as default u can use `read()` and `write()` method for  your own cyper query)
-for tree structure as default create Parent Relation with `[:CHILD_OF]`  and for CHİELD relation  `[:CHİLDREN]` r
+This package convenient for tree structure .
+for tree structure as default package creates Parent Relation with `[:CHILD_OF]`  and for CHİLD relation with `[:CHİLDREN]` 
 
 ## Installation
 
@@ -108,9 +107,6 @@ export class AppController {
 
 
 ```ts
-
-```ts
-
 {
 "code": "uniq-id",
 "labelclass": "node", //sample match(n:node label)
@@ -134,7 +130,7 @@ export class AppController {
 
 ## Methods
 
-some method like `delete(id)` used other method like `updateIsDeleted(true)`
+some method like `delete(id)` used other method like `updateIsDeleted(true)` check github for more details source code in `src/neo4j.service.ts`
 
 
 ```ts
@@ -143,8 +139,9 @@ getReadSession(database?: string): Session;
 getWriteSession(database?: string): Session;
 read(query: string, params?: object, database?: string): Result;
 write(query: string, params?: object, database?: string): Result;
+findByIdWithTreeStructure(id: string);
 getChildrenCount(id: string);
-etParentById(id: string);
+getParentById(id: string);
 create(entity:object);
 findAllByClassName(data: PaginationNeo4jParamsWithClassName);
 delete(id: string);
