@@ -94,7 +94,7 @@ export class AppController {
 
   @Patch(":id")
   update(@Param("id") id: string, @Body() updateDto: UpdateDto) {
-    return this.neo4jService.updateById(id, updateClassificationDto);
+    return await this.neo4jService.updateById(id, updateDto);
   }
 }
 ```

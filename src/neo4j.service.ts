@@ -111,7 +111,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!result["records"][0]) {
         return null;
       }
-      return result["records"][0]["_fields"];
+      return result["records"][0]["_fields"][0];
     } catch (error) {
       throw newError(error, "500");
     }
@@ -121,7 +121,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
     if (!tree) {
       return null;
-    } else if (Object.keys(tree[0]).length === 0) {
+    } else if (Object.keys(tree).length === 0) {
       tree = await this.findById(id);
       const rootNodeObject = { root: tree };
       return rootNodeObject;
@@ -143,13 +143,13 @@ export class Neo4jService implements OnApplicationShutdown {
         return null;
       }
 
-      return result["records"][0]["_fields"];
+      return result["records"][0]["_fields"][0];
     } catch (error) {
       throw newError(error, "500");
     }
   }
 
-  async findNodeCountWithoutChildrenByClassName(
+  async findNodeCountByClassName(
     class_name: string,
     databaseOrTransaction?: string | Transaction
   ) {
@@ -234,7 +234,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
         if (parentChildCount === 0) {
           //nodun bir propertisini güncelleme
-          this.updateSelectableProp(parent_id, true);
+          this.updateIsSelectableProp(parent_id, true);
         }
       }
     } catch (error) {
@@ -251,7 +251,7 @@ export class Neo4jService implements OnApplicationShutdown {
       await this.updateHasParentProp(_id, true);
 
       //update 1 property of node
-      await this.updateSelectableProp(_target_parent_id, false);
+      await this.updateIsSelectableProp(_target_parent_id, false);
     } catch (error) {
       throw newError(error, "500");
     }
@@ -307,7 +307,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async updateSelectableProp(id: string, selectable: boolean) {
+  async updateIsSelectableProp(id: string, selectable: boolean) {
     try {
       const res = await this.write(
         "MATCH (node {isDeleted: false}) where id(node)= $id set node.selectable=$selectable return node",
@@ -341,7 +341,7 @@ export class Neo4jService implements OnApplicationShutdown {
     } catch (error) {
       throw newError(failedResponse(error), "400");
     }
-  }
+  } 
 
   async addChildrenRelationById(child_id: string, target_parent_id: string) {
     try {
@@ -456,7 +456,7 @@ export class Neo4jService implements OnApplicationShutdown {
           const parent_id = parent["_fields"][0]["properties"].self_id;
           const childrenCount = await this.getChildrenCount(parent_id);
           if (childrenCount === 0) {
-            this.updateSelectableProp(parent_id, true);
+            await this.updateIsSelectableProp(parent_id, true);
           }
         }
         const deletedNode = await this.updateIsDeletedProp(id, true);
@@ -481,7 +481,7 @@ export class Neo4jService implements OnApplicationShutdown {
     if (orderByColumn == "undefined") {
       orderByColumn = "name";
     }
-    const res = await this.findNodeCountWithoutChildrenByClassName(class_name);
+    const res = await this.findNodeCountByClassName(class_name);
     const count = res.result;
 
     const pagecount = Math.ceil(count / limit);
@@ -532,7 +532,7 @@ export class Neo4jService implements OnApplicationShutdown {
       await this.addParentByLabelClass(entity);
 
       //set parent node selectable prop false
-      await this.updateSelectableProp(entity["parent_id"], false);
+      await this.updateIsSelectableProp(entity["parent_id"], false);
 
       return createdNode.result["records"][0]["_fields"][0];
     } else {
