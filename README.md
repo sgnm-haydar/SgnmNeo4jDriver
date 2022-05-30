@@ -98,8 +98,34 @@ export class AppController {
   }
 }
 ```
+## sample node
+
+```ts
+{
+"code": "uniq-id",
+"labelclass": "node", //sample match(n:node label)
+"selectable": false, //fot tree stcructure 
+"self_id": 0,//id of node
+"label": " custom name", 
+"isActive": true,//node is active
+"createdAt": "2022-04-11T00:00:00", //create time
+"isDeleted": false,//node is deleted
+"name": "Test Node", //node name
+"tag": [
+          "test Tag",
+          "Person"
+        ],//if u tag node 
+"class_name": "TestClass", //node from class that u create
+"key": "11-00-00-00&0", //uniqe key
+"updatedAt": "2022-04-11T00:00:00", //update time
+"hasParent": false //node has parent for tree structure
+}
+```
 
 ## Methods
+```
+some method like delete(id) used other method like updateIsDeleted()
+```
 
 ```ts
 getConfig(): Neo4jConfig;
@@ -107,4 +133,22 @@ getReadSession(database?: string): Session;
 getWriteSession(database?: string): Session;
 read(query: string, params?: object, database?: string): Result;
 write(query: string, params?: object, database?: string): Result;
+getChildrenCount(id: string);
+etParentById(id: string);
+create(entity:object);
+findAllByClassName(data: PaginationNeo4jParamsWithClassName);
+delete(id: string);
+deleteParentRelation(id: string);
+deleteChildrenRelation(id: string);
+createChildrenByLabelClass(entity: object);
+updateIsSelectableProp(id: string, selectable: boolean); 
+updateIsDeletedProp(id: string, isDeleted: boolean);
+updateHasParentProp(id: string, hasParent: boolean);
+findOneNodeByKey(key: string);
+addRelations(_id: string, _target_parent_id: string);
+updateById(id: string, params: object);
+createNode(params: object);
+findRootNodeByClassName(params: findNodeCountByClassNameDto);
+findNodeCountByClassName(class_name: string);
+findById(id: string);
 ```
