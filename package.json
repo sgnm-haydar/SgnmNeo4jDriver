@@ -1,7 +1,7 @@
 {
   "name": "sgnm-neo4j",
-  "version": "0.0.88",
-  "description": "",
+  "version": "0.0.93",
+  "description": "neo4j module for nestJs",
   "main": "dist/index.js",
   "types": "dist/index.d.js",
   "scripts": {
@@ -12,7 +12,12 @@
     "type": "git",
     "url": "git+https://github.com/sgnm-haydar/SgnmNeo4jDriver.git"
   },
-  "keywords": [],
+  "keywords": [
+    "neo4j",
+    "sgnm-neo4j-driver",
+    "nest-neo4j",
+    "nest-neo4j-driver"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {

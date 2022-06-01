@@ -1,7 +1,5 @@
 import { int } from "neo4j-driver";
 
-
-
 //transfer dto(object come from client) properties to specific node entity object
 export function assignDtoPropToEntity(entity, dto) {
   Object.keys(dto).forEach((element) => {
@@ -21,8 +19,8 @@ export function assignDtoPropToEntity(entity, dto) {
       =  createDynamicCyperCreateQuery(entity); is equalent
 
 */
-export function createDynamicCyperCreateQuery(entity: object) {
-  let dynamicQueryParameter = `CREATE (node: ${entity["labelclass"]} {`;
+export function createDynamicCyperCreateQuery(entity: object, label) {
+  let dynamicQueryParameter = `CREATE (node:${label}:${entity["labelclass"]} {`;
 
   Object.keys(entity).forEach((element, index) => {
     if (Object.keys(entity).length === index + 1) {
@@ -45,8 +43,8 @@ export function createDynamicCyperCreateQuery(entity: object) {
       const x =  createDynamiCyperParam(entity); is equalent
 
 */
-export function createDynamiCyperParam(entity: object) {
-  let dynamicQueryParameter = `(x: ${entity['labelclass']} {`;
+export function createDynamiCyperParam(entity: object, label) {
+  let dynamicQueryParameter = `(x:${label}:${entity["labelclass"]} {`;
 
   Object.keys(entity).forEach((element, index) => {
     if (Object.keys(entity).length === index + 1) {
@@ -97,7 +95,8 @@ export function updateNodeQuery(id, dto) {
 
   Object.keys(dto).forEach((element, index) => {
     if (Object.keys(dto).length === index + 1) {
-      dynamicQueryParameter += `node.${element}` + `= $` + `${element} return node`;
+      dynamicQueryParameter +=
+        `node.${element}` + `= $` + `${element} return node`;
     } else {
       dynamicQueryParameter += `node.${element}` + `= $` + `${element} ,`;
     }

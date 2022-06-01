@@ -91,6 +91,43 @@ export class Neo4jService implements OnApplicationShutdown {
     const session = this.getWriteSession(<string>databaseOrTransaction);
     return session.run(cypher, params);
   }
+  async findWithChildrenByRealmAsTree(realm: string) {
+    try {
+      const node = await this.findByRealm(realm);
+      if (!node) {
+        return null;
+      }
+
+      const cypher =
+        "MATCH p=(n)-[:CHILDREN*]->(m) \
+            WHERE n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
+            WITH COLLECT(p) AS ps \
+            CALL apoc.convert.toTree(ps) yield value \
+            RETURN value";
+
+      const result = await this.read(cypher, { realm });
+      if (!result["records"][0]) {
+        return null;
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+  async findByRealmWithTreeStructure(realm: string) {
+    let tree = await this.findWithChildrenByRealmAsTree(realm);
+
+    if (!tree) {
+      return null;
+    } else if (Object.keys(tree).length === 0) {
+      tree = await this.findByRealm(realm);
+      const rootNodeObject = { root: tree };
+      return rootNodeObject;
+    } else {
+      const rootNodeObject = { root: tree };
+      return rootNodeObject;
+    }
+  }
 
   async findWithChildrenByIdAsTree(id: string) {
     try {
@@ -149,6 +186,25 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  async findByRealm(
+    realm: string,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const cypher =
+        "MATCH (n {isDeleted: false}) where n.realm = $realm return n";
+
+      const result = await this.read(cypher, { realm });
+      if (!result["records"][0]) {
+        return null;
+      }
+
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+
   async findNodeCountByClassName(
     class_name: string,
     databaseOrTransaction?: string | Transaction
@@ -181,10 +237,11 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async createNode(
     params: object,
+    label: string,
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      const cyperQuery = createDynamicCyperCreateQuery(params);
+      const cyperQuery = createDynamicCyperCreateQuery(params, label);
 
       if (databaseOrTransaction instanceof TransactionImpl) {
         return (<Transaction>databaseOrTransaction).run(cyperQuery, params);
@@ -341,7 +398,7 @@ export class Neo4jService implements OnApplicationShutdown {
     } catch (error) {
       throw newError(failedResponse(error), "400");
     }
-  } 
+  }
 
   async addChildrenRelationById(child_id: string, target_parent_id: string) {
     try {
@@ -369,11 +426,12 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createChildrenByLabelClass(entity: object) {
+  async createChildrenByLabelClass(entity: object, label: string) {
     try {
-      const dynamicCyperParameter = createDynamiCyperParam(entity);
+      delete entity["realm"];
+      const dynamicCyperParameter = createDynamiCyperParam(entity, label);
       const query =
-        ` match (y: ${entity["labelclass"]} {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->` +
+        ` match (y:${label}:${entity["labelclass"]} {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->` +
         dynamicCyperParameter;
 
       const res = await this.write(query, entity);
@@ -384,8 +442,8 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async addParentByLabelClass(entity) {
-    const query = `match (x: ${entity.labelclass} {isDeleted: false, code: $code}) \
+  async addParentByLabelClass(entity, label: string) {
+    const query = `match (x:${label}:${entity.labelclass} {isDeleted: false, code: $code}) \
     match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
     create (x)-[:CHILD_OF]->(y)`;
     try {
@@ -518,18 +576,18 @@ export class Neo4jService implements OnApplicationShutdown {
     return nodes;
   }
 
-  async create(entity) {
+  async create(entity: object, label: string) {
     if (entity["parent_id"]) {
-      const createdNode = await this.createChildrenByLabelClass(entity);
+      const createdNode = await this.createChildrenByLabelClass(entity, label);
 
       await this.write(
-        `match (x: ${entity["labelclass"]} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
+        `match (x:${label}:${entity["labelclass"]} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
         {
-          key: entity.key,
+          key: entity["key"],
         }
       );
       //Add relation between parent and created node by CHILD_OF relation
-      await this.addParentByLabelClass(entity);
+      await this.addParentByLabelClass(entity, label);
 
       //set parent node selectable prop false
       await this.updateIsSelectableProp(entity["parent_id"], false);
@@ -538,7 +596,7 @@ export class Neo4jService implements OnApplicationShutdown {
     } else {
       entity["hasParent"] = false;
 
-      const createdNode = await this.createNode(entity);
+      const createdNode = await this.createNode(entity, label);
 
       await this.write(
         `match (x:${entity["labelclass"]}  {isDeleted: false,  key: $key}) set x.self_id = id(x)`,
