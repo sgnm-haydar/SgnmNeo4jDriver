@@ -91,43 +91,6 @@ export class Neo4jService implements OnApplicationShutdown {
     const session = this.getWriteSession(<string>databaseOrTransaction);
     return session.run(cypher, params);
   }
-  async findWithChildrenByRealmAsTree(realm: string) {
-    try {
-      const node = await this.findByRealm(realm);
-      if (!node) {
-        return null;
-      }
-
-      const cypher =
-        "MATCH p=(n)-[:CHILDREN*]->(m) \
-            WHERE n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
-            WITH COLLECT(p) AS ps \
-            CALL apoc.convert.toTree(ps) yield value \
-            RETURN value";
-
-      const result = await this.read(cypher, { realm });
-      if (!result["records"][0]) {
-        return null;
-      }
-      return result["records"][0]["_fields"][0];
-    } catch (error) {
-      throw newError(error, "500");
-    }
-  }
-  async findByRealmWithTreeStructure(realm: string) {
-    let tree = await this.findWithChildrenByRealmAsTree(realm);
-
-    if (!tree) {
-      return null;
-    } else if (Object.keys(tree).length === 0) {
-      tree = await this.findByRealm(realm);
-      const rootNodeObject = { root: tree };
-      return rootNodeObject;
-    } else {
-      const rootNodeObject = { root: tree };
-      return rootNodeObject;
-    }
-  }
 
   async findWithChildrenByIdAsTree(id: string) {
     try {
@@ -148,7 +111,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!result["records"][0]) {
         return null;
       }
-      return result["records"][0]["_fields"][0];
+      return result["records"][0]["_fields"];
     } catch (error) {
       throw newError(error, "500");
     }
@@ -158,7 +121,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
     if (!tree) {
       return null;
-    } else if (Object.keys(tree).length === 0) {
+    } else if (Object.keys(tree[0]).length === 0) {
       tree = await this.findById(id);
       const rootNodeObject = { root: tree };
       return rootNodeObject;
@@ -167,7 +130,111 @@ export class Neo4jService implements OnApplicationShutdown {
       return rootNodeObject;
     }
   }
+  //////////////////////////////// Atamer //////////////////////////////////////
+  async findWithChildrenByIdAndLabelsAsTree(id: string, label1: string, label2: string) {
+    try {
+      const node = await this.findById(id);
+      if (!node) {
+        return null;
+      }
+      const idNum = parseInt(id);
 
+      const cypher =
+        "MATCH p=(n {isDeleted:false})-[:CHILDREN*]->(m {isDeleted:false}) \
+            WHERE  id(n) = $idNum and n.labelclass=$label1 and m.labelclass=$label2  \
+            WITH COLLECT(p) AS ps \
+            CALL apoc.convert.toTree(ps) yield value \
+            RETURN value";
+
+      const result = await this.read(cypher, { idNum, label1, label2 });
+      if (!result["records"][0]) {
+        return null;
+      }
+      return result["records"][0]["_fields"];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+  async findByIdAndLabelsWithTreeStructure(id: string, label1: string, label2: string) {
+    let tree = await this.findWithChildrenByIdAndLabelsAsTree(id, label1, label2);
+
+    if (!tree) {
+      return null;
+    } else if (Object.keys(tree[0]).length === 0) {
+      tree = await this.findById(id);
+      const rootNodeObject = { root: tree };
+      return rootNodeObject;
+    } else {
+      const rootNodeObject = { root: tree };
+      return rootNodeObject;
+    }
+  }
+  async findByIdAndLabelsWithChildNodes(id: string, label1: string, label2: string, orderbyprop?: string,  orderbytype?: string) {
+    try {
+      const node = await this.findById(id);
+      if (!node) {
+        return null;
+      }
+      const idNum = parseInt(id);
+      let cypher = "";
+      if (orderbyprop) {
+        cypher = `MATCH (c: ${label1} {isDeleted: false})-[:CHILDREN]->(n: ${label2} {isDeleted: false}) where id(c)=$idNum return n order by n.${orderbyprop} ${orderbytype}`;
+      }
+      else {
+        cypher = `MATCH (c: ${label1} {isDeleted: false})-[:CHILDREN]->(n: ${label2} {isDeleted: false}) where id(c)=$idNum return n`;
+      } 
+
+      const result = await this.read(cypher, { idNum });
+   
+      if (!result["records"][0]) {
+        return null;
+      }
+      return result["records"];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+
+  async findByIdAndLabelsWithActiveChildNodes(id: string, label1: string, label2: string, orderbyprop?: string,  orderbytype?: string) {
+    try {
+      const node = await this.findById(id);
+      if (!node) {
+        return null;
+      }
+      const idNum = parseInt(id);
+      let cypher = "";
+      if (orderbyprop) {
+        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where id(c)=$idNum return n order by n.${orderbyprop} ${orderbytype}`;
+      }
+      else {
+        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where id(c)=$idNum return n`;
+      } 
+      const result = await this.read(cypher, { idNum });
+   
+      if (!result["records"][0]) {
+        return null;
+      }
+      return result["records"];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+
+  async findNodeByIdAndLabel(id: string, label: string) {
+    try {
+      const idNum = parseInt(id);
+      const cypher = `MATCH (c: ${label} {isDeleted: false}) where id(c)=$idNum return c`;
+      const result = await this.read(cypher, { idNum });
+   
+      if (!result["records"][0]) {
+        return null;
+      }
+      return result["records"];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+}
+  //////////////////////////////////////////////////////////////////////////////
   async findById(id: string, databaseOrTransaction?: string | Transaction) {
     try {
       const idNum = parseInt(id);
@@ -180,32 +247,13 @@ export class Neo4jService implements OnApplicationShutdown {
         return null;
       }
 
-      return result["records"][0]["_fields"][0];
+      return result["records"][0]["_fields"];
     } catch (error) {
       throw newError(error, "500");
     }
   }
 
-  async findByRealm(
-    realm: string,
-    databaseOrTransaction?: string | Transaction
-  ) {
-    try {
-      const cypher =
-        "MATCH (n {isDeleted: false}) where n.realm = $realm return n";
-
-      const result = await this.read(cypher, { realm });
-      if (!result["records"][0]) {
-        return null;
-      }
-
-      return result["records"][0]["_fields"][0];
-    } catch (error) {
-      throw newError(error, "500");
-    }
-  }
-
-  async findNodeCountByClassName(
+  async findNodeCountByClassName(    //DİKKAT1   önceki isminde ilave olarak withoutChildren vardı.
     class_name: string,
     databaseOrTransaction?: string | Transaction
   ) {
@@ -235,13 +283,13 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createNode(
+  async createNode(     //DİKKAT 
     params: object,
     label: string,
     databaseOrTransaction?: string | Transaction
-  ) {
+    ) {
     try {
-      const cyperQuery = createDynamicCyperCreateQuery(params, label);
+      const cyperQuery = createDynamicCyperCreateQuery(params,label);
 
       if (databaseOrTransaction instanceof TransactionImpl) {
         return (<Transaction>databaseOrTransaction).run(cyperQuery, params);
@@ -291,7 +339,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
         if (parentChildCount === 0) {
           //nodun bir propertisini güncelleme
-          this.updateIsSelectableProp(parent_id, true);
+          this.updateSelectableProp(parent_id, true);
         }
       }
     } catch (error) {
@@ -308,7 +356,7 @@ export class Neo4jService implements OnApplicationShutdown {
       await this.updateHasParentProp(_id, true);
 
       //update 1 property of node
-      await this.updateIsSelectableProp(_target_parent_id, false);
+      await this.updateSelectableProp(_target_parent_id, false);
     } catch (error) {
       throw newError(error, "500");
     }
@@ -364,7 +412,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async updateIsSelectableProp(id: string, selectable: boolean) {
+  async updateSelectableProp(id: string, selectable: boolean) {
     try {
       const res = await this.write(
         "MATCH (node {isDeleted: false}) where id(node)= $id set node.selectable=$selectable return node",
@@ -426,13 +474,17 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createChildrenByLabelClass(entity: object, label: string) {
+  async createChildrenByLabelClass(entity: object, label: string) {   //DİKKAT
     try {
-      delete entity["realm"];
-      const dynamicCyperParameter = createDynamiCyperParam(entity, label);
-      const query =
-        ` match (y:${label}:${entity["labelclass"]} {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->` +
-        dynamicCyperParameter;
+      delete entity["realm"]
+      const dynamicCyperParameter = createDynamiCyperParam(entity,label);
+      let query =
+      ` match (y:${label}:${entity["labelclass"]} {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->`;
+      if (entity["__label"]) {
+        query =
+        ` match (y:${label}:${entity["__labelParent"]} {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->`;
+      }
+      query = query +  dynamicCyperParameter;  
 
       const res = await this.write(query, entity);
 
@@ -442,10 +494,18 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async addParentByLabelClass(entity, label: string) {
-    const query = `match (x:${label}:${entity.labelclass} {isDeleted: false, code: $code}) \
+  async addParentByLabelClass(entity, label: string) {  //DİKKAT
+    
+    let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
     match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
     create (x)-[:CHILD_OF]->(y)`;
+
+    if (entity['__label']) {
+      query = `match (x:${label}:${entity.__label} {isDeleted: false, key: $key}) \
+      match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
+      create (x)-[:CHILD_OF]->(y)`;
+
+    }
     try {
       const res = await this.write(query, entity);
 
@@ -514,7 +574,7 @@ export class Neo4jService implements OnApplicationShutdown {
           const parent_id = parent["_fields"][0]["properties"].self_id;
           const childrenCount = await this.getChildrenCount(parent_id);
           if (childrenCount === 0) {
-            await this.updateIsSelectableProp(parent_id, true);
+            this.updateSelectableProp(parent_id, true);
           }
         }
         const deletedNode = await this.updateIsDeletedProp(id, true);
@@ -576,21 +636,21 @@ export class Neo4jService implements OnApplicationShutdown {
     return nodes;
   }
 
-  async create(entity: object, label: string) {
+  async create(entity, label: string) {          //DİKKAT
     if (entity["parent_id"]) {
       const createdNode = await this.createChildrenByLabelClass(entity, label);
 
       await this.write(
         `match (x:${label}:${entity["labelclass"]} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
         {
-          key: entity["key"],
+          key: entity.key,
         }
       );
       //Add relation between parent and created node by CHILD_OF relation
       await this.addParentByLabelClass(entity, label);
 
       //set parent node selectable prop false
-      await this.updateIsSelectableProp(entity["parent_id"], false);
+      await this.updateSelectableProp(entity["parent_id"], false);
 
       return createdNode.result["records"][0]["_fields"][0];
     } else {
@@ -607,7 +667,91 @@ export class Neo4jService implements OnApplicationShutdown {
       return createdNode;
     }
   }
+  ///////////////////////////////////////// atamer //////////////////////////////////////////////////////////
+  async updateHasTypeProp(id: string, hasLabeledNode: boolean) {
+    try {
+      const res = await this.write(
+        "MATCH (node {isDeleted: false}) where id(node)= $id set node.hasType=$hasLabeledNode return node",
+        {
+          id: parseInt(id),
+          hasLabeledNode,
+        }
+      );
 
+      return successResponse(res["records"][0]["_fields"][0]);
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  async createNodeWithLabel(entity, label) {
+      
+   
+      const createdNode = await this.createChildrenByLabelClass(entity, label);
+ 
+      await this.addParentByLabelClass(entity, label);
+
+      return createdNode.result["records"][0]["_fields"][0];
+
+  }
+  async createNodeForParentWithLabel(entity) {
+       entity.hasParent = false;
+
+
+}
+  
+  async deleteChildrenNodesByIdAndLabels(id: string, label1: string, label2: string) {
+    try {
+      const childrenList = await this.write(
+        `MATCH (c: ${label1} {isDeleted: false})-[:CHILDREN]->(n: ${label2}  {isDeleted: false}) where id(c)=$id detach delete n`,
+       {
+           id: id
+         }
+      );
+      return childrenList["records"][0];
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  async getChildrenCountByIdAndLabels(id: string, label1: string, label2: string) {
+    try {
+      const res = await this.read(
+        `MATCH (c {isDeleted: false}) where id(c)= $id MATCH (d {isDeleted: false}) where d:${label1} and not d:${label2} MATCH (c)-[:CHILDREN]->(d) return count(d)`,
+        { id: parseInt(id) }
+      );
+
+      return res["records"][0]["_fields"][0].low;
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  async getChildrensChildrenCountByIdAndLabels(id: string, label1: string, label2: string, label3: string) {
+    try {
+      const res = await this.read(
+        `MATCH (c {isDeleted: false}) -[r1:CHILDREN]->(p {isDeleted: false})-[r2:CHILDREN]-(s {isDeleted: false}) 
+                where id(c)= $id and p:${label1} and not p:${label2} and s:${label3} return count(s)`,
+        { id: parseInt(id) }
+      );
+
+      return res["records"][0]["_fields"][0].low;
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+
+  async setDeletedTrueToNodeAndChildByIdAndLabels(id: string, label1: string, label2: string) {
+    try {
+      const res = await this.write(
+        `MATCH (c {isDeleted: false}) where id(c)= $id MATCH (d {isDeleted: false}) where d:${label1} and not d:${label2} MATCH (c)-[:CHILDREN]->(d) 
+            set c.isDeleted=true, d.isDeleted=true`,
+        { id: parseInt(id) }
+      );
+
+      return res["records"];
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////// 
   async getParentById(id: string) {
     try {
       const res = await this.read(

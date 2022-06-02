@@ -1,9 +1,11 @@
 import { int } from "neo4j-driver";
-
+import { startWith } from "rxjs";
 //transfer dto(object come from client) properties to specific node entity object
 export function assignDtoPropToEntity(entity, dto) {
   Object.keys(dto).forEach((element) => {
-    entity[element] = dto[element];
+
+        entity[element] = dto[element];
+
   });
 
   return entity;
@@ -20,16 +22,46 @@ export function assignDtoPropToEntity(entity, dto) {
 
 */
 export function createDynamicCyperCreateQuery(entity: object, label) {
-  let dynamicQueryParameter = `CREATE (node:${label}:${entity["labelclass"]} {`;
 
+  let dynamicQueryParameter = `CREATE (node:${label}:${entity["labelclass"]} {`;
+  if (entity['__label']) {
+    dynamicQueryParameter = `CREATE (node:${label}:${entity["__label"]} {`;
+  }
+  let counter = 0;
   Object.keys(entity).forEach((element, index) => {
+   
     if (Object.keys(entity).length === index + 1) {
-      dynamicQueryParameter +=
-        `${element}` + `: $` + `${element} }) return node`;
+      if (!element.startsWith('__')) {
+        if (counter == 0) {
+          dynamicQueryParameter +=
+          ` ${element}` + `: $` + `${element} }) return node`;
+          counter = counter + 1;
+        }
+        else {
+          dynamicQueryParameter +=
+          `,${element}` + `: $` + `${element} }) return node`;
+          counter = counter + 1;
+        }
+        
+      }
+      else {
+        dynamicQueryParameter +=
+        ` }) return node`;
+      }
     } else {
-      dynamicQueryParameter += `${element}` + `: $` + `${element},`;
+      if (!element.startsWith('__')) {
+        if (counter == 0) {
+          dynamicQueryParameter += ` ${element}` + `: $` + `${element}`;
+          counter = counter + 1;
+         } else {
+          dynamicQueryParameter += `,${element}` + `: $` + `${element}`;
+          counter = counter + 1;
+         }
+       
+      }
     }
   });
+
   return dynamicQueryParameter;
 }
 
@@ -44,15 +76,46 @@ export function createDynamicCyperCreateQuery(entity: object, label) {
 
 */
 export function createDynamiCyperParam(entity: object, label) {
-  let dynamicQueryParameter = `(x:${label}:${entity["labelclass"]} {`;
-
+  let dynamicQueryParameter = `(node:${label}:${entity['labelclass']} {`;
+  if (entity["__label"]) {
+    dynamicQueryParameter = `(node:${label}:${entity['__label']} {`;
+  }
+  
+  let counter = 0;
   Object.keys(entity).forEach((element, index) => {
+   
     if (Object.keys(entity).length === index + 1) {
-      dynamicQueryParameter += `${element}` + `: $` + `${element} }) return x`;
+      if (!element.startsWith('__')) {
+        if (counter == 0) {
+          dynamicQueryParameter +=
+          ` ${element}` + `: $` + `${element} }) return node`;
+          counter = counter + 1;
+        }
+        else {
+          dynamicQueryParameter +=
+          `,${element}` + `: $` + `${element} }) return node`;
+          counter = counter + 1;
+        }
+        
+      }
+      else {
+        dynamicQueryParameter +=
+        ` }) return node`;
+      }
     } else {
-      dynamicQueryParameter += `${element}` + `: $` + `${element},`;
+      if (!element.startsWith('__')) {
+        if (counter == 0) {
+          dynamicQueryParameter += ` ${element}` + `: $` + `${element}`;
+          counter = counter + 1;
+         } else {
+          dynamicQueryParameter += `,${element}` + `: $` + `${element}`;
+          counter = counter + 1;
+         }
+       
+      }
     }
   });
+  console.log(dynamicQueryParameter)
   return dynamicQueryParameter;
 }
 
@@ -92,13 +155,38 @@ export function createDynamicCyperObject(entity) {
 export function updateNodeQuery(id, dto) {
   id = int(id);
   let dynamicQueryParameter = ` match (node {isDeleted: false}) where id(node) = ${id} set `;
-
+  let counter = 0;
   Object.keys(dto).forEach((element, index) => {
+   
     if (Object.keys(dto).length === index + 1) {
-      dynamicQueryParameter +=
-        `node.${element}` + `= $` + `${element} return node`;
+      if (!element.startsWith('__')) {
+        if (counter == 0) {
+          dynamicQueryParameter +=
+          ` node.${element}` + `= $` + `${element}  return node`;
+          counter = counter + 1;
+        }
+        else {
+          dynamicQueryParameter +=
+          `,node.${element}` + `= $` + `${element}  return node`;
+          counter = counter + 1;
+        }
+        
+      }
+      else {
+        dynamicQueryParameter +=
+        `  return node`;
+      }
     } else {
-      dynamicQueryParameter += `node.${element}` + `= $` + `${element} ,`;
+      if (!element.startsWith('__')) {
+        if (counter == 0) {
+          dynamicQueryParameter += ` node.${element}` + `= $` + `${element}`;
+          counter = counter + 1;
+         } else {
+          dynamicQueryParameter += `,node.${element}` + `= $` + `${element}`;
+          counter = counter + 1;
+         }
+       
+      }
     }
   });
   return dynamicQueryParameter;
