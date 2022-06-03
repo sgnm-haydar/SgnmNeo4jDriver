@@ -781,4 +781,63 @@ export class Neo4jService implements OnApplicationShutdown {
   onApplicationShutdown() {
     return this.driver.close();
   }
+
+  async findWithChildrenByRealmAsTree(realm: string) {
+    try {
+      const node = await this.findByRealm(realm);
+      if (!node) {
+        return null;
+      }
+
+      const cypher =
+        "MATCH p=(n)-[:CHILDREN*]->(m) \
+            WHERE n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
+            WITH COLLECT(p) AS ps \
+            CALL apoc.convert.toTree(ps) yield value \
+            RETURN value";
+
+      const result = await this.read(cypher, { realm });
+      if (!result["records"][0]) {
+        return null;
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+
+async findByRealmWithTreeStructure(realm: string) {
+    let tree = await this.findWithChildrenByRealmAsTree(realm);
+
+    if (!tree) {
+      return null;
+    } else if (Object.keys(tree).length === 0) {
+      tree = await this.findByRealm(realm);
+      const rootNodeObject = { root: tree };
+      return rootNodeObject;
+    } else {
+      const rootNodeObject = { root: tree };
+      return rootNodeObject;
+    }
+  }
+
+async findByRealm(
+    realm: string,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const cypher =
+        "MATCH (n {isDeleted: false}) where n.realm = $realm return n";
+
+      const result = await this.read(cypher, { realm });
+      if (!result["records"][0]) {
+        return null;
+      }
+
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      throw newError(error, "500");
+    }
+  }
+
 }
