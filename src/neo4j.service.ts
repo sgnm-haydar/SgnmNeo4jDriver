@@ -111,7 +111,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!result["records"][0]) {
         return null;
       }
-      return result["records"][0]["_fields"];
+      return result["records"][0]["_fields"][0];
     } catch (error) {
       throw newError(error, "500");
     }
@@ -121,7 +121,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
     if (!tree) {
       return null;
-    } else if (Object.keys(tree[0]).length === 0) {
+    } else if (Object.keys(tree).length === 0) {
       tree = await this.findById(id);
       const rootNodeObject = { root: tree };
       return rootNodeObject;
@@ -247,7 +247,7 @@ export class Neo4jService implements OnApplicationShutdown {
         return null;
       }
 
-      return result["records"][0]["_fields"];
+      return result["records"][0]["_fields"][0];
     } catch (error) {
       throw newError(error, "500");
     }
@@ -569,7 +569,7 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(has_children_error, 400);
       } else {
         const parent = await this.getParentById(id);
-
+        const deletedNode = await this.updateIsDeletedProp(id, true);
         if (parent) {
           const parent_id = parent["_fields"][0]["properties"].self_id;
           const childrenCount = await this.getChildrenCount(parent_id);
@@ -577,7 +577,7 @@ export class Neo4jService implements OnApplicationShutdown {
             this.updateSelectableProp(parent_id, true);
           }
         }
-        const deletedNode = await this.updateIsDeletedProp(id, true);
+        //////
         return deletedNode;
       }
     } catch (error) {
