@@ -123,7 +123,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_id_as_tree_error,404);
       }
-      return result["records"][0]["_fields"];
+      return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response.code) {
         throw new HttpException(
@@ -144,7 +144,9 @@ export class Neo4jService implements OnApplicationShutdown {
       let tree = await this.findWithChildrenByIdAsTree(id);
 
     if (!tree) {
+
       throw new HttpException(tree_not_found,404);
+
 
     } else if (Object.keys(tree).length === 0) {
       tree = await this.findById(id);
@@ -208,8 +210,10 @@ export class Neo4jService implements OnApplicationShutdown {
     }
     let tree = await this.findWithChildrenByIdAndLabelsAsTree(id, label1, label2);
 
+
     if (!tree) {
       throw new HttpException(find_by_id_and_labels_with_tree_structure__not_found_error,404);
+
     } else if (Object.keys(tree).length === 0) {
       tree = await this.findById(id);
       const rootNodeObject = { root: tree };
@@ -880,7 +884,7 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
       }
 
       const childrenCount = await this.getChildrenCount(id);
-
+      
       if (childrenCount > 0) {
         throw new HttpException(has_children_error, 400);
       } else {
@@ -889,6 +893,7 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
         if(!parent){
           throw new HttpException(delete__get_parent_by_id_error,404)
         }
+        const deletedNode = await this.updateIsDeletedProp(id, true);
         if (parent) {
           const parent_id = parent["_fields"][0]["properties"].self_id;
           const childrenCount = await this.getChildrenCount(parent_id);
@@ -896,7 +901,7 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
             this.updateSelectableProp(parent_id, true);
           }
         }
-        const deletedNode = await this.updateIsDeletedProp(id, true);
+        
         return deletedNode;
       }
     } catch (error) {
@@ -1242,6 +1247,7 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
   }
 
 
+
 async findWithChildrenByRealmAsTree(realm: string) {
     try {
       if(!realm){
@@ -1250,7 +1256,7 @@ async findWithChildrenByRealmAsTree(realm: string) {
       const node = await this.findByRealm(realm);
       if (!node) {
         throw new HttpException(find_with_children_by_realm_as_tree__find_by_realm_error, 404);
-      }
+
 
       const cypher =
         "MATCH p=(n)-[:CHILDREN*]->(m) \
@@ -1273,10 +1279,11 @@ async findWithChildrenByRealmAsTree(realm: string) {
       }else {
         throw newError(error, "500");
       }
-    }
+
   }
 
 async findByRealmWithTreeStructure(realm: string) {
+
   try {
 
     if(!realm){
@@ -1287,6 +1294,7 @@ async findByRealmWithTreeStructure(realm: string) {
 
     if (!tree) {
       throw new HttpException(tree_structure_not_found_by_realm_name_error,404);
+
     } else if (Object.keys(tree).length === 0) {
       tree = await this.findByRealm(realm);
       const rootNodeObject = { root: tree };
@@ -1295,6 +1303,7 @@ async findByRealmWithTreeStructure(realm: string) {
       const rootNodeObject = { root: tree };
       return rootNodeObject;
     }
+
   } catch (error) {
     if (error.response.code) {
       throw new HttpException(
@@ -1305,7 +1314,7 @@ async findByRealmWithTreeStructure(realm: string) {
       throw newError(error, "500");
     }
   }
-    
+
   }
 
 async findByRealm(
@@ -1314,20 +1323,24 @@ async findByRealm(
   ) {
     try {
 
+
       if(!realm){
         throw new HttpException(find_by_realm__not_entered_error,400)
 
       }
+
       const cypher =
         "MATCH (n {isDeleted: false}) where n.realm = $realm return n";
 
       const result = await this.read(cypher, { realm });
+
       if (!result["records"][0].length) {
         throw new HttpException(find_by_realm__not_found_error,404);
-      }
+
 
       return result["records"][0]["_fields"][0];
     } catch (error) {
+
       if (error.response.code) {
         throw new HttpException(
           { message: error.response.message, code: error.response.code },
@@ -1336,6 +1349,7 @@ async findByRealm(
       }else {
         throw newError(error, "500");
       }
+
     }
   }
 
