@@ -428,7 +428,23 @@ export class Neo4jService implements OnApplicationShutdown {
       throw newError(failedResponse(error), "400");
     }
   }
+  /////////////////////////////// 9 haz 2022 ////////////////////////////////////////////////////////////
+  async updateOptionalLabel(id: string, label: string) {
+    try {
+      const res = await this.write(
+        "MATCH (node {isDeleted: false}) where id(node)= $id set node.optionalLabel=$label return node",
+        {
+          id: parseInt(id),
+          label,
+        }
+      );
 
+      return successResponse(res["records"][0]["_fields"][0]);
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////
   async addRelationWithRelationName(
     first_node_id: string,
     second_node_id: string,
@@ -475,7 +491,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createChildrenByLabelClass(entity: object, label: string) {   //DİKKAT
+  async createChildrenByLabelClass(entity: object, label: string) {
     try {
       delete entity["realm"]
       const dynamicCyperParameter = createDynamiCyperParam(entity,label);
@@ -494,8 +510,25 @@ export class Neo4jService implements OnApplicationShutdown {
       throw newError(failedResponse(error), "400");
     }
   }
+  ///////////////////////// 8 Haz 2022 //////////////////////////////////////
+  async createChildrenByOptionalLabels(entity: object, label: string) {
+    try {
+      delete entity["realm"];
+      const dynamicCyperParameter = createDynamiCyperParam(entity,label);
+      let query =
+      ` match (y {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->`;
+      query = query +  dynamicCyperParameter;  
 
-  async addParentByLabelClass(entity, label: string) {  //DİKKAT
+      const res = await this.write(query, entity);
+
+      return successResponse(res);
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  ///////////////////////////////////////////////////////////////////////////
+
+  async addParentByLabelClass(entity, label: string) {
     
     let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
     match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
@@ -637,10 +670,18 @@ export class Neo4jService implements OnApplicationShutdown {
     return nodes;
   }
 
-  async create(entity, label: string) {          //DİKKAT
-    if (entity["parent_id"]) {
-      const createdNode = await this.createChildrenByLabelClass(entity, label);
-
+  async create(entity, label: string) {
+    if (entity["parent_id"]) { 
+    ////////////// 8 Haz 2022 /////////////////
+    let createdNode:any = "";
+     if (entity.optionalLabels && entity["optionalLabels"].length >0) {
+      createdNode = await this.createChildrenByOptionalLabels(entity, label);
+     }
+     else {
+      createdNode = await this.createChildrenByLabelClass(entity, label);
+     }
+    
+    ///////////////////////////////////////////
       await this.write(
         `match (x:${label}:${entity["labelclass"]} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
         {
