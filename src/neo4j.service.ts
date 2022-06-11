@@ -646,8 +646,24 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  /////////////////////////////// 9 haz 2022 ////////////////////////////////////////////////////////////
+  async updateOptionalLabel(id: string, label: string) {
+    try {
+      const res = await this.write(
+        "MATCH (node {isDeleted: false}) where id(node)= $id set node.optionalLabel=$label return node",
+        {
+          id: parseInt(id),
+          label,
+        }
+      );
 
-  async addRelationWithRelationName(  
+      return successResponse(res["records"][0]["_fields"][0]);
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////
+  async addRelationWithRelationName(
     first_node_id: string,
     second_node_id: string,
     relationName: string
@@ -733,7 +749,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createChildrenByLabelClass(entity: object, label: string) {   //DİKKAT -----YAZILACAK
+  async createChildrenByLabelClass(entity: object, label: string) {
     try {
       delete entity["realm"]
       const dynamicCyperParameter = createDynamiCyperParam(entity,label);
@@ -762,29 +778,44 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  ///////////////////////// 8 Haz 2022 //////////////////////////////////////
+  async createChildrenByOptionalLabels(entity: object, label: string) {
+    try {
+      delete entity["realm"];
+      const dynamicCyperParameter = createDynamiCyperParam(entity,label);
+      let query =
+      ` match (y {isDeleted: false}) where id(y)= $parent_id  create (y)-[:CHILDREN]->`;
+      query = query +  dynamicCyperParameter;  
 
-  async addParentByLabelClass(entity, label: string) {  //DİKKAT
+      const res = await this.write(query, entity);
+
+      return successResponse(res);
+    } catch (error) {
+      throw newError(failedResponse(error), "400");
+    }
+  }
+  ///////////////////////////////////////////////////////////////////////////
+
+  async addParentByLabelClass(entity, label: string) {
     try{
       if(!entity || !label) {
         throw new HttpException(add_parent_by_label_class_must_entered_error,400)
       }
-      let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
-      match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
+    let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
+    match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
+    create (x)-[:CHILD_OF]->(y)`;
+
+    if (entity['__label']) {
+      query = `match (x:${label}:${entity.__label} {isDeleted: false, key: $key}) \
+      match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
       create (x)-[:CHILD_OF]->(y)`;
-  
-      if (entity['__label']) {
-        query = `match (x:${label}:${entity.__label} {isDeleted: false, key: $key}) \
-        match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
-        create (x)-[:CHILD_OF]->(y)`;
-  
-      }
 
       const res = await this.write(query, entity);
 
       return successResponse(res);
     }
    
-
+  }
       
      catch (error) {
       if (error.response.code) {
@@ -987,7 +1018,14 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
             throw new HttpException(create__must_entered_error,400);
           }
           if (entity["parent_id"]) {
-            const createdNode = await this.createChildrenByLabelClass(entity, label);
+            ////////////// 8 Haz 2022 /////////////////
+          let createdNode:any = "";
+          if (entity.optionalLabels && entity["optionalLabels"].length >0) {
+            createdNode = await this.createChildrenByOptionalLabels(entity, label);
+          }
+          else {
+            createdNode = await this.createChildrenByLabelClass(entity, label);
+         }
       
             await this.write(
               `match (x:${label}:${entity["labelclass"]} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
@@ -1256,7 +1294,7 @@ async findWithChildrenByRealmAsTree(realm: string) {
       const node = await this.findByRealm(realm);
       if (!node) {
         throw new HttpException(find_with_children_by_realm_as_tree__find_by_realm_error, 404);
-
+      }
 
       const cypher =
         "MATCH p=(n)-[:CHILDREN*]->(m) \
@@ -1270,7 +1308,8 @@ async findWithChildrenByRealmAsTree(realm: string) {
        throw new HttpException(find_with_children_by_realm_as_tree_error,404);
       }
       return result["records"][0]["_fields"][0];
-    } catch (error) {
+     } 
+     catch (error) {
       if (error.response.code) {
         throw new HttpException(
           { message: error.response.message, code: error.response.code },
@@ -1279,7 +1318,7 @@ async findWithChildrenByRealmAsTree(realm: string) {
       }else {
         throw newError(error, "500");
       }
-
+     }
   }
 
 async findByRealmWithTreeStructure(realm: string) {
@@ -1323,12 +1362,9 @@ async findByRealm(
   ) {
     try {
 
-
       if(!realm){
         throw new HttpException(find_by_realm__not_entered_error,400)
-
       }
-
       const cypher =
         "MATCH (n {isDeleted: false}) where n.realm = $realm return n";
 
@@ -1336,7 +1372,7 @@ async findByRealm(
 
       if (!result["records"][0].length) {
         throw new HttpException(find_by_realm__not_found_error,404);
-
+      }
 
       return result["records"][0]["_fields"][0];
     } catch (error) {
