@@ -415,7 +415,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createNode(     //DİKKAT 
+  async createNode(
     params: object,
     label: string,
     databaseOrTransaction?: string | Transaction
@@ -1028,7 +1028,7 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
          }
       
             await this.write(
-              `match (x:${label}:${entity["labelclass"]} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
+              `match (x:${label} {isDeleted: false, key: $key}) set x.self_id = id(x)`,
               {
                 key: entity.key,
               }
@@ -1046,7 +1046,7 @@ let {relationshipsDeleted}=res.summary.updateStatistics.updates()
             const createdNode = await this.createNode(entity, label);
       
             await this.write(
-              `match (x:${entity["labelclass"]}  {isDeleted: false,  key: $key}) set x.self_id = id(x)`,
+              `match (x:${label}  {isDeleted: false,  key: $key}) set x.self_id = id(x)`,
               {
                 key: entity["key"],
               }
