@@ -172,6 +172,9 @@ export function updateNodeQuery(id, dto) {
      }          
    }
     
+
+
+   
   id = int(id);
   let dynamicQueryParameter = "";
   if (optionalLabels != "") {
