@@ -385,6 +385,12 @@ export const add_children_relation_by_id__relationship_not_created: errorObject 
   code: CustomNeo4jError.ADD_CHILDREN_REALTION_BY_ID__RELATIONSHIP_NOT_CREATED
 };
 
+export const find_by_name__must_entered_error: errorObject = {
+  message: "name must be entered",
+  code: CustomNeo4jError.FIND_BY_NAME__MUST_ENTERED_ERROR,
+};
+
+
 export const find_by_name_and_labels_with_active_child_nodes__must_entered_error: errorObject = {
   message: "id, label1 and label2 must entered",
   code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__MUST_ENTERED_ERROR,
@@ -394,3 +400,4 @@ export const find_by_name_and_labels_with_active_child_nodes__not_found_error: e
   message: "This node not found in database maybe entered id value wrong",
   code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__NOT_FOUND_ERROR,
 };
+
