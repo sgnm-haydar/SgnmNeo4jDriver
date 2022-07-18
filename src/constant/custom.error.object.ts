@@ -400,4 +400,15 @@ export const find_by_name_and_labels_with_active_child_nodes__not_found_error: e
   message: "This node not found in database maybe entered id value wrong",
   code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__NOT_FOUND_ERROR,
 };
-
+export const find_parent_by_id__must_entered_error: errorObject = {
+  message: "name must be entered",
+  code: CustomNeo4jError.FIND_PARENT_BY_ID__MUST_ENTERED_ERROR,
+};
+export const find_children_by_id__must_entered_error: errorObject = {
+  message: "name must be entered",
+  code: CustomNeo4jError.FIND_CHILDREN_BY_ID__MUST_ENTERED_ERROR,
+};
+export const delete__update_is_deleted_prop_error: errorObject = {
+  message: "is deleted prop of node could not deleted",
+  code: CustomNeo4jError.FIND_CHILDREN_BY_ID__MUST_ENTERED_ERROR,
+};
