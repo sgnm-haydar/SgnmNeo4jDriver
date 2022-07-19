@@ -1,3 +1,4 @@
+import { errorObject } from "../interfaces/errorMessage.interface";
 import { CustomNeo4jError } from "./custom.error.enum";
 
 export const has_children_error: errorObject = {
@@ -6,7 +7,8 @@ export const has_children_error: errorObject = {
 };
 
 export const node_not_found: errorObject = {
-  message: "This node is not found in the database maybe entered id not found in the database",
+  message:
+    "This node is not found in the database maybe entered id not found in the database",
   code: CustomNeo4jError.NOT_FOUND,
 };
 
@@ -30,17 +32,19 @@ export const parent_of_child_not_found: errorObject = {
   code: CustomNeo4jError.PARENT_NOT_FOUND,
 };
 
-export const get_children_count_by_id_and_labels__not_found_error: errorObject = {
-  message: "This children count not found by id and labels",
-  code: CustomNeo4jError.GET_CHILDREN_COUNT_BY_ID_AND_LABELS_NOT_FOUND,
-};
+export const get_children_count_by_id_and_labels__not_found_error: errorObject =
+  {
+    message: "This children count not found by id and labels",
+    code: CustomNeo4jError.GET_CHILDREN_COUNT_BY_ID_AND_LABELS_NOT_FOUND,
+  };
 
-export const node_not_created: errorObject = { 
+export const node_not_created: errorObject = {
   message: "Node not created",
   code: CustomNeo4jError.NODE_NOT_CREATED,
 };
-export const create_node_with_label__node_not_created_error: errorObject = { 
-  message: "Node not created maybe entity has missing properties or label is not valid",
+export const create_node_with_label__node_not_created_error: errorObject = {
+  message:
+    "Node not created maybe entity has missing properties or label is not valid",
   code: CustomNeo4jError.CREATE_NODE_WITH_LABEL__NODE_NOT_CREATED,
 };
 export const create_node__node_not_created_error: errorObject = {
@@ -48,12 +52,11 @@ export const create_node__node_not_created_error: errorObject = {
   code: CustomNeo4jError.CREATE_NODE__NODE_NOT_CREATED_ERROR,
 };
 
-
-export const create_node_with_label_add_parent_by_labelclass_error: errorObject = {
-  message: "Node not created",
-  code: CustomNeo4jError.CREATE_NODE_WITH_LABEL_ADD_PARENT_BY_LABELCLASS,
-};
-
+export const create_node_with_label_add_parent_by_labelclass_error: errorObject =
+  {
+    message: "Node not created",
+    code: CustomNeo4jError.CREATE_NODE_WITH_LABEL_ADD_PARENT_BY_LABELCLASS,
+  };
 
 export const deleteParentRelationError: errorObject = {
   message: "Relation not deleted",
@@ -65,16 +68,17 @@ export const invalid_label_error: errorObject = {
   code: CustomNeo4jError.INVALID_LABEL_ERROR,
 };
 
-export const delete_children_nodes_by_id_and_labels__not_deleted_error: errorObject = {
-  message: "Children id or labels not found in database",
-  code: CustomNeo4jError.DELETE_CHILDREN_NODES_BY_ID_AND_LABELS__NOT_DELETED_ERROR,
-};
+export const delete_children_nodes_by_id_and_labels__not_deleted_error: errorObject =
+  {
+    message: "Children id or labels not found in database",
+    code: CustomNeo4jError.DELETE_CHILDREN_NODES_BY_ID_AND_LABELS__NOT_DELETED_ERROR,
+  };
 
-
-export const find_all_by_classname__find_node_count_by_classname_error: errorObject = {
-  message: "This classname has not used in the any nodess",
-  code: CustomNeo4jError.FIND_ALL_BY_CLASSNAME__FIND_NODE_COUNT_BY_CLASSNAME_ERROR,
-};
+export const find_all_by_classname__find_node_count_by_classname_error: errorObject =
+  {
+    message: "This classname has not used in the any nodess",
+    code: CustomNeo4jError.FIND_ALL_BY_CLASSNAME__FIND_NODE_COUNT_BY_CLASSNAME_ERROR,
+  };
 
 export const get_node_without_parent: errorObject = {
   message: "This classname has not used in the any node",
@@ -86,10 +90,11 @@ export const delete__get_parent_by_id_error: errorObject = {
   code: CustomNeo4jError.DELETE__GET_PARENT_BY_ID,
 };
 
-export const find_with_children_by_id_and_labels_as_tree__has_not_children_error: errorObject = {
-  message: "This parent was not found in the database",
-  code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_ID_AND_LABELS_AS_TREE__HAS_NO_CHILDREN_ERROR,
-};
+export const find_with_children_by_id_and_labels_as_tree__has_not_children_error: errorObject =
+  {
+    message: "This parent was not found in the database",
+    code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_ID_AND_LABELS_AS_TREE__HAS_NO_CHILDREN_ERROR,
+  };
 
 export const find_node_count_by_classname_error: errorObject = {
   message: "This classname not used any nodes in the database",
@@ -107,18 +112,21 @@ export const update_by_id__update_error: errorObject = {
 };
 
 export const delete_children_relation_error: errorObject = {
-  message: "This relation of children not deleted maybe there is no relation or this children has not a relation defined",
+  message:
+    "This relation of children not deleted maybe there is no relation or this children has not a relation defined",
   code: CustomNeo4jError.DELETE_CHILDREN_RELATION_ERROR,
 };
 
-export const delete_relation_by_relation_name__not_deleted_error: errorObject = {
-  message: "This relation can be deleted because relation name is not defined or wrong",
-  code: CustomNeo4jError.DELETE_RELATION_BY_RELATION_NAME__NOT_DELETED_ERROR,
-};
-
+export const delete_relation_by_relation_name__not_deleted_error: errorObject =
+  {
+    message:
+      "This relation can be deleted because relation name is not defined or wrong",
+    code: CustomNeo4jError.DELETE_RELATION_BY_RELATION_NAME__NOT_DELETED_ERROR,
+  };
 
 export const add_parent_relation_by_id__not_created_error: errorObject = {
-  message: "This relation can not created because node id's maybe wrong or not found in database or this relationship is already exists",
+  message:
+    "This relation can not created because node id's maybe wrong or not found in database or this relationship is already exists",
   code: CustomNeo4jError.ADD_PARENT_RELATION_BY_ID__NOT_CREATED_ERROR,
 };
 
@@ -132,17 +140,16 @@ export const tree_structure_not_found_by_realm_name_error: errorObject = {
   code: CustomNeo4jError.FIND_BY_REALM_WITH_TREE_STRUCTURE_ERROR,
 };
 
-
-export const find_with_children_by_realm_as_tree__find_by_realm_error: errorObject = {
-  message: "There is no node has this realm name or wrong realm name",
-  code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_REALM_AS_TREE__FIND_BY_REALM_ERROR,
-};
+export const find_with_children_by_realm_as_tree__find_by_realm_error: errorObject =
+  {
+    message: "There is no node has this realm name or wrong realm name",
+    code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_REALM_AS_TREE__FIND_BY_REALM_ERROR,
+  };
 
 export const find_with_children_by_realm_as_tree_error: errorObject = {
   message: "There is no tree structure by realm",
   code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_REALM_AS_TREE_ERROR,
 };
-
 
 export const find_with_children_by_id_as_tree_error: errorObject = {
   message: "There is no tree structure by id in the database",
@@ -154,71 +161,75 @@ export const add_children_relation_by_id_error: errorObject = {
   code: CustomNeo4jError.ADD_CHILDREN_RELATION_BY_ID_ERROR,
 };
 
-export const add_relation_with_relation_name__must_entered_error: errorObject = {
-  message: "first_node_id, second_node_id or relationName are must not empty",
-  code: CustomNeo4jError.ADD_RELATION_WITH_RELATION_NAME_ERROR,
-};
+export const add_relation_with_relation_name__must_entered_error: errorObject =
+  {
+    message: "first_node_id, second_node_id or relationName are must not empty",
+    code: CustomNeo4jError.ADD_RELATION_WITH_RELATION_NAME_ERROR,
+  };
 
-
-export const add_relation_with_relation_name__create_relation_error: errorObject = {
-  message: "This relation already exists between those two nodes or wrong node id's",
-  code: CustomNeo4jError.ADD_RELATION_WITH_RELATION_NAME__CREATE_RELATION_ERROR,
-};
+export const add_relation_with_relation_name__create_relation_error: errorObject =
+  {
+    message:
+      "This relation already exists between those two nodes or wrong node id's",
+    code: CustomNeo4jError.ADD_RELATION_WITH_RELATION_NAME__CREATE_RELATION_ERROR,
+  };
 
 export const find_by_realm__not_entered_error: errorObject = {
   message: "Must entered a realm name",
   code: CustomNeo4jError.FIND_BY_REALM__NOT_ENTERED_ERROR,
 };
 
-export const find_with_children_by_realm_as_tree__not_entered_error: errorObject = {
-  message: "Must entered a realm name",
-  code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_REALM_AS_TREE__NOT_ENTERED_ERROR,
-};
+export const find_with_children_by_realm_as_tree__not_entered_error: errorObject =
+  {
+    message: "Must entered a realm name",
+    code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_REALM_AS_TREE__NOT_ENTERED_ERROR,
+  };
 
-export const find_by_realm_with_tree_structure__not_entered_error: errorObject = {
-  message: "Must entered a realm name",
-  code: CustomNeo4jError.FIND_BY_REALM_WITH_TREE_STRUCTURE__NOT_ENTERED_ERROR,
-};
-
+export const find_by_realm_with_tree_structure__not_entered_error: errorObject =
+  {
+    message: "Must entered a realm name",
+    code: CustomNeo4jError.FIND_BY_REALM_WITH_TREE_STRUCTURE__NOT_ENTERED_ERROR,
+  };
 
 export const get_children_count__must_entered_error: errorObject = {
   message: "There is no node's id",
   code: CustomNeo4jError.GET_CHILDREN_COUNT__MUST_ENTERED_ERROR,
 };
 
-
 export const get_parent_by_id__must_entered_error: errorObject = {
   message: "There is no node's id",
   code: CustomNeo4jError.GET_PARENT_BY_ID__MUST_ENTERED_ERROR,
 };
 
-export const set_deleted_true_to_node_and_child_by_id_and_labels__must_entered_error: errorObject = {
-  message: "id, label1 and label2 must entered",
-  code: CustomNeo4jError.SET_DELETED_TRUE_TO_NODE_AND_CHILD_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
-};
+export const set_deleted_true_to_node_and_child_by_id_and_labels__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2 must entered",
+    code: CustomNeo4jError.SET_DELETED_TRUE_TO_NODE_AND_CHILD_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
+  };
 
+export const get_childrens_children_count_by_id_and_labels__must_entered_error: errorObject =
+  {
+    message: "id, label1, label2 and label3 must entered",
+    code: CustomNeo4jError.GET_CHILDRENS_CHILDREN_COUNT_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
+  };
 
-export const get_childrens_children_count_by_id_and_labels__must_entered_error: errorObject = {
-  message: "id, label1, label2 and label3 must entered",
-  code: CustomNeo4jError.GET_CHILDRENS_CHILDREN_COUNT_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
-};
+export const get_childrens_children_count_by_id_and_labels__not_found_error: errorObject =
+  {
+    message: "",
+    code: CustomNeo4jError.GET_CHILDRENS_CHILDREN_COUNT_BY_ID_AND_LABELS__NOT_FOUND_ERROR,
+  };
 
-export const get_childrens_children_count_by_id_and_labels__not_found_error: errorObject = {
-  message: "",
-  code: CustomNeo4jError.GET_CHILDRENS_CHILDREN_COUNT_BY_ID_AND_LABELS__NOT_FOUND_ERROR,
-};
+export const get_children_count_by_id_and_labels__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2  must entered",
+    code: CustomNeo4jError.GET_CHILDRENS_CHILDREN_COUNT_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
+  };
 
-
-export const get_children_count_by_id_and_labels__must_entered_error: errorObject = {
-  message: "id, label1 and label2  must entered",
-  code: CustomNeo4jError.GET_CHILDRENS_CHILDREN_COUNT_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
-};
-
-
-export const delete_children_nodes_by_id_and_labels__must_entered_error: errorObject = {
-  message: "id, label1 and label2  must entered",
-  code: CustomNeo4jError.DELETE_CHILDREN_NODES_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
-};
+export const delete_children_nodes_by_id_and_labels__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2  must entered",
+    code: CustomNeo4jError.DELETE_CHILDREN_NODES_BY_ID_AND_LABELS__MUST_ENTERED_ERROR,
+  };
 
 export const create_node_with_label__must_entered_error: errorObject = {
   message: "entity and label must entered or ", // yazılacakkk
@@ -231,22 +242,21 @@ export const update_has_type_prop__must_entered_error: errorObject = {
 };
 
 export const update_has_type_prop_error: errorObject = {
-  message: "field can not updated may be there is not a node with this id or id is not valid",
+  message:
+    "field can not updated may be there is not a node with this id or id is not valid",
   code: CustomNeo4jError.UPDATE_HAS_TYPE_PROP__MUST_ENTERED_ERROR,
 };
-
 
 export const create__must_entered_error: errorObject = {
   message: "entity and label must entered",
   code: CustomNeo4jError.CREATE__MUST_ENTERED_ERROR,
 };
 
-
-export const delete_relation_with_relation_name__must_entered_error: errorObject = {
-  message: "id and relationName must entered",
-  code: CustomNeo4jError.DELETE_RELATION_WITH_RELATION_NAME__MUST_ENTERED_ERROR,
-};
-
+export const delete_relation_with_relation_name__must_entered_error: errorObject =
+  {
+    message: "id and relationName must entered",
+    code: CustomNeo4jError.DELETE_RELATION_WITH_RELATION_NAME__MUST_ENTERED_ERROR,
+  };
 
 export const add_parent_relation_by_id__must_entered_error: errorObject = {
   message: "child_id and parent_id must entered",
@@ -258,32 +268,34 @@ export const update_selectable_prop__must_entered_error: errorObject = {
   code: CustomNeo4jError.UPDATE_SELECTABLE_PROP__MUST_ENTERED_ERROR,
 };
 
-export const find_by_id_and_labels_with_active_child_nodes__must_entered_error: errorObject = {
-  message: "id, label1 and label2 must entered",
-  code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_ACTIVE_CHILD_NODES__MUST_ENTERED_ERROR,
-};
+export const find_by_id_and_labels_with_active_child_nodes__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2 must entered",
+    code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_ACTIVE_CHILD_NODES__MUST_ENTERED_ERROR,
+  };
 
-
-export const find_with_children_by_id_as_tree__must_entered_error: errorObject = {
-  message: "id must entered",
-  code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_ID_AS_TREE__MUST_ENTERED_ERROR,
-};
+export const find_with_children_by_id_as_tree__must_entered_error: errorObject =
+  {
+    message: "id must entered",
+    code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_ID_AS_TREE__MUST_ENTERED_ERROR,
+  };
 
 export const find_by_id_with_tree_structure__must_entered_error: errorObject = {
   message: "id must entered",
   code: CustomNeo4jError.FIND_BY_ID_WITH_TREE_STRUCTURE__MUST_ENTERED_ERROR,
 };
 
-export const find_by_id_and_labels_with_active_child_nodes__not_found_error: errorObject = {
-  message: "This node not found in database maybe entered id value wrong",
-  code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_ACTIVE_CHILD_NODES__NOT_FOUND_ERROR,
-};
+export const find_by_id_and_labels_with_active_child_nodes__not_found_error: errorObject =
+  {
+    message: "This node not found in database maybe entered id value wrong",
+    code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_ACTIVE_CHILD_NODES__NOT_FOUND_ERROR,
+  };
 
-
-export const find_by_id_and_labels_with_active_child_node__not_found_error: errorObject = {
-  message: "Nodes not found according to searched id and label criteria",
-  code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_ACTIVE_CHILD_NODE__NOT_FOUND_ERROR,
-};
+export const find_by_id_and_labels_with_active_child_node__not_found_error: errorObject =
+  {
+    message: "Nodes not found according to searched id and label criteria",
+    code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_ACTIVE_CHILD_NODE__NOT_FOUND_ERROR,
+  };
 
 export const find_node_by_id_and_label__must_entered_error: errorObject = {
   message: "id and label must be entered",
@@ -305,11 +317,11 @@ export const find_node_count_by_classname__must_entered_error: errorObject = {
   code: CustomNeo4jError.FIND_NODE_COUNT_BY_CLASSNAME__MUST_ENTERED_ERROR,
 };
 
-
-export const find_with_children_by_id_and_labels_as_tree__must_entered_error: errorObject = {
-  message: "id, label1 and label2 must entered",
-  code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_ID_AND_LABELS_AS_TREE__MUST_ENTERED_ERROR,
-};
+export const find_with_children_by_id_and_labels_as_tree__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2 must entered",
+    code: CustomNeo4jError.FIND_WITH_CHILDREN_BY_ID_AND_LABELS_AS_TREE__MUST_ENTERED_ERROR,
+  };
 
 export const create_node__must_entered_error: errorObject = {
   message: "params and label must entered",
@@ -331,20 +343,24 @@ export const update_selectable_prop__not_updated_error: errorObject = {
   code: CustomNeo4jError.UPDATE_SELECTABLE_PROP__NOT_UPDATED_ERROR,
 };
 
-export const set_deleted_true_to_node_and_child_by_id_and_labels_not_updated_error: errorObject = {
-  message: "There is nothing updated maybe id and labels wrong or node not exists",
-  code: CustomNeo4jError.SET_DELETED_TRUE_TO_NODE_AND_CHILD_BY_ID_AND_LABELS__NOT_UPDATED_ERROR,
-};
+export const set_deleted_true_to_node_and_child_by_id_and_labels_not_updated_error: errorObject =
+  {
+    message:
+      "There is nothing updated maybe id and labels wrong or node not exists",
+    code: CustomNeo4jError.SET_DELETED_TRUE_TO_NODE_AND_CHILD_BY_ID_AND_LABELS__NOT_UPDATED_ERROR,
+  };
 
-export const find_by_id_and_labels_with_tree_structure__not_found_error: errorObject = {
-  message: "Tree structure not found maybe id and labels wrong",
-  code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_TREE_STRUCTURE__NOT_FOUND_ERROR,
-};
+export const find_by_id_and_labels_with_tree_structure__not_found_error: errorObject =
+  {
+    message: "Tree structure not found maybe id and labels wrong",
+    code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_TREE_STRUCTURE__NOT_FOUND_ERROR,
+  };
 
-export const find_by_id_and_labels_with_tree_structure__must_entered_error: errorObject = {
-  message: "id, label1 and label2 must be entered",
-  code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_TREE_STRUCTURE__MUST_ENTERED_ERROR,
-};
+export const find_by_id_and_labels_with_tree_structure__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2 must be entered",
+    code: CustomNeo4jError.FIND_BY_ID_AND_LABELS_WITH_TREE_STRUCTURE__MUST_ENTERED_ERROR,
+  };
 
 export const add_parent_by_label_class_must_entered_error: errorObject = {
   message: "entity and label must be entered",
@@ -370,7 +386,7 @@ export const delete__must_entered_error: errorObject = {
   message: "id must be entered",
   code: CustomNeo4jError.DELETE__MUST_ENTERED_ERROR,
 };
- 
+
 export const remove_label__must_entered_error: errorObject = {
   message: "id and label must be entered",
   code: CustomNeo4jError.REMOVE_LABEL__MUST_ENTERED_ERROR,
@@ -380,24 +396,38 @@ export const update_label__must_entered_error: errorObject = {
   code: CustomNeo4jError.UPDATE_LABEL__MUST_ENTERED_ERROR,
 };
 
-export const add_children_relation_by_id__relationship_not_created: errorObject = {
-  message: "This relationship is already exists or wrong child_id and targer_parent_id", 
-  code: CustomNeo4jError.ADD_CHILDREN_REALTION_BY_ID__RELATIONSHIP_NOT_CREATED
-};
+export const add_children_relation_by_id__relationship_not_created: errorObject =
+  {
+    message:
+      "This relationship is already exists or wrong child_id and targer_parent_id",
+    code: CustomNeo4jError.ADD_CHILDREN_REALTION_BY_ID__RELATIONSHIP_NOT_CREATED,
+  };
 
 export const find_by_name__must_entered_error: errorObject = {
   message: "name must be entered",
   code: CustomNeo4jError.FIND_BY_NAME__MUST_ENTERED_ERROR,
 };
 
+export const find_by_name_and_labels_with_active_child_nodes__must_entered_error: errorObject =
+  {
+    message: "id, label1 and label2 must entered",
+    code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__MUST_ENTERED_ERROR,
+  };
 
-export const find_by_name_and_labels_with_active_child_nodes__must_entered_error: errorObject = {
-  message: "id, label1 and label2 must entered",
-  code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__MUST_ENTERED_ERROR,
+export const find_by_name_and_labels_with_active_child_nodes__not_found_error: errorObject =
+  {
+    message: "This node not found in database maybe entered id value wrong",
+    code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__NOT_FOUND_ERROR,
+  };
+export const find_parent_by_id__must_entered_error: errorObject = {
+  message: "name must be entered",
+  code: CustomNeo4jError.FIND_PARENT_BY_ID__MUST_ENTERED_ERROR,
 };
-
-export const find_by_name_and_labels_with_active_child_nodes__not_found_error: errorObject = {
-  message: "This node not found in database maybe entered id value wrong",
-  code: CustomNeo4jError.FIND_BY_NAME_AND_LABELS_WITH_ACTIVE_CHILD_NODES__NOT_FOUND_ERROR,
+export const find_children_by_id__must_entered_error: errorObject = {
+  message: "name must be entered",
+  code: CustomNeo4jError.FIND_CHILDREN_BY_ID__MUST_ENTERED_ERROR,
 };
-
+export const delete__update_is_deleted_prop_error: errorObject = {
+  message: "is deleted prop of node could not deleted",
+  code: CustomNeo4jError.FIND_CHILDREN_BY_ID__MUST_ENTERED_ERROR,
+};
