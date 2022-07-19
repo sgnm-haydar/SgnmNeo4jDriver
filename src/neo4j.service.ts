@@ -1887,7 +1887,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relationDirection: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      if (!first_node_key || !second_node_key || !relationName) {
+      if (!first_node_key || !second_node_key || relationName.trim()===''|| !relationName) {
         throw new HttpException(
           add_relation_with_relation_name__must_entered_error,
           400
