@@ -1839,24 +1839,29 @@ export class Neo4jService implements OnApplicationShutdown {
           400
         );
       }
-      let res;
+      let res: QueryResult;
 
-      if (relationDirection === RelationDirection.RIGHT) {
-        res = await this.write(
-          `MATCH (c {isDeleted: false}) where id(c)= $first_node_id MATCH (p {isDeleted: false}) where id(p)= $second_node_id MERGE (c)-[:${relationName}]-> (p)`,
-          {
-            first_node_id: parseInt(first_node_id),
-            second_node_id: parseInt(second_node_id),
-          }
-        );
-      } else {
-        res = await this.write(
-          `MATCH (c {isDeleted: false}) where id(c)= $first_node_id MATCH (p {isDeleted: false}) where id(p)= $second_node_id MERGE (c)<-[:${relationName}]- (p)`,
-          {
-            first_node_id: parseInt(first_node_id),
-            second_node_id: parseInt(second_node_id),
-          }
-        );
+      switch (relationDirection) {
+        case RelationDirection.RIGHT:
+          res = await this.write(
+            `MATCH (c {isDeleted: false}) where id(c)= $first_node_id MATCH (p {isDeleted: false}) where id(p)= $second_node_id MERGE (c)-[:${relationName}]-> (p)`,
+            {
+              first_node_id: parseInt(first_node_id),
+              second_node_id: parseInt(second_node_id),
+            }
+          );
+          break;
+        case RelationDirection.LEFT:
+          res = await this.write(
+            `MATCH (c {isDeleted: false}) where id(c)= $first_node_id MATCH (p {isDeleted: false}) where id(p)= $second_node_id MERGE (c)<-[:${relationName}]- (p)`,
+            {
+              first_node_id: parseInt(first_node_id),
+              second_node_id: parseInt(second_node_id),
+            }
+          );
+          break;
+        default:
+          throw new HttpException("uygun yön giriniz", 400);
       }
 
       const { relationshipsCreated } =
@@ -1887,7 +1892,12 @@ export class Neo4jService implements OnApplicationShutdown {
     relationDirection: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      if (!first_node_key || !second_node_key || relationName.trim()===''|| !relationName) {
+      if (
+        !first_node_key ||
+        !second_node_key ||
+        relationName.trim() === "" ||
+        !relationName
+      ) {
         throw new HttpException(
           add_relation_with_relation_name__must_entered_error,
           400
@@ -1899,22 +1909,30 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       let res: QueryResult;
 
+      switch (relationDirection) {
+        case RelationDirection.RIGHT:
+          res = await this.write(
+            `MATCH (c {isDeleted: false}) where c.key= $first_node_key MATCH (p {isDeleted: false}) where p.key= $second_node_key MERGE (c)-[:${relationName}]-> (p)`,
+            {
+              first_node_key,
+              second_node_key,
+            }
+          );
+          break;
+        case RelationDirection.LEFT:
+          res = await this.write(
+            `MATCH (c {isDeleted: false}) where c.key= $first_node_key MATCH (p {isDeleted: false}) where p.key= $second_node_key MERGE (c)<-[:${relationName}]- (p)`,
+            {
+              first_node_key,
+              second_node_key,
+            }
+          );
+        default:
+          throw new HttpException("uygun yön giriniz", 400);
+      }
+
       if (relationDirection === RelationDirection.RIGHT) {
-        res = await this.write(
-          `MATCH (c {isDeleted: false}) where c.key= $first_node_key MATCH (p {isDeleted: false}) where p.key= $second_node_key MERGE (c)-[:${relationName}]-> (p)`,
-          {
-            first_node_key,
-            second_node_key,
-          }
-        );
       } else {
-        res = await this.write(
-          `MATCH (c {isDeleted: false}) where c.key= $first_node_key MATCH (p {isDeleted: false}) where p.key= $second_node_key MERGE (c)<-[:${relationName}]- (p)`,
-          {
-            first_node_key,
-            second_node_key,
-          }
-        );
       }
 
       const { relationshipsCreated } =
