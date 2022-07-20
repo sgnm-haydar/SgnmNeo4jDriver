@@ -23,7 +23,12 @@ export function createDynamicCyperCreateQuery(
 
   if (labels && labels.length > 0) {
     labels.map((item) => {
-      optionalLabels = optionalLabels + ":" + item;
+      console.log(item);
+      if (item.trim() === "") {
+        optionalLabels = optionalLabels;
+      } else {
+        optionalLabels = optionalLabels + ":" + item;
+      }
     });
   }
 
