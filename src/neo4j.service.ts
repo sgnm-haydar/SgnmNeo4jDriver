@@ -1418,7 +1418,13 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!params) {
         throw new HttpException(create_node__must_entered_error, 400);
       }
-      const cyperQuery = createDynamicCyperCreateQuery(params, labels);
+      let cyperQuery;
+      if (!labels && labels.length < 1) {
+        cyperQuery = createDynamicCyperCreateQuery(params);
+      } else {
+        cyperQuery = createDynamicCyperCreateQuery(params, labels);
+      }
+
       const res = await this.write(cyperQuery, params);
       if (!res["records"][0].length) {
         throw new HttpException(create_node__node_not_created_error, 400);

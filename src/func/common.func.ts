@@ -1,9 +1,13 @@
-import { int } from 'neo4j-driver';
+import { int } from "neo4j-driver";
 
 //transfer dto(object come from client) properties to specific node entity object
 export function assignDtoPropToEntity(entity, dto) {
   Object.keys(dto).forEach((element) => {
-    if (element != "parentId" && element!="labels" && element!="parentKey") {
+    if (
+      element != "parentId" &&
+      element != "labels" &&
+      element != "parentKey"
+    ) {
       entity[element] = dto[element];
     }
   });
@@ -11,12 +15,15 @@ export function assignDtoPropToEntity(entity, dto) {
   return entity;
 }
 
-export function createDynamicCyperCreateQuery(entity: object, labels?: Array<string>) {
-  let optionalLabels = '';
+export function createDynamicCyperCreateQuery(
+  entity: object,
+  labels?: Array<string>
+) {
+  let optionalLabels = "";
 
   if (labels && labels.length > 0) {
     labels.map((item) => {
-      optionalLabels = optionalLabels + ':' + item;
+      optionalLabels = optionalLabels + ":" + item;
     });
   }
 
