@@ -1978,7 +1978,7 @@ export class Neo4jService implements OnApplicationShutdown {
     return relations.records;
   }
 
-  async findByRelationWithRelation(
+  async findNodeAndRelationByRelationNameAndId(
     id: string,
     relationName: string,
     direction: string
@@ -1994,9 +1994,9 @@ export class Neo4jService implements OnApplicationShutdown {
       if (isExists instanceof Error)
         throw new HttpException(node_not_found, 404);
       let cypher;
-      if (direction == "rightToLeft") {
+      if (direction == RelationDirection.LEFT) {
         cypher = `match (n {isDeleted: false})<-[r:${relationName}]-(p {isDeleted: false}) where id(n)=$idNum  return p,r`;
-      } else if (direction == "leftToRight") {
+      } else if (direction == RelationDirection.RIGHT) {
         cypher = `match (n {isDeleted: false})-[r:${relationName}]->(p {isDeleted: false}) where id(n)=$idNum  return p,r`;
       }
       const result = await this.read(cypher, { idNum });
