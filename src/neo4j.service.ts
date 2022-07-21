@@ -2050,7 +2050,7 @@ export class Neo4jService implements OnApplicationShutdown {
     let relationExist: QueryResult;
     if (relationDirection === RelationDirection.RIGHT) {
       relationExist = await this.read(
-        `match(p {isDeleted:false}) where p.key=$key match (c) where c.referenceKey=$referenceKey match (p)-[:${relationName}]->(c) return p,c`,
+        `match(p {isDeleted:false}) where p.key=$key match (c {isDeleted:false}) where c.referenceKey=$referenceKey match (p)-[:${relationName}]->(c) return p,c`,
         {
           key,
           referenceKey: referenceKey,
@@ -2058,7 +2058,7 @@ export class Neo4jService implements OnApplicationShutdown {
       );
     } else if (relationDirection === RelationDirection.LEFT) {
       relationExist = await this.read(
-        `match(p {isDeleted:false}) where p.key=$key match (c) where c.referenceKey=$referenceKey match (p)<-[:${relationName}]-(c) return p,c`,
+        `match(p {isDeleted:false}) where p.key=$key match (c {isDeleted:false}) where c.referenceKey=$referenceKey match (p)<-[:${relationName}]-(c) return p,c`,
         {
           key,
           referenceKey: referenceKey,
@@ -2091,7 +2091,7 @@ export class Neo4jService implements OnApplicationShutdown {
           404
         );
       }
-      
+
       let cypher = "";
       if (orderbyprop) {
         cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where c.key=$key return n order by n.${orderbyprop} ${orderbytype}`;
@@ -2123,10 +2123,8 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!key) {
         throw new HttpException(find_by_id__must_entered_error, 400);
       }
-   
 
-      const cypher =
-        "MATCH (n {isDeleted: false}) where n.key = $key return n";
+      const cypher = "MATCH (n {isDeleted: false}) where n.key = $key return n";
 
       const result = await this.read(cypher, { key });
       if (!result["records"].length) {
@@ -2142,6 +2140,35 @@ export class Neo4jService implements OnApplicationShutdown {
       } else {
         throw newError(error, "500");
       }
+    }
+  }
+
+  async checkSpecificVirtualNodeCountInDb(
+    referenceKey: string,
+    relationName: string
+  ) {
+    try {
+      const node = await this.read(
+        `match(p) match (c {referenceKey:$referenceKey,isDeleted:false}) match (p)-[:${relationName}]->(c) return c`,
+        { referenceKey }
+      );
+      return node.records;
+    } catch (error) {
+      throw new HttpException(error, 500);
+    }
+  }
+
+  async deleteVirtualNode(id: number) {
+    try {
+      const node = await this.write(
+        `match (n:Virtual ) where id(n)=$id set n.isDeleted=true return n`,
+        {
+          id,
+        }
+      );
+      return node.records[0]["_fields"][0];
+    } catch (error) {
+      throw new HttpException(error, 500);
     }
   }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
