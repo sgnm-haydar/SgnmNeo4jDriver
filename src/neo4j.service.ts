@@ -615,37 +615,69 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  async addParentByLabelClass(entity, label: string) {
-    try {
-      if (!entity || !label) {
-        throw new HttpException(
-          add_parent_by_label_class_must_entered_error,
-          400
-        );
-      }
+  // async addParentByLabelClass(entity, label: string) {
+  //   try {
+  //     if (!entity || !label) {
+  //       throw new HttpException(
+  //         add_parent_by_label_class_must_entered_error,
+  //         400
+  //       );
+  //     }
+  //     let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
+  //   match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
+  //   create (x)-[:CHILD_OF]->(y)`;
+
+  //     if (entity["__label"]) {
+  //       query = `match (x:${label}:${entity.__label} {isDeleted: false, key: $key}) \
+  //     match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
+  //     create (x)-[:CHILD_OF]->(y)`;
+  //     }
+  //     const res = await this.write(query, entity);
+
+  //     return successResponse(res);
+  //   } catch (error) {
+  //     if (error.response?.code) {
+  //       throw new HttpException(
+  //         { message: error.response?.message, code: error.response?.code },
+  //         error.status
+  //       );
+  //     } else {
+  //       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+  //   }
+  // }
+
+    //YENİSİ
+    async addParentByLabelClass(entity, label: string) {
+      try{
+        if(!entity || !label) {
+          throw new HttpException(add_parent_by_label_class_must_entered_error,400)
+        }
       let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
-    match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
-    create (x)-[:CHILD_OF]->(y)`;
-
-      if (entity["__label"]) {
+      match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
+      create (y)-[:PARENT_OF]->(x)`;
+  
+      if (entity['__label']) {
         query = `match (x:${label}:${entity.__label} {isDeleted: false, key: $key}) \
-      match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
-      create (x)-[:CHILD_OF]->(y)`;
+        match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
+        create (y)-[:PARENT_OF]->(x)`;
       }
-      const res = await this.write(query, entity);
-
-      return successResponse(res);
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
+        const res = await this.write(query, entity);
+  
+        return successResponse(res);
+    }
+       catch (error) {
+        if (error.response.code) {
+          throw new HttpException(
+            { message: error.response.message, code: error.response.code },
+            error.status
+          );
+        }else {
         throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
       }
     }
-  }
+  
 
   async deleteRelationWithRelationName(id: string, relationName: string) {
     try {
@@ -1529,29 +1561,56 @@ export class Neo4jService implements OnApplicationShutdown {
 
   //   }
   // }
-  async getParentById(id: string) {
-    try {
-      if (!id) {
-        throw new HttpException(get_parent_by_id__must_entered_error, 400);
-      }
-      const res = await this.read(
-        "MATCH (c {isDeleted: false}) where id(c)= $id match(k {isDeleted: false}) match (c)-[:CHILD_OF]->(k) return k",
-        { id: parseInt(id) }
-      );
-      if (res["records"].length == 0) {
-        throw new HttpException(parent_of_child_not_found, 404);
-      }
-      return res["records"][0];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
+
+  // async getParentById(id: string) {
+  //   try {
+  //     if (!id) {
+  //       throw new HttpException(get_parent_by_id__must_entered_error, 400);
+  //     }
+  //     const res = await this.read(
+  //       "MATCH (c {isDeleted: false}) where id(c)= $id match(k {isDeleted: false}) match (c)-[:CHILD_OF]->(k) return k",
+  //       { id: parseInt(id) }
+  //     );
+  //     if (res["records"].length == 0) {
+  //       throw new HttpException(parent_of_child_not_found, 404);
+  //     }
+  //     return res["records"][0];
+  //   } catch (error) {
+  //     if (error.response?.code) {
+  //       throw new HttpException(
+  //         { message: error.response?.message, code: error.response?.code },
+  //         error.status
+  //       );
+  //     }
+  //     throw newError(failedResponse(error), "400");
+  //   }
+  // }
+    //YENİSİ
+    async getParentById(id: string) {
+      try {
+        if(!id){
+          throw new HttpException(get_parent_by_id__must_entered_error,400);
+        }
+        const res = await this.read(
+          "MATCH (c {isDeleted: false}) where id(c)= $id match(k {isDeleted: false}) match (k)-[:PARENT_OF]->(c) return k",
+          { id: parseInt(id) }
         );
+        if(!res["records"][0].length){
+        throw new HttpException(parent_of_child_not_found,404)
+        }
+        return res["records"][0];
+      } catch (error) {
+        if (error.response.code) {
+          throw new HttpException(
+            { message: error.response.message, code: error.response.code },
+            error.status
+          );
+        }
+        throw newError(failedResponse(error), "400");
       }
-      throw newError(failedResponse(error), "400");
     }
-  }
+
+
   async findChildrenById(id: string) {
     try {
       if (!id) {
