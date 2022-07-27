@@ -1612,7 +1612,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
 
-  //PARENT_OF
+  //PARENT_OF   (library de yok)
   async findChildrenById(id: string) {
     try {
       if (!id) {
