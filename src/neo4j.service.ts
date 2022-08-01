@@ -16,90 +16,53 @@ import { Neo4jConfig } from "./interfaces/neo4j-config.interface";
 import { NEO4J_OPTIONS, NEO4J_DRIVER } from "./neo4j.constants";
 import TransactionImpl from "neo4j-driver-core/lib/transaction";
 import { newError } from "neo4j-driver-core";
-import { findNodeCountByClassNameDto } from "./dtos/dtos";
 import {
   createDynamicCyperCreateQuery,
   updateNodeQuery,
 } from "./func/common.func";
 import { successResponse } from "./constant/success.response.object";
 import { failedResponse } from "./constant/failed.response.object";
-import { PaginationNeo4jParamsWithClassName } from "./constant/pagination.param";
 import {
-  add_parent_relation_by_id__not_created_error,
-  add_parent_relation_by_id__must_entered_error,
   add_relation_with_relation_name__create_relation_error,
   add_relation_with_relation_name__must_entered_error,
   create_node__must_entered_error,
   create_node__node_not_created_error,
   deleteParentRelationError,
-  delete_children_nodes_by_id_and_labels__must_entered_error,
   delete_children_relation_error,
-  delete_relation_by_relation_name__not_deleted_error,
-  delete_relation_with_relation_name__must_entered_error,
   delete__get_parent_by_id_error,
-  find_all_by_classname__find_node_count_by_classname_error,
   find_by_id_and_labels_with_active_child_nodes__must_entered_error,
   find_by_id_and_labels_with_active_child_nodes__not_found_error,
   find_by_id_and_labels_with_active_child_node__not_found_error,
-  find_by_id_and_labels_with_tree_structure__must_entered_error,
-  find_by_id_and_labels_with_tree_structure__not_found_error,
-  find_by_id_with_tree_structure__must_entered_error,
   find_by_id__must_entered_error,
   find_by_realm__not_found_error,
   find_by_realm_with_tree_structure__not_entered_error,
   find_by_realm__not_entered_error,
   find_node_by_id_and_label__must_entered_error,
   find_node_by_id_and_label__not_found_error,
-  find_node_count_by_classname_error,
-  find_node_count_by_classname__must_entered_error,
-  find_root_node_by_classname__must_entered_error,
-  find_with_children_by_id_and_labels_as_tree__has_not_children_error,
-  find_with_children_by_id_and_labels_as_tree__must_entered_error,
-  find_with_children_by_id_as_tree_error,
-  find_with_children_by_id_as_tree__must_entered_error,
   find_with_children_by_realm_as_tree_error,
   find_with_children_by_realm_as_tree__find_by_realm_error,
   find_with_children_by_realm_as_tree__not_entered_error,
-  get_childrens_children_count_by_id_and_labels__not_found_error,
-  get_childrens_children_count_by_id_and_labels__must_entered_error,
-  get_children_count_by_id_and_labels__must_entered_error,
-  get_children_count_by_id_and_labels__not_found_error,
   get_children_count__must_entered_error,
-  get_node_without_parent,
   get_parent_by_id__must_entered_error,
   has_children_error,
   node_not_found,
   parent_of_child_not_found,
-  root_node_not_found,
-  set_deleted_true_to_node_and_child_by_id_and_labels__must_entered_error,
-  set_deleted_true_to_node_and_child_by_id_and_labels_not_updated_error,
-  tree_not_found,
   tree_structure_not_found_by_realm_name_error,
   update_by_id__must_entered_error,
   update_by_id__update_error,
-  update_has_type_prop_error,
-  update_has_type_prop__must_entered_error,
-  update_selectable_prop__must_entered_error,
-  update_selectable_prop__not_updated_error,
-  add_parent_by_label_class_must_entered_error,
   delete_relation_must_entered_error,
   find_one_node_by_key_must_entered_error,
   delete__must_entered_error,
   remove_label__must_entered_error,
   update_label__must_entered_error,
-  find_by_name_and_labels_with_active_child_nodes__must_entered_error,
-  find_by_name_and_labels_with_active_child_nodes__not_found_error,
-  find_by_name__must_entered_error,
   find_children_by_id__must_entered_error,
   delete__update_is_deleted_prop_error,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
-
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
   private readonly driver: Driver;
   private readonly config: Neo4jConfig;
-
   constructor(
     @Inject(NEO4J_OPTIONS) config: Neo4jConfig,
     @Inject(NEO4J_DRIVER) driver: Driver
@@ -107,39 +70,32 @@ export class Neo4jService implements OnApplicationShutdown {
     this.driver = driver;
     this.config = config;
   }
-
   getDriver(): Driver {
     return this.driver;
   }
-
   getConfig(): Neo4jConfig {
     return this.config;
   }
-
   int(value: number) {
     return int(value);
   }
-
   beginTransaction(database?: string): Transaction {
     const session = this.getWriteSession(database);
 
     return session.beginTransaction();
   }
-
   getReadSession(database?: string) {
     return this.driver.session({
       database: database || this.config.database,
       defaultAccessMode: neo4j.session.READ,
     });
   }
-
   getWriteSession(database?: string) {
     return this.driver.session({
       database: database || this.config.database,
       defaultAccessMode: neo4j.session.WRITE,
     });
   }
-
   read(
     cypher: string,
     params?: Record<string, any>,
@@ -148,11 +104,9 @@ export class Neo4jService implements OnApplicationShutdown {
     if (databaseOrTransaction instanceof TransactionImpl) {
       return (<Transaction>databaseOrTransaction).run(cypher, params);
     }
-
     const session = this.getReadSession(<string>databaseOrTransaction);
     return session.run(cypher, params);
   }
-
   write(
     cypher: string,
     params?: Record<string, any>,
@@ -165,7 +119,6 @@ export class Neo4jService implements OnApplicationShutdown {
     const session = this.getWriteSession(<string>databaseOrTransaction);
     return session.run(cypher, params);
   }
-
   async findNodeByIdAndLabel(id: string, label: string) {
     try {
       if (!id || !label) {
@@ -177,7 +130,6 @@ export class Neo4jService implements OnApplicationShutdown {
       const idNum = parseInt(id);
       const cypher = `MATCH (c: ${label} {isDeleted: false}) where id(c)=$idNum return c`;
       const result = await this.read(cypher, { idNum });
-
       if (!result["records"].length) {
         throw new HttpException(
           find_node_by_id_and_label__not_found_error,
@@ -196,7 +148,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async updateIsDeletedProp(id: string, isDeleted: boolean) {
     try {
       const res = await this.write(
@@ -219,74 +170,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
-
-    //  Control down Control down Control down Control down Control down Control down Control down Control down Control down
-    async addParentByLabelClass(entity, label: string) {
-      try{
-        if(!entity || !label) {
-          throw new HttpException(add_parent_by_label_class_must_entered_error,400)
-        }
-      let query = `match (x:${label}:${entity.labelclass} {isDeleted: false, key: $key}) \
-      match (y: ${entity.labelclass} {isDeleted: false}) where id(y)= $parent_id \
-      create (y)-[:PARENT_OF]->(x)`;
-  
-      if (entity['__label']) {
-        query = `match (x:${label}:${entity.__label} {isDeleted: false, key: $key}) \
-        match (y: ${entity.__labelParent} {isDeleted: false}) where id(y)= $parent_id \
-        create (y)-[:PARENT_OF]->(x)`;
-      }
-        const res = await this.write(query, entity);
-  
-        return successResponse(res);
-    }
-       catch (error) {
-        if (error.response.code) {
-          throw new HttpException(
-            { message: error.response.message, code: error.response.code },
-            error.status
-          );
-        }else {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-      }
-    }
-  
-
-  async deleteRelationWithRelationName(id: string, relationName: string) {
-    try {
-      if (!id || !relationName) {
-        throw new HttpException(
-          delete_relation_with_relation_name__must_entered_error,
-          400
-        );
-      }
-      const res = await this.write(
-        `MATCH (c {isDeleted: false})<-[r:${relationName}]-(p {isDeleted: false}) where id(c)= $id delete r`,
-        { id: parseInt(id) }
-      );
-      const { relationshipsDeleted } =
-        await res.summary.updateStatistics.updates();
-      if (relationshipsDeleted === 0) {
-        throw new HttpException(
-          delete_relation_by_relation_name__not_deleted_error,
-          400
-        );
-      }
-      return successResponse(res);
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-      }
-    }
-  }
-
-  //PARENT_OF
   async deleteChildrenRelation(id: string) {
     try {
       const res = await this.write(
@@ -309,7 +192,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async deleteParentRelation(id: string) {
     try {
       const res = await this.write(
@@ -331,259 +213,9 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
-
-  async updateHasTypeProp(id: string, hasLabeledNode: boolean) {
-    try {
-      if (!id || !hasLabeledNode) {
-        throw new HttpException(update_has_type_prop__must_entered_error, 400);
-      }
-      const res = await this.write(
-        "MATCH (node {isDeleted: false}) where id(node)= $id set node.hasType=$hasLabeledNode return node",
-        {
-          id: parseInt(id),
-          hasLabeledNode,
-        }
-      );
-      if (!res["records"][0]) {
-        throw new HttpException(update_has_type_prop_error, 404);
-      }
-
-      return successResponse(res["records"][0]["_fields"][0]);
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw new HttpException(error, HttpStatus.NOT_ACCEPTABLE);
-      }
-    }
-  }
-
-  async createNodeForParentWithLabel(entity) {
-    entity.hasParent = false;
-  }
-
-  async deleteChildrenNodesByIdAndLabels(
-    id: string,
-    label1: string,
-    label2: string
-  ) {
-    try {
-      if (!id || !label1 || !label2) {
-        throw new HttpException(
-          delete_children_nodes_by_id_and_labels__must_entered_error,
-          400
-        );
-      }
-      const childrenList = await this.write(
-        `MATCH (c: ${label1} {isDeleted: false})-[:CHILDREN]->(n: ${label2}  {isDeleted: false}) where id(c)=$id detach delete n`,
-        {
-          id: id,
-        }
-      );
-      // let {nodesDeleted,relationshipsDeleted}=childrenList.summary.updateStatistics.updates()
-      // if(childrenList["summary"].resultAvailableAfter.low===0 || nodesDeleted===0 || relationshipsDeleted===0 ){
-      //   throw new HttpException(delete_children_nodes_by_id_and_labels__not_deleted_error,404);
-      // }   HATA Değil
-      return childrenList["records"][0];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      }
-      throw newError(failedResponse(error), "400");
-    }
-  }
-  async getChildrenCountByIdAndLabels(
-    id: string,
-    label1: string,
-    label2: string
-  ) {
-    try {
-      if (!id || !label1 || !label2) {
-        throw new HttpException(
-          get_children_count_by_id_and_labels__must_entered_error,
-          400
-        );
-      }
-      const res = await this.read(
-        `MATCH (c {isDeleted: false}) where id(c)= $id MATCH (d {isDeleted: false}) where d:${label1} and not d:${label2} MATCH (c)-[:CHILDREN]->(d) return count(d)`,
-        { id: parseInt(id) }
-      );
-      const value = await res["records"][0]["_fields"][0].low;
-      if (!value && value === 0) {
-        throw new HttpException(
-          get_children_count_by_id_and_labels__not_found_error,
-          404
-        );
-      }
-      return value;
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      }
-      throw newError(failedResponse(error), "400");
-    }
-  }
-  async getChildrensChildrenCountByIdAndLabels(
-    id: string,
-    label1: string,
-    label2: string,
-    label3: string
-  ) {
-    try {
-      if (!id || !label1 || !label2 || !label3) {
-        throw new HttpException(
-          get_childrens_children_count_by_id_and_labels__must_entered_error,
-          400
-        );
-      }
-      const res = await this.read(
-        `MATCH (c {isDeleted: false}) -[r1:CHILDREN]->(p {isDeleted: false})-[r2:CHILDREN]-(s {isDeleted: false}) 
-                where id(c)= $id and p:${label1} and not p:${label2} and s:${label3} return count(s)`,
-        { id: parseInt(id) }
-      );
-      if (res["records"][0]["_fields"][0].low === 0) {
-        throw new HttpException(
-          get_childrens_children_count_by_id_and_labels__not_found_error,
-          404
-        );
-      }
-      return res["records"][0]["_fields"][0].low;
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      }
-      throw newError(failedResponse(error), "400");
-    }
-  }
-
-  async setDeletedTrueToNodeAndChildByIdAndLabels(
-    id: string,
-    label1: string,
-    label2: string
-  ) {
-    try {
-      if (!id || !label1 || !label2) {
-        throw new HttpException(
-          set_deleted_true_to_node_and_child_by_id_and_labels__must_entered_error,
-          400
-        );
-      }
-      const res = await this.write(
-        `MATCH (c {isDeleted: false}) where id(c)= $id MATCH (d {isDeleted: false}) where d:${label1} and not d:${label2} MATCH (c)-[:CHILDREN]->(d) 
-            set c.isDeleted=true, d.isDeleted=true`,
-        { id: parseInt(id) }
-      );
-      const { propertiesSet } = await res.summary.updateStatistics.updates();
-      if (propertiesSet === 0) {
-        throw new HttpException(
-          set_deleted_true_to_node_and_child_by_id_and_labels_not_updated_error,
-          404
-        );
-      }
-      return res["records"];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      }
-      throw newError(failedResponse(error), "400");
-    }
-  }
-
   onApplicationShutdown() {
     return this.driver.close();
   }
-
-  async findByNameAndLabelsWithActiveChildNodes(
-    name: string,
-    label1: string,
-    label2: string,
-    orderbyprop?: string,
-    orderbytype?: string
-  ) {
-    try {
-      if (!name || !label1 || !label2) {
-        throw new HttpException(
-          find_by_name_and_labels_with_active_child_nodes__must_entered_error,
-          400
-        );
-      }
-      const node = await this.findByName(name);
-      if (!node) {
-        throw new HttpException(
-          find_by_name_and_labels_with_active_child_nodes__not_found_error,
-          404
-        );
-      }
-      let cypher = "";
-      if (orderbyprop) {
-        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where c.name=$name return n order by n.${orderbyprop} ${orderbytype}`;
-      } else {
-        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where c.name=$name return n`;
-      }
-      const result = await this.read(cypher, { name });
-
-      if (!result["records"][0]) {
-        throw new HttpException(
-          find_by_name_and_labels_with_active_child_nodes__not_found_error,
-          404
-        );
-      }
-      return result["records"];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw newError(error, "500");
-      }
-    }
-  }
-
-  async findByName(name: string, databaseOrTransaction?: string | Transaction) {
-    try {
-      if (!name) {
-        throw new HttpException(find_by_name__must_entered_error, 400);
-      }
-
-      const cypher =
-        "MATCH (n {isDeleted: false}) where n.name = $name return n";
-
-      const result = await this.read(cypher, { name });
-      if (!result["records"][0].length) {
-        throw new HttpException(node_not_found, 404);
-      }
-
-      return result["records"][0]["_fields"][0];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw newError(error, "500");
-      }
-    }
-  }
-
   async addParentRelationById(child_id: string, target_parent_id: string) {
     try {
       if (!child_id || !target_parent_id) {
@@ -608,7 +240,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async deleteRelations(id: string) {
     const a = 1;
     try {
@@ -650,7 +281,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  //PARENT_OF
   async findWithChildrenByRealmAsTree(label: string, realm: string) {
     try {
       if (!label || !realm) {
@@ -666,7 +296,6 @@ export class Neo4jService implements OnApplicationShutdown {
           404
         );
       }
-
       const cypher = `MATCH p=(n:${label})-[:PARENT_OF*]->(m) \
             WHERE  n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
             WITH COLLECT(p) AS ps \
@@ -689,7 +318,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async findByRealmWithTreeStructure(label: string, realm: string) {
     try {
       if (!label || !realm) {
@@ -698,9 +326,7 @@ export class Neo4jService implements OnApplicationShutdown {
           400
         );
       }
-
       let tree = await this.findWithChildrenByRealmAsTree(label, realm);
-
       if (!tree) {
         throw new HttpException(
           tree_structure_not_found_by_realm_name_error,
@@ -725,7 +351,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async findByRealm(
     label: string,
     realm: string,
@@ -736,13 +361,10 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(find_by_realm__not_entered_error, 400);
       }
       const cypher = `MATCH (n:${label} {isDeleted: false}) where  n.realm = $realm return n`;
-
       const result = await this.read(cypher, { realm });
-
       if (!result["records"][0].length) {
         throw new HttpException(find_by_realm__not_found_error, 404);
       }
-
       return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
@@ -780,7 +402,7 @@ export class Neo4jService implements OnApplicationShutdown {
         throw newError(error, "500");
       }
     }
-  }
+  } 
   async removeLabel(id: string, label: string[]) {
     try {
       if (!id || !label) {
@@ -810,7 +432,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async updateLabel(id: string, label: string[]) {
     try {
       if (!id || !label) {
@@ -840,7 +461,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async updateById(id: string, params: object) {
     try {
       const a = 1;
@@ -848,13 +468,10 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(update_by_id__must_entered_error, 400);
       }
       const cyperQuery = updateNodeQuery(id, params);
-
       const res = await this.write(cyperQuery, params);
-
       if (!res["records"][0]) {
         throw new HttpException(update_by_id__update_error, 400);
       }
-
       return res["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
@@ -867,7 +484,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async createNode(params: object, labels?: string[]) {
     try {
       if (!params) {
@@ -896,7 +512,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async findOneNodeByKey(key: string) {
     try {
       if (!key) {
@@ -913,7 +528,6 @@ export class Neo4jService implements OnApplicationShutdown {
         return null;
       }
       node = node["records"][0]["_fields"][0];
-
       const result = {
         id: node["identity"].low,
         labels: node["labels"],
@@ -938,7 +552,6 @@ export class Neo4jService implements OnApplicationShutdown {
           400
         );
       }
-
       const res = await this.write(
         `MATCH (c {isDeleted: false}) where id(c)= $id MATCH (p {isDeleted: false}) match (c)-[r:${relationName}]-> (p) return count(r)`,
         {
@@ -957,8 +570,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
-  
     async getParentById(id: string) {
       try {
         if(!id){
@@ -982,17 +593,13 @@ export class Neo4jService implements OnApplicationShutdown {
         throw newError(failedResponse(error), "400");
       }
     }
-
-  //PARENT_OF   (library de yok)
   async findChildrenById(id: string) {
     try {
       if (!id) {
         throw new HttpException(find_children_by_id__must_entered_error, 400);
       }
-
       const idNum = parseInt(id);
       await this.findById(id);
-
       const cypher =
         "match (n {isDeleted: false})-[:PARENT_OF]->(p {isDeleted: false}) where id(n)=$idNum  return p";
       const result = await this.read(cypher, { idNum });
@@ -1008,7 +615,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  //PARENT_OF
   async getChildrenCount(id: string) {
     try {
       if (!id) {
@@ -1040,9 +646,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!node) {
         throw new HttpException(node_not_found, 404);
       }
-
       const childrenCount = await this.getChildrenCount(id);
-
       if (childrenCount > 0) {
         throw new HttpException(has_children_error, 400);
       } else {
@@ -1068,7 +672,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  //PARENT_OF
   async changeObjectChildOfPropToChildren(node: any) {
     node["root"]["children"] = node["root"]["parent_of"];
     delete node["root"]["parent_of"];
@@ -1263,7 +866,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
     return node;
   }
-
   async addRelationWithRelationName(
     first_node_id: string,
     second_node_id: string,
@@ -1278,7 +880,6 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       }
       let res: QueryResult;
-
       switch (relationDirection) {
         case RelationDirection.RIGHT:
           res = await this.write(
@@ -1322,7 +923,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async addRelationWithRelationNameByKey(
     first_node_key: string,
     second_node_key: string,
@@ -1368,11 +968,9 @@ export class Neo4jService implements OnApplicationShutdown {
         default:
           throw new HttpException("uygun yön giriniz", 400);
       }
-
       if (relationDirection === RelationDirection.RIGHT) {
       } else {
       }
-
       const { relationshipsCreated } =
         await res.summary.updateStatistics.updates();
       if (relationshipsCreated === 0) {
@@ -1393,7 +991,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
+ //  Control down Control down Control down Control down Control down Control down Control down Control down Control down
   async findNodesByKeyWithRelationName(key: string, relationName: string) {
     const relations = await this.read(
       `match(p {key:$key}) match (c) where c.isDeleted=false match (p)-[:${relationName}]->(c) return c`,
@@ -1401,15 +999,12 @@ export class Neo4jService implements OnApplicationShutdown {
         key,
       }
     );
-
     if (relations.records.length === 0) {
       //throw new HttpException('hiç ilişkisi yok', 400);
       return null;
     }
-
     return relations.records;
   }
-
   async findNodeAndRelationByRelationNameAndId(
     id: string,
     relationName: string,
@@ -1420,7 +1015,6 @@ export class Neo4jService implements OnApplicationShutdown {
         let a = 1;
         //throw new HttpException(find_by_relation__must_entered_error, 400);
       }
-
       const idNum = parseInt(id);
       await this.findById(id);
 
@@ -1471,7 +1065,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
   async findNodeByKeysAndRelationName(
     key: string,
     referenceKey: string,
@@ -1500,80 +1093,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
     return relationExist.records;
   }
-
-  async findByKeyAndLabelsWithActiveChildNodes(
-    key: string,
-    label1: string,
-    label2: string,
-    orderbyprop?: string,
-    orderbytype?: string
-  ) {
-    try {
-      if (!key || !label1 || !label2) {
-        throw new HttpException(
-          find_by_id_and_labels_with_active_child_nodes__must_entered_error,
-          400
-        );
-      }
-      const node = await this.findByKey(key);
-      if (!node) {
-        throw new HttpException(
-          find_by_id_and_labels_with_active_child_nodes__not_found_error,
-          404
-        );
-      }
-
-      let cypher = "";
-      if (orderbyprop) {
-        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where c.key=$key return n order by n.${orderbyprop} ${orderbytype}`;
-      } else {
-        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: true})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive: true}) where c.key=$key return n`;
-      }
-      const result = await this.read(cypher, { key });
-
-      if (!result["records"].length) {
-        throw new HttpException(
-          find_by_id_and_labels_with_active_child_node__not_found_error,
-          404
-        );
-      }
-      return result["records"];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw newError(error, "500");
-      }
-    }
-  }
-  async findByKey(key: string, databaseOrTransaction?: string | Transaction) {
-    try {
-      if (!key) {
-        throw new HttpException(find_by_id__must_entered_error, 400);
-      }
-
-      const cypher = "MATCH (n {isDeleted: false}) where n.key = $key return n";
-
-      const result = await this.read(cypher, { key });
-      if (!result["records"].length) {
-        throw new HttpException(node_not_found, 404);
-      }
-      return result["records"][0]["_fields"][0];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw newError(error, "500");
-      }
-    }
-  }
-
   async checkSpecificVirtualNodeCountInDb(
     referenceKey: string,
     relationName: string
@@ -1588,7 +1107,6 @@ export class Neo4jService implements OnApplicationShutdown {
       throw new HttpException(error, 500);
     }
   }
-
   async deleteVirtualNode(id: number) {
     try {
       const node = await this.write(
@@ -1636,5 +1154,4 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 }
