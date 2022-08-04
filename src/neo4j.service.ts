@@ -1214,7 +1214,7 @@ export class Neo4jService implements OnApplicationShutdown {
           res = await this.read(
             `MATCH (c:${first_node_label} {isDeleted: false}) where c.realm= $first_node_realm \
              MATCH (p:${second_child_node_label} {isDeleted: false}) where p.name= $second_child_node_name \
-             MATCH  (c)-[:${relationName}]->(p)-[:${relationName}]->(z:${children_nodes_label} {isDeleted: false, isActive: true})`,
+             MATCH  (c)-[:${relationName}]->(p)-[:${relationName}]->(z:${children_nodes_label} {isDeleted: false, isActive: true}) return z`,
             {
               first_node_realm: first_node_realm,
               second_child_node_name: second_child_node_name,
