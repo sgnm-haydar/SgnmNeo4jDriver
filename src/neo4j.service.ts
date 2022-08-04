@@ -1120,37 +1120,139 @@ export class Neo4jService implements OnApplicationShutdown {
       throw new HttpException(error, 500);
     }
   }
-  async findByIdLabelsAndIsActivesWithChildNodes(id: string, label1: string, label2: string, isActive1: boolean, isActive2: boolean, orderbyprop?: string,  orderbytype?: string) {
+  
+  async findWithChildrenByRealmAsTreeOneLevel(label: string, realm: string) {
     try {
-      if(!id || !label1 || !label2){
-        throw new HttpException(find_by_id_and_labels_with_active_child_nodes__must_entered_error,400);  //Değişecek
-      }
-      const node = await this.findById(id);
-      if (!node) {
-        throw new HttpException(find_by_id_and_labels_with_active_child_nodes__not_found_error,404);  //Değişecek
-      }
-      const idNum = parseInt(id);
-      let cypher = "";
-      if (orderbyprop) {
-        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: ${isActive1}})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive:  ${isActive2}}) where id(c)=$idNum return n order by n.${orderbyprop} ${orderbytype}`;
-      }
-      else {
-        cypher = `MATCH (c: ${label1} {isDeleted: false, isActive: ${isActive1}})-[:CHILDREN]->(n: ${label2} {isDeleted: false, isActive:  ${isActive2}}) where id(c)=$idNum return n`;
-      } 
-      const result = await this.read(cypher, { idNum });
-   
-      if (!result["records"].length) {
-        throw new HttpException(find_by_id_and_labels_with_active_child_node__not_found_error,404)  //Değişecek
-      }
-      return result["records"];
-    } catch (error) {
-      if (error.response.code) {
+      if (!label || !realm) {
         throw new HttpException(
-          { message: error.response.message, code: error.response.code },
+          find_with_children_by_realm_as_tree__not_entered_error,
+          400
+        );
+      }
+      const node = await this.findByRealm(label, realm);
+      if (!node) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const cypher = `MATCH p=(n:${label})-[:PARENT_OF]->(m) \
+            WHERE  n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
+            WITH COLLECT(p) AS ps \
+            CALL apoc.convert.toTree(ps) yield value \
+            RETURN value`;
+
+      const result = await this.read(cypher, { realm });
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
           error.status
         );
-      }else {
-         throw newError(error, "500");
+      } else {
+        throw newError(error, "500");
+      }
+    }
+  }
+  async findByRealmWithTreeStructureOneLevel(label: string, realm: string) {
+    try {
+      if (!label || !realm) {
+        throw new HttpException(
+          find_by_realm_with_tree_structure__not_entered_error,
+          400
+        );
+      }
+      let tree = await this.findWithChildrenByRealmAsTreeOneLevel(label, realm);
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByRealm(label, realm);
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw newError(error, "500");
+      }
+    }
+  }
+
+  async findChildNodesOfFirstParentNodeByLabelsRealmAndName(
+    first_node_label: string,
+    first_node_realm: string,
+    second_child_node_label: string,
+    second_child_node_name: string,
+    children_nodes_label: string,
+    relationName: string,
+    relationDirection: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      if (!first_node_label || !first_node_realm || !second_child_node_label || !second_child_node_name || !children_nodes_label ) {
+        throw new HttpException(
+          add_relation_with_relation_name__must_entered_error,   //DEĞİŞECEK
+          400
+        );
+      }
+      let res: QueryResult;
+      switch (relationDirection) {
+        case RelationDirection.RIGHT:
+          res = await this.read(
+            `MATCH (c:${first_node_label} {isDeleted: false}) where c.realm= $first_node_realm \
+             MATCH (p:${second_child_node_label} {isDeleted: false}) where p.name= $second_child_node_name \
+             MATCH  (c)-[:${relationName}]->(p)-[:${relationName}]->(z:${children_nodes_label} {isDeleted: false, isActive: true})`,
+            {
+              first_node_realm: first_node_realm,
+              second_child_node_name: second_child_node_name,
+
+            }
+          );
+          break;
+          case RelationDirection.LEFT:  
+          res = await this.read(
+            `MATCH (c:${first_node_label} {isDeleted: false}) where c.realm= $first_node_realm \
+             MATCH (p:${second_child_node_label} {isDeleted: false}) where p.name= $second_child_node_name \
+             MATCH  (c)<-[:${relationName}]-(p)<-[:${relationName}]-(z:${children_nodes_label} {isDeleted: false, isActive: true}) return z`,
+            {
+              first_node_realm: first_node_realm,
+              second_child_node_name: second_child_node_name,
+              
+            }
+          );
+          break;
+        default:
+          throw new HttpException("uygun yön giriniz", 400);
+      }
+      let resultObj = [];
+      if (res['length']) {
+        
+        for (let i = 0; i<res['length']; i++) {
+          resultObj.push(res[i]["properties"]);
+        }
+      } 
+      return resultObj;
+    } catch (error) {
+      if (error?.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
       }
     }
   }
