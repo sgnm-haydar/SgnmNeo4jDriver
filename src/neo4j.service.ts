@@ -1237,14 +1237,13 @@ export class Neo4jService implements OnApplicationShutdown {
         default:
           throw new HttpException("uygun yön giriniz", 400);
       }
-      let resultObj = [];
-      if (res['length']) {
-        
-        for (let i = 0; i<res['length']; i++) {
-          resultObj.push(res[i]["properties"]);
-        }
-      } 
-      return resultObj;
+      if (!res) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,  //DEĞİŞECEK
+          404
+        );
+      }
+      return res;
     } catch (error) {
       if (error?.response?.code) {
         throw new HttpException(
