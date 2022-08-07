@@ -1137,7 +1137,7 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       }
       const cypher = `MATCH p=(n:${label})-[:PARENT_OF]->(m) \
-            WHERE  n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
+            WHERE  n.realm = $realm and n.isDeleted=false and not n:Virtual and m.isDeleted=false and not m:Virtual \
             WITH COLLECT(p) AS ps \
             CALL apoc.convert.toTree(ps) yield value \
             RETURN value`;
@@ -1255,4 +1255,48 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-}
+
+  async findByIdWithoutVirtualNode(id: string) {
+    try {
+      if (!id) {
+        throw new HttpException(find_by_id__must_entered_error, 400);
+      }
+      const idNum = parseInt(id);
+
+      const cypher =
+        "MATCH (n {isDeleted: false}) where id(n) = $idNum and not n:Virtual return n";
+
+      const result = await this.read(cypher, { idNum });
+      if (!result["records"].length) {
+        throw new HttpException(node_not_found, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw newError(error, "500");
+      }
+    }
+  }
+
+  async findStructureRootNode(key){
+    const cypher = 'match(n:FacilityStructure) match(p {key:$key}) match (n)-[:PARENT_OF*]->(p) return n';
+    const structureRootNode = await this.read(cypher, { key });
+    return structureRootNode.records[0]['_fields'][0];
+   }
+
+   async getAllowedStructureTypeNode(realm, name){
+     const cypher = 'match (n:FacilityTypes_EN {realm:$realm}) match(p {name:$name}) match(n)-[:PARENT_OF]->(p) return p';
+     const allowedStructureTypeNode = this.read(cypher, { realm, name });
+     return allowedStructureTypeNode;
+   }
+   async getAllowedStructures(key){
+    const cypher = 'match(n {key:$key}) match(p) match (n)-[:PARENT_OF]->(p) return p';
+    const allowedStructures = this.read(cypher, { key });
+    return allowedStructures;
+   }
+  }
