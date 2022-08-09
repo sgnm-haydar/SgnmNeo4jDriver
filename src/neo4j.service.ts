@@ -57,6 +57,7 @@ import {
   update_label__must_entered_error,
   find_children_by_id__must_entered_error,
   delete__update_is_deleted_prop_error,
+  incorret_operation,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
 @Injectable()
@@ -1293,7 +1294,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const cypher = `match(n:${label}) match(p {key:$key}) match (n)-[:PARENT_OF*]->(p) return n`;
       const structureRootNode = await this.read(cypher, { key });
       if (!structureRootNode || !structureRootNode["records"].length) {
-        throw new HttpException('Hatalı işlem', 400);
+        throw new HttpException(incorret_operation, 400);
       }
       return structureRootNode.records[0]['_fields'][0];
 

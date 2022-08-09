@@ -431,3 +431,7 @@ export const delete__update_is_deleted_prop_error: errorObject = {
   message: "is deleted prop of node could not deleted",
   code: CustomNeo4jError.FIND_CHILDREN_BY_ID__MUST_ENTERED_ERROR,
 };
+export const incorret_operation: errorObject = {
+  message: "operation is incorrect",
+  code: CustomNeo4jError.INCORRECT_OPERATION,
+};
