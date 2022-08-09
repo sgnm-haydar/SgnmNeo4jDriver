@@ -1283,11 +1283,32 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async findStructureRootNode(key){
-    const cypher = 'match(n:FacilityStructure) match(p {key:$key}) match (n)-[:PARENT_OF*]->(p) return n';
-    const structureRootNode = await this.read(cypher, { key });
-    return structureRootNode.records[0]['_fields'][0];
-   }
+  async findStructureRootNode(key, label){
+
+    try {
+      if (!key) {
+        throw new HttpException(find_by_id__must_entered_error, 400);  //DEĞİŞECEK
+      }
+
+      const cypher = `match(n:${label}) match(p {key:$key}) match (n)-[:PARENT_OF*]->(p) return n`;
+      const structureRootNode = await this.read(cypher, { key });
+      if (!structureRootNode || !structureRootNode["records"].length) {
+        throw new HttpException('Hatalı işlem', 400);
+      }
+      return structureRootNode.records[0]['_fields'][0];
+
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw newError(error, "500");
+      }
+    }
+  } 
+
 
    async getAllowedStructureTypeNode(realm, name){
      const cypher = 'match (n:FacilityTypes_EN {realm:$realm}) match(p {name:$name}) match(n)-[:PARENT_OF]->(p) return p';
