@@ -298,7 +298,7 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       }
       const cypher = `MATCH p=(n:${label})-[:PARENT_OF*]->(m) \
-            WHERE  n.realm = $realm and n.isDeleted=false and m.isDeleted=false \
+            WHERE  n.realm = $realm and n.isDeleted=false and m.isDeleted=false and m.canDisplay=true \
             WITH COLLECT(p) AS ps \
             CALL apoc.convert.toTree(ps) yield value \
             RETURN value`;
