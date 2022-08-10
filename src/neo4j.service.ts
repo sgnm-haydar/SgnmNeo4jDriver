@@ -1317,7 +1317,7 @@ export class Neo4jService implements OnApplicationShutdown {
      return allowedStructureTypeNode;
    }
    async getAllowedStructures(key){
-    const cypher = 'match(n {key:$key}) match(p) match (n)-[:PARENT_OF]->(p) return p';
+    const cypher = 'match(n {key:$key}) match(p:AllowedStructure) match (n)-[:PARENT_OF]->(p) return p';
     const allowedStructures = this.read(cypher, { key });
     return allowedStructures;
    }
