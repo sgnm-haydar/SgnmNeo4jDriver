@@ -622,7 +622,7 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(get_children_count__must_entered_error, 400);
       }
       const res = await this.read(
-        "MATCH (c {isDeleted: false}) where id(c)= $id MATCH (d {isDeleted: false}) MATCH (c)-[:PARENT_OF]->(d) return count(d)",
+        "MATCH (c {isDeleted: false}) where id(c)= $id MATCH (d {isDeleted: false}) where not d:JointSpaces MATCH (c)-[:PARENT_OF]->(d) return count(d)",
         { id: parseInt(id) }
       );
       return res["records"][0]["_fields"][0].low;
