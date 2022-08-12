@@ -646,7 +646,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const node = await this.findById(id);
 
       if (!node) {
-        //throw new HttpException(node_not_found, 404);
+        throw new HttpException(node_not_found, 404);
       }
       const childrenCount = await this.getChildrenCount(id);
       if (childrenCount > 0) {
