@@ -58,6 +58,7 @@ import {
   find_children_by_id__must_entered_error,
   delete__update_is_deleted_prop_error,
   incorret_operation,
+  node_cannot_delete,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
 @Injectable()
@@ -645,7 +646,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const node = await this.findById(id);
 
       if (!node) {
-        throw new HttpException(node_not_found, 404);
+        //throw new HttpException(node_not_found, 404);
       }
       const childrenCount = await this.getChildrenCount(id);
       if (childrenCount > 0) {
@@ -656,11 +657,14 @@ export class Neo4jService implements OnApplicationShutdown {
         if (!parent) {
           throw new HttpException(delete__get_parent_by_id_error, 404);
         }
-        const deletedNode = await this.updateIsDeletedProp(id, true);
-        if (!deletedNode) {
-          throw new HttpException(delete__update_is_deleted_prop_error, 400);
+        if (node['properties']['canDelete'] == undefined || node['properties']['canDelete'] == null ||  node['properties']['canDelete'] == true ) {
+          const deletedNode = await this.updateIsDeletedProp(id, true);
+          if (!deletedNode) {
+              throw new HttpException(delete__update_is_deleted_prop_error, 400);
+          }
+          return deletedNode;
         }
-        return deletedNode;
+        throw new HttpException(node_cannot_delete, 400);
       }
     } catch (error) {
       if (error.response?.code) {

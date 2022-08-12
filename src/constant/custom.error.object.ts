@@ -435,3 +435,7 @@ export const incorret_operation: errorObject = {
   message: "operation is incorrect",
   code: CustomNeo4jError.INCORRECT_OPERATION,
 };
+export const node_cannot_delete: errorObject = {
+  message: "Node can not delete",
+  code: CustomNeo4jError.NODE_CANNOT_DELETE
+};
