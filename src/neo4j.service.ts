@@ -1354,7 +1354,9 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (node["properties"]["canDelete"] == true) {
         const deletedNode = await this.updateIsDeletedProp(id, true);
+        return deletedNode;
       }
+      throw new HttpException(node_cannot_delete, 400);
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(
