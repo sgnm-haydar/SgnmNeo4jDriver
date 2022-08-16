@@ -71,3 +71,70 @@ export function updateNodeQuery(id, dto) {
   dynamicQueryParameter += `  return node`;
   return dynamicQueryParameter;
 }
+
+export function dynamicLabelAdder(labels: Array<string>) {
+  let optionalLabels = '';
+
+  if (labels && labels.length > 0) {
+    labels.map((item) => {
+      if (item.trim() === '') {
+        optionalLabels = optionalLabels;
+      } else {
+        optionalLabels = optionalLabels + ':' + item;
+      }
+    });
+  }
+  return optionalLabels;
+}
+
+export function dynamicNotLabelAdder(notLabels: Array<string>) {
+  let optionalLabels = '';
+  const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+    if (item.trim() !== '') {
+      return item;
+    }
+  });
+
+  if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
+    notLabelsWithoutEmptyString.map((item, index) => {
+      if (index === 0) {
+        optionalLabels = optionalLabels + `not n:${item} `;
+      } else {
+        optionalLabels = optionalLabels + `and not n:${item} `;
+      }
+    });
+  }
+  return optionalLabels;
+}
+
+export function dynamicFilterPropertiesAdder(filterProperties) {
+  if (!filterProperties || Object.keys(filterProperties).length === 0) {
+    return ')';
+  }
+  let dynamicQueryParameter = '';
+
+  Object.keys(filterProperties).forEach((element, index) => {
+    if (index === 0) {
+      dynamicQueryParameter += ` { ${element}` + `: $` + `${element}`;
+    } else {
+      dynamicQueryParameter += `,${element}` + `: $` + `${element}`;
+    }
+    if (Object.keys(filterProperties).length === index + 1) {
+      dynamicQueryParameter += ` }) `;
+    }
+  });
+  return dynamicQueryParameter;
+}
+
+export function dynamicUpdatePropertyAdder(updateProperties: object) {
+  let dynamicQueryParameter = '';
+
+  Object.keys(updateProperties).forEach((element, index) => {
+    if (Object.keys(updateProperties).length === index + 1) {
+      dynamicQueryParameter += `n.${element}` + `= $` + `${element}`;
+    } else {
+      dynamicQueryParameter += `n.${element}` + `= $` + `${element} ,`;
+    }
+  });
+  return dynamicQueryParameter;
+}

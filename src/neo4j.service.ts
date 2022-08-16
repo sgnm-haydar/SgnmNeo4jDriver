@@ -18,6 +18,10 @@ import TransactionImpl from "neo4j-driver-core/lib/transaction";
 import { newError } from "neo4j-driver-core";
 import {
   createDynamicCyperCreateQuery,
+  dynamicFilterPropertiesAdder,
+  dynamicLabelAdder,
+  dynamicNotLabelAdder,
+  dynamicUpdatePropertyAdder,
   updateNodeQuery,
 } from "./func/common.func";
 import { successResponse } from "./constant/success.response.object";
@@ -1325,4 +1329,126 @@ export class Neo4jService implements OnApplicationShutdown {
     const allowedStructures = this.read(cypher, { key });
     return allowedStructures;
    }
+
+   //----------------------------------------------
+
+   async findByIdAndFilters(id: number, filterProperties: object = {}, notLabels: Array<string> = ['']) {
+    const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+      if (item.trim() !== '') {
+        return item;
+      }
+    });
+    let query = 'match (n' + dynamicFilterPropertiesAdder(filterProperties) + ` where id(n)=${id} `;
+    if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
+      query = query + ' and ' + dynamicNotLabelAdder(notLabels) + ` return n`;
+    } else {
+      query = query + dynamicNotLabelAdder(notLabels) + ` return n`;
+    }
+
+    filterProperties['id'] = id;
+    const parameters = filterProperties;
+    const node = await this.read(query, parameters);
+    if (node.records.length === 0) {
+      return null;
+    } else {
+      return node.records[0]['_fields'][0];
+    }
+  }
+
+  async findByLabelAndFilters(
+    labels: Array<string> = [''],
+    filterProperties: object = {},
+    notLabels: Array<string> = [''],
+  ) {
+    const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+      if (item.trim() !== '') {
+        return item;
+      }
+    });
+    let query = 'match (n' + dynamicLabelAdder(labels) + dynamicFilterPropertiesAdder(filterProperties);
+
+    if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
+      query = query + ' where ' + dynamicNotLabelAdder(notLabels) + ` return n`;
+    } else {
+      query = query + ` return n`;
+    }
+
+    const node = await this.read(query, filterProperties);
+    if (node.records.length === 0) {
+      return null;
+    } else {
+      return node.records;
+    }
+  }
+
+  async updateByLabelAndFilter(
+    labels: Array<string> = [],
+    filterProperties: object = {},
+    updateLabels: Array<string> = [],
+    updateProperties: object = {},
+  ) {
+    const updateLabelsWithoutEmptyString = updateLabels.filter((item) => {
+      if (item.trim() !== '') {
+        return item;
+      }
+    });
+    const nodes = await this.findByLabelAndFilters(labels, filterProperties);
+    if (!nodes || nodes?.length === 0) {
+      return null;
+    }
+    let query = 'match (n)' + 'where id(n)=$id ' + ` set ` + dynamicUpdatePropertyAdder(updateProperties);
+
+    if (updateLabelsWithoutEmptyString && updateLabelsWithoutEmptyString.length > 0) {
+      query = query + ', n' + dynamicLabelAdder(updateLabelsWithoutEmptyString) + ' return n';
+    } else {
+      query = query + ' return n';
+    }
+
+    const result = Promise.all(
+      nodes.map(async (item) => {
+        updateProperties['id'] = item['_fields'][0].identity.low;
+        const parameters = updateProperties;
+        const node = await this.write(query, parameters);
+        if (node.records.length === 0) {
+          return null;
+        } else {
+          return node.records[0]['_fields'][0];
+        }
+      }),
+    );
+    return result;
+  }
+
+  async updateByIdAndFilter(
+    id: number,
+    filterProperties: object = {},
+    updateLabels: Array<string> = [],
+    updateProperties: object = {},
+  ) {
+    const updateLabelsWithoutEmptyString = updateLabels.filter((item) => {
+      if (item.trim() !== '') {
+        return item;
+      }
+    });
+    const isNodeExist = await this.findByIdAndFilters(id, filterProperties);
+
+    if (!isNodeExist) {
+      return null;
+    }
+    let query = 'match (n) ' + ` where id(n)=${id} set ` + dynamicUpdatePropertyAdder(updateProperties);
+
+    if (updateLabelsWithoutEmptyString && updateLabelsWithoutEmptyString.length > 0) {
+      query = query + ', n' + dynamicLabelAdder(updateLabelsWithoutEmptyString) + ' return n';
+    } else {
+      query = query + ' return n';
+    }
+    updateProperties['id'] = id;
+    const parameters = updateProperties;
+    const node = await this.write(query, parameters);
+    if (node.records.length === 0) {
+      return null;
+    } else {
+      return node.records[0]['_fields'][0];
+    }
+  }
   }
