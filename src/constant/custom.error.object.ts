@@ -10,6 +10,10 @@ export const library_server_error: errorObject = {
   message: "something went wrong with the library server",
   code: CustomNeo4jError.LİBRARY_ERROR,
 };
+export const invalid_direction_error: errorObject = {
+  message: "please enter proper direction",
+  code: CustomNeo4jError.INVALID_DIRECTION,
+};
 
 export const node_not_found: errorObject = {
   message:

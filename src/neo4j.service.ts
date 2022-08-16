@@ -64,6 +64,7 @@ import {
   incorret_operation,
   node_cannot_delete,
   library_server_error,
+  invalid_direction_error,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
 @Injectable()
@@ -1645,6 +1646,68 @@ export class Neo4jService implements OnApplicationShutdown {
           library_server_error,
           HttpStatus.INTERNAL_SERVER_ERROR
         );
+      }
+    }
+  }
+  async addRelationByIdandRelationName(
+    first_node_id: number,
+    first_node_filters: object = {},
+    second_node_id: number,
+    second_node_filters: object = {},
+    relationName: string,
+    relationDirection: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      if (!first_node_id || !second_node_id || !relationName) {
+        throw new HttpException(
+          add_relation_with_relation_name__must_entered_error,
+          400
+        );
+      }
+      await this.findByIdAndFilters(first_node_id, first_node_filters);
+      await this.findByIdAndFilters(second_node_id, second_node_filters);
+
+      let res: QueryResult;
+      switch (relationDirection) {
+        case RelationDirection.RIGHT:
+          res = await this.write(
+            `MATCH (c) where id(c)= $first_node_id MATCH (p ) where id(p)= $second_node_id MERGE (c)-[:${relationName}]-> (p)`,
+            {
+              first_node_id,
+              second_node_id,
+            }
+          );
+          break;
+        case RelationDirection.LEFT:
+          res = await this.write(
+            `MATCH (c) where id(c)= $first_node_id MATCH (p) where id(p)= $second_node_id MERGE (c)<-[:${relationName}]- (p)`,
+            {
+              first_node_id,
+              second_node_id,
+            }
+          );
+          break;
+        default:
+          throw new HttpException(invalid_direction_error, 400);
+      }
+
+      const { relationshipsCreated } =
+        await res.summary.updateStatistics.updates();
+      if (relationshipsCreated === 0) {
+        throw new HttpException(
+          add_relation_with_relation_name__create_relation_error,
+          400
+        );
+      }
+      return res;
+    } catch (error) {
+      if (error?.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
       }
     }
   }
