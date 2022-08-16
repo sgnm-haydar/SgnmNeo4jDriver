@@ -63,6 +63,7 @@ import {
   delete__update_is_deleted_prop_error,
   incorret_operation,
   node_cannot_delete,
+  library_server_error,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
 @Injectable()
@@ -242,7 +243,10 @@ export class Neo4jService implements OnApplicationShutdown {
           error.status
         );
       } else {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       }
     }
   }
@@ -408,7 +412,7 @@ export class Neo4jService implements OnApplicationShutdown {
         throw newError(error, "500");
       }
     }
-  } 
+  }
   async removeLabel(id: string, label: string[]) {
     try {
       if (!id || !label) {
@@ -576,29 +580,29 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-    async getParentById(id: string) {
-      try {
-        if(!id){
-          throw new HttpException(get_parent_by_id__must_entered_error,400);
-        }
-        const res = await this.read(
-          "MATCH (c {isDeleted: false}) where id(c)= $id match(k {isDeleted: false}) match (k)-[:PARENT_OF]->(c) return k",
-          { id: parseInt(id) }
-        );
-        if(!res["records"][0].length){
-        throw new HttpException(parent_of_child_not_found,404)
-        }
-        return res["records"][0];
-      } catch (error) {
-        if (error.response.code) {
-          throw new HttpException(
-            { message: error.response.message, code: error.response.code },
-            error.status
-          );
-        }
-        throw newError(failedResponse(error), "400");
+  async getParentById(id: string) {
+    try {
+      if (!id) {
+        throw new HttpException(get_parent_by_id__must_entered_error, 400);
       }
+      const res = await this.read(
+        "MATCH (c {isDeleted: false}) where id(c)= $id match(k {isDeleted: false}) match (k)-[:PARENT_OF]->(c) return k",
+        { id: parseInt(id) }
+      );
+      if (!res["records"][0].length) {
+        throw new HttpException(parent_of_child_not_found, 404);
+      }
+      return res["records"][0];
+    } catch (error) {
+      if (error.response.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
+          error.status
+        );
+      }
+      throw newError(failedResponse(error), "400");
     }
+  }
   async findChildrenById(id: string) {
     try {
       if (!id) {
@@ -661,10 +665,14 @@ export class Neo4jService implements OnApplicationShutdown {
         if (!parent) {
           throw new HttpException(delete__get_parent_by_id_error, 404);
         }
-        if (node['properties']['canDelete'] == undefined || node['properties']['canDelete'] == null ||  node['properties']['canDelete'] == true ) {
+        if (
+          node["properties"]["canDelete"] == undefined ||
+          node["properties"]["canDelete"] == null ||
+          node["properties"]["canDelete"] == true
+        ) {
           const deletedNode = await this.updateIsDeletedProp(id, true);
           if (!deletedNode) {
-              throw new HttpException(delete__update_is_deleted_prop_error, 400);
+            throw new HttpException(delete__update_is_deleted_prop_error, 400);
           }
           return deletedNode;
         }
@@ -1000,7 +1008,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
- //  Control down Control down Control down Control down Control down Control down Control down Control down Control down
+  //  Control down Control down Control down Control down Control down Control down Control down Control down Control down
   async findNodesByKeyWithRelationName(key: string, relationName: string) {
     const relations = await this.read(
       `match(p {key:$key}) match (c) where c.isDeleted=false match (p)-[:${relationName}]->(c) return c`,
@@ -1129,7 +1137,7 @@ export class Neo4jService implements OnApplicationShutdown {
       throw new HttpException(error, 500);
     }
   }
-  
+
   async findWithChildrenByRealmAsTreeOneLevel(label: string, realm: string) {
     try {
       if (!label || !realm) {
@@ -1211,9 +1219,15 @@ export class Neo4jService implements OnApplicationShutdown {
     relationDirection: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      if (!first_node_label || !first_node_realm || !second_child_node_label || !second_child_node_name || !children_nodes_label ) {
+      if (
+        !first_node_label ||
+        !first_node_realm ||
+        !second_child_node_label ||
+        !second_child_node_name ||
+        !children_nodes_label
+      ) {
         throw new HttpException(
-          add_relation_with_relation_name__must_entered_error,   //DEĞİŞECEK
+          add_relation_with_relation_name__must_entered_error, //DEĞİŞECEK
           400
         );
       }
@@ -1227,11 +1241,10 @@ export class Neo4jService implements OnApplicationShutdown {
             {
               first_node_realm: first_node_realm,
               second_child_node_name: second_child_node_name,
-
             }
           );
           break;
-          case RelationDirection.LEFT:  
+        case RelationDirection.LEFT:
           res = await this.read(
             `MATCH (c:${first_node_label} {isDeleted: false}) where c.realm= $first_node_realm \
              MATCH (p:${second_child_node_label} {isDeleted: false}) where p.name= $second_child_node_name \
@@ -1239,7 +1252,6 @@ export class Neo4jService implements OnApplicationShutdown {
             {
               first_node_realm: first_node_realm,
               second_child_node_name: second_child_node_name,
-              
             }
           );
           break;
@@ -1248,7 +1260,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (!res) {
         throw new HttpException(
-          tree_structure_not_found_by_realm_name_error,  //DEĞİŞECEK
+          tree_structure_not_found_by_realm_name_error, //DEĞİŞECEK
           404
         );
       }
@@ -1292,11 +1304,10 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async findStructureRootNode(key, label){
-
+  async findStructureRootNode(key, label) {
     try {
       if (!key) {
-        throw new HttpException(find_by_id__must_entered_error, 400);  //DEĞİŞECEK
+        throw new HttpException(find_by_id__must_entered_error, 400); //DEĞİŞECEK
       }
 
       const cypher = `match(n:${label}) match(p {key:$key}) match (n)-[:PARENT_OF*]->(p) return n`;
@@ -1304,8 +1315,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!structureRootNode || !structureRootNode["records"].length) {
         throw new HttpException(incorret_operation, 400);
       }
-      return structureRootNode.records[0]['_fields'][0];
-
+      return structureRootNode.records[0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(
@@ -1316,59 +1326,70 @@ export class Neo4jService implements OnApplicationShutdown {
         throw newError(error, "500");
       }
     }
-  } 
+  }
 
-
-   async getAllowedStructureTypeNode(realm, name){
-     const cypher = 'match (n:FacilityTypes_EN {realm:$realm}) match(p {name:$name}) match(n)-[:PARENT_OF]->(p) return p';
-     const allowedStructureTypeNode = this.read(cypher, { realm, name });
-     return allowedStructureTypeNode;
-   }
-   async getAllowedStructures(key){
-    const cypher = 'match(n {key:$key}) match(p:AllowedStructure) match (n)-[:PARENT_OF]->(p) return p';
+  async getAllowedStructureTypeNode(realm, name) {
+    const cypher =
+      "match (n:FacilityTypes_EN {realm:$realm}) match(p {name:$name}) match(n)-[:PARENT_OF]->(p) return p";
+    const allowedStructureTypeNode = this.read(cypher, { realm, name });
+    return allowedStructureTypeNode;
+  }
+  async getAllowedStructures(key) {
+    const cypher =
+      "match(n {key:$key}) match(p:AllowedStructure) match (n)-[:PARENT_OF]->(p) return p";
     const allowedStructures = this.read(cypher, { key });
     return allowedStructures;
-   }
+  }
 
-   //----------------------------------------------
+  //----------------------------------------------
 
-   async findByIdAndFilters(id: number, filterProperties: object = {}, notLabels: Array<string> = ['']) {
+  async findByIdAndFilters(
+    id: number,
+    filterProperties: object = {},
+    notLabels: Array<string> = []
+  ) {
     const notLabelsWithoutEmptyString = notLabels.filter((item) => {
-      if (item.trim() !== '') {
+      if (item.trim() !== "") {
         return item;
       }
     });
-    let query = 'match (n' + dynamicFilterPropertiesAdder(filterProperties) + ` where id(n)=${id} `;
+    let query =
+      "match (n" +
+      dynamicFilterPropertiesAdder(filterProperties) +
+      ` where id(n)=${id} `;
     if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
-      query = query + ' and ' + dynamicNotLabelAdder(notLabels) + ` return n`;
+      query = query + " and " + dynamicNotLabelAdder(notLabels) + ` return n`;
     } else {
       query = query + dynamicNotLabelAdder(notLabels) + ` return n`;
     }
 
-    filterProperties['id'] = id;
+    filterProperties["id"] = id;
     const parameters = filterProperties;
     const node = await this.read(query, parameters);
     if (node.records.length === 0) {
-      return null;
+      throw new HttpException(node_not_found, 404);
     } else {
-      return node.records[0]['_fields'][0];
+      return node.records[0]["_fields"][0];
     }
   }
 
   async findByLabelAndFilters(
-    labels: Array<string> = [''],
+    labels: Array<string> = [""],
     filterProperties: object = {},
-    notLabels: Array<string> = [''],
+    notLabels: Array<string> = [""]
   ) {
     const notLabelsWithoutEmptyString = notLabels.filter((item) => {
-      if (item.trim() !== '') {
+      if (item.trim() !== "") {
         return item;
       }
     });
-    let query = 'match (n' + dynamicLabelAdder(labels) + dynamicFilterPropertiesAdder(filterProperties);
+    let query =
+      "match (n" +
+      dynamicLabelAdder(labels) +
+      dynamicFilterPropertiesAdder(filterProperties);
 
     if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
-      query = query + ' where ' + dynamicNotLabelAdder(notLabels) + ` return n`;
+      query = query + " where " + dynamicNotLabelAdder(notLabels) + ` return n`;
     } else {
       query = query + ` return n`;
     }
@@ -1385,36 +1406,47 @@ export class Neo4jService implements OnApplicationShutdown {
     labels: Array<string> = [],
     filterProperties: object = {},
     updateLabels: Array<string> = [],
-    updateProperties: object = {},
+    updateProperties: object = {}
   ) {
     const updateLabelsWithoutEmptyString = updateLabels.filter((item) => {
-      if (item.trim() !== '') {
+      if (item.trim() !== "") {
         return item;
       }
     });
     const nodes = await this.findByLabelAndFilters(labels, filterProperties);
     if (!nodes || nodes?.length === 0) {
-      return null;
+      throw new HttpException(node_not_found, 404);
     }
-    let query = 'match (n)' + 'where id(n)=$id ' + ` set ` + dynamicUpdatePropertyAdder(updateProperties);
+    let query =
+      "match (n)" +
+      "where id(n)=$id " +
+      ` set ` +
+      dynamicUpdatePropertyAdder(updateProperties);
 
-    if (updateLabelsWithoutEmptyString && updateLabelsWithoutEmptyString.length > 0) {
-      query = query + ', n' + dynamicLabelAdder(updateLabelsWithoutEmptyString) + ' return n';
+    if (
+      updateLabelsWithoutEmptyString &&
+      updateLabelsWithoutEmptyString.length > 0
+    ) {
+      query =
+        query +
+        ", n" +
+        dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+        " return n";
     } else {
-      query = query + ' return n';
+      query = query + " return n";
     }
 
     const result = Promise.all(
       nodes.map(async (item) => {
-        updateProperties['id'] = item['_fields'][0].identity.low;
+        updateProperties["id"] = item["_fields"][0].identity.low;
         const parameters = updateProperties;
         const node = await this.write(query, parameters);
         if (node.records.length === 0) {
           return null;
         } else {
-          return node.records[0]['_fields'][0];
+          return node.records[0]["_fields"][0];
         }
-      }),
+      })
     );
     return result;
   }
@@ -1423,32 +1455,197 @@ export class Neo4jService implements OnApplicationShutdown {
     id: number,
     filterProperties: object = {},
     updateLabels: Array<string> = [],
-    updateProperties: object = {},
+    updateProperties: object = {}
   ) {
     const updateLabelsWithoutEmptyString = updateLabels.filter((item) => {
-      if (item.trim() !== '') {
+      if (item.trim() !== "") {
         return item;
       }
     });
     const isNodeExist = await this.findByIdAndFilters(id, filterProperties);
 
     if (!isNodeExist) {
-      return null;
+      throw new HttpException(node_not_found, 404);
     }
-    let query = 'match (n) ' + ` where id(n)=${id} set ` + dynamicUpdatePropertyAdder(updateProperties);
+    let query =
+      "match (n) " +
+      ` where id(n)=${id} set ` +
+      dynamicUpdatePropertyAdder(updateProperties);
 
-    if (updateLabelsWithoutEmptyString && updateLabelsWithoutEmptyString.length > 0) {
-      query = query + ', n' + dynamicLabelAdder(updateLabelsWithoutEmptyString) + ' return n';
+    if (
+      updateLabelsWithoutEmptyString &&
+      updateLabelsWithoutEmptyString.length > 0
+    ) {
+      query =
+        query +
+        ", n" +
+        dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+        " return n";
     } else {
-      query = query + ' return n';
+      query = query + " return n";
     }
-    updateProperties['id'] = id;
+    updateProperties["id"] = id;
     const parameters = updateProperties;
     const node = await this.write(query, parameters);
     if (node.records.length === 0) {
       return null;
     } else {
-      return node.records[0]['_fields'][0];
+      return node.records[0]["_fields"][0];
     }
   }
+
+  async findChildrensByLabelsAsTree(
+    labels: Array<string> = [],
+    rootFilters: object = {},
+    childrenFilters: object = {}
+  ) {
+    try {
+      const rootNode = await this.findByLabelAndFilters(labels, rootFilters);
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      const cypher =
+        `MATCH p=(n)-[:PARENT_OF*]->(m` +
+        dynamicFilterPropertiesAdder(childrenFilters) +
+        `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      childrenFilters["rootId"] = rootId;
+      const result = await this.read(cypher, childrenFilters);
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
   }
+
+  async findByLabelAndFiltersWithTreeStructure(
+    labels: Array<string> = [],
+    rootFilters: object = {},
+    childrenFilters: object = {}
+  ) {
+    try {
+      let tree = await this.findChildrensByLabelsAsTree(
+        labels,
+        rootFilters,
+        childrenFilters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByLabelAndFilters(labels, rootFilters);
+
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
+
+  async getParentByIdAndFİlters(
+    id: number,
+    nodeFilters: object = {},
+    rootFilters: object = {}
+  ) {
+    try {
+      if (!id) {
+        throw new HttpException(get_parent_by_id__must_entered_error, 400);
+      }
+      const node = await this.findByIdAndFilters(+id, nodeFilters);
+      if (!node) {
+        throw new HttpException(node_not_found, 404);
+      }
+      const query =
+        "MATCH (c) where id(c)= $id match(k" +
+        dynamicFilterPropertiesAdder(rootFilters) +
+        "match (k)-[:PARENT_OF]->(c) return k";
+
+      rootFilters["id"] = id;
+      const res = await this.read(query, rootFilters);
+      if (!res["records"][0].length) {
+        throw new HttpException(parent_of_child_not_found, 404);
+      }
+      return res["records"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
+  async addParentRelationByIdAndFİlters(
+    child_id: number,
+    childFilters: object = {},
+    target_parent_id: number,
+    rootFilters: object = {}
+  ) {
+    try {
+      if (!child_id || !target_parent_id) {
+        throw new HttpException("id must entered", 404);
+      }
+      await this.findByIdAndFilters(child_id, childFilters);
+      await this.findByIdAndFilters(target_parent_id, rootFilters);
+
+      const parameters = { child_id, target_parent_id };
+
+      const query = `MATCH (c)  where id(c)= $child_id MATCH (p) where id(p)= $target_parent_id  MERGE (p)-[:PARENT_OF]-> (c)`;
+
+      const res = await this.write(query, parameters);
+      if (!res) {
+        throw new HttpException(null, 400);
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
+}

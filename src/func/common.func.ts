@@ -120,7 +120,7 @@ export function dynamicFilterPropertiesAdder(filterProperties) {
       dynamicQueryParameter += `,${element}` + `: $` + `${element}`;
     }
     if (Object.keys(filterProperties).length === index + 1) {
-      dynamicQueryParameter += ` }) `;
+      dynamicQueryParameter += ` })`;
     }
   });
   return dynamicQueryParameter;

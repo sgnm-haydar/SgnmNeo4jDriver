@@ -6,6 +6,11 @@ export const has_children_error: errorObject = {
   code: CustomNeo4jError.HAS_CHILDREN,
 };
 
+export const library_server_error: errorObject = {
+  message: "something went wrong with the library server",
+  code: CustomNeo4jError.LİBRARY_ERROR,
+};
+
 export const node_not_found: errorObject = {
   message:
     "This node is not found in the database maybe entered id not found in the database",
@@ -437,5 +442,5 @@ export const incorret_operation: errorObject = {
 };
 export const node_cannot_delete: errorObject = {
   message: "Node can not delete",
-  code: CustomNeo4jError.NODE_CANNOT_DELETE
+  code: CustomNeo4jError.NODE_CANNOT_DELETE,
 };
