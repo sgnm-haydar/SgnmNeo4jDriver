@@ -1526,7 +1526,15 @@ export class Neo4jService implements OnApplicationShutdown {
     childrenFilters: object = {}
   ) {
     try {
-      const rootNode = await this.findByLabelAndFilters(labels, rootFilters);
+      const labelsWithoutEmptyString = labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const rootNode = await this.findByLabelAndFilters(
+        labelsWithoutEmptyString,
+        rootFilters
+      );
       if (!rootNode) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
@@ -1566,8 +1574,13 @@ export class Neo4jService implements OnApplicationShutdown {
     childrenFilters: object = {}
   ) {
     try {
+      const labelsWithoutEmptyString = labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
       let tree = await this.findChildrensByLabelsAsTree(
-        labels,
+        labelsWithoutEmptyString,
         rootFilters,
         childrenFilters
       );
@@ -1600,7 +1613,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async getParentByIdAndFİlters(
+  async getParentByIdAndFilters(
     id: number,
     nodeFilters: object = {},
     rootFilters: object = {}
@@ -1638,7 +1651,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  async addParentRelationByIdAndFİlters(
+  async addParentRelationByIdAndFilters(
     child_id: number,
     childFilters: object = {},
     target_parent_id: number,
@@ -1674,7 +1687,55 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  async addRelationByIdandRelationName(
+  async addRelationByIdAndRelationNameWithoutFilters(
+    first_node_id: number,
+    second_node_id: number,
+    relationName: string,
+    relationDirection: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      if (!first_node_id || !second_node_id) {
+        throw new HttpException("id must entered", 404);
+      }
+      await this.findByIdAndFilters(first_node_id, {});
+      await this.findByIdAndFilters(second_node_id, {});
+
+      const parameters = { first_node_id, second_node_id };
+      let res;
+      switch (relationDirection) {
+        case RelationDirection.RIGHT:
+          res = await this.write(
+            `MATCH (c) where id(c)= $first_node_id MATCH (p ) where id(p)= $second_node_id MERGE (c)-[:${relationName}]-> (p)`,
+            parameters
+          );
+          break;
+        case RelationDirection.LEFT:
+          res = await this.write(
+            `MATCH (c) where id(c)= $first_node_id MATCH (p) where id(p)= $second_node_id MERGE (c)<-[:${relationName}]- (p)`,
+            parameters
+          );
+          break;
+        default:
+          throw new HttpException("please enter proper direction", 400);
+      }
+
+      if (!res) {
+        throw new HttpException(null, 400);
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException({}, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+  
+  async addRelationByIdAndRelationNameWithFilters(
     first_node_id: number,
     first_node_filters: object = {},
     second_node_id: number,
@@ -1692,29 +1753,12 @@ export class Neo4jService implements OnApplicationShutdown {
       await this.findByIdAndFilters(first_node_id, first_node_filters);
       await this.findByIdAndFilters(second_node_id, second_node_filters);
 
-      let res: QueryResult;
-      switch (relationDirection) {
-        case RelationDirection.RIGHT:
-          res = await this.write(
-            `MATCH (c) where id(c)= $first_node_id MATCH (p ) where id(p)= $second_node_id MERGE (c)-[:${relationName}]-> (p)`,
-            {
-              first_node_id,
-              second_node_id,
-            }
-          );
-          break;
-        case RelationDirection.LEFT:
-          res = await this.write(
-            `MATCH (c) where id(c)= $first_node_id MATCH (p) where id(p)= $second_node_id MERGE (c)<-[:${relationName}]- (p)`,
-            {
-              first_node_id,
-              second_node_id,
-            }
-          );
-          break;
-        default:
-          throw new HttpException(invalid_direction_error, 400);
-      }
+      const res = await this.addRelationByIdAndRelationNameWithoutFilters(
+        first_node_id,
+        second_node_id,
+        relationName,
+        relationDirection
+      );
 
       const { relationshipsCreated } =
         await res.summary.updateStatistics.updates();
@@ -1729,6 +1773,71 @@ export class Neo4jService implements OnApplicationShutdown {
       if (error?.response?.code) {
         throw new HttpException(
           { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
+  async addRelationByLabelsAndFiltersAndRelationName(
+    first_node_labels: Array<string> = [],
+    first_node_properties: object = {},
+    second_node_labels: Array<string> = [],
+    second_node_properties: object = {},
+    relationName: string,
+    relationDirection: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      if (!relationName) {
+        throw new HttpException("id must entered", 404);
+      }
+      const firstNodelabelsWithoutEmptyString = first_node_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      const secondNodelabelsWithoutEmptyString = second_node_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      const firstNode = await this.findByLabelAndFilters(
+        firstNodelabelsWithoutEmptyString,
+        first_node_properties
+      );
+      const secondNode = await this.findByLabelAndFilters(
+        secondNodelabelsWithoutEmptyString,
+        second_node_properties
+      );
+
+      const res = await this.addRelationByIdAndRelationNameWithoutFilters(
+        firstNode[0]["_fields"][0].identity.low,
+        secondNode[0]["_fields"][0].identity.low,
+        relationName,
+        relationDirection
+      );
+
+      const { relationshipsCreated } =
+        await res.summary.updateStatistics.updates();
+      if (relationshipsCreated === 0) {
+        throw new HttpException(
+          "add_relation_with_relation_name__create_relation_error",
+          400
+        );
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
           error.status
         );
       } else {
