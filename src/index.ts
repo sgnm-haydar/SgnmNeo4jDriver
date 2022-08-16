@@ -5,6 +5,7 @@ export * from "./interceptors/neo4j-type.interceptor";
 export * from "./filters/neo4j-error.filter";
 export * from "./constant/custom.error.enum";
 export * from "./func/common.func";
+export * from "./constant/custom.error.object";
 export {errorObject} from "./interfaces/errorMessage.interface";
 export { session, Result, Driver, Transaction } from "neo4j-driver";
 export { Neo4jScheme, Neo4jConfig } from "./interfaces/neo4j-config.interface";

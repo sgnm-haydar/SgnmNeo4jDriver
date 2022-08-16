@@ -1325,4 +1325,30 @@ export class Neo4jService implements OnApplicationShutdown {
     const allowedStructures = this.read(cypher, { key });
     return allowedStructures;
    }
+
+   async deleteUnconditionally(id: string) {
+    try {
+      if (!id) {
+        throw new HttpException(delete__must_entered_error, 400);
+       }
+      //children count query
+      const node = await this.findById(id);
+      if (!node) {
+        throw new HttpException(node_not_found, 404);
+       }
+      if (node['properties']['canDelete'] == true ) {
+        const deletedNode = await this.updateIsDeletedProp(id, true);
+       }
+      }
+     catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.NOT_ACCEPTABLE);
+      }
+    }
   }
+}
