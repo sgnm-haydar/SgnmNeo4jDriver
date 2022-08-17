@@ -21,6 +21,12 @@ export const node_not_found: errorObject = {
   code: CustomNeo4jError.NOT_FOUND,
 };
 
+export const node_not_updated: errorObject = {
+  message:
+    "This node is not found in the database maybe entered id not found in the database",
+  code: CustomNeo4jError.NODE_NOT_UPDATED,
+};
+
 export const tree_not_found: errorObject = {
   message: "Tree is not found in the database",
   code: CustomNeo4jError.NOT_FOUND,
