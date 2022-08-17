@@ -1,6 +1,6 @@
 {
   "name": "sgnm-neo4j",
-  "version": "0.0.140",
+  "version": "0.0.142",
   "description": "neo4j module for nestJs",
   "main": "dist/index.js",
   "types": "dist/index.d.js",

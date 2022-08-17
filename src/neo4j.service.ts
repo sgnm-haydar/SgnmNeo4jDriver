@@ -1373,27 +1373,31 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findByIdAndFilters(
     id: number,
-    filterProperties: object = {},
-    notLabels: Array<string> = []
+    filter_properties: object = {},
+    not_labels: Array<string> = []
   ) {
-    const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+    const notLabelsWithoutEmptyString = not_labels.filter((item) => {
       if (item.trim() !== "") {
         return item;
       }
     });
     let query =
       "match (n" +
-      dynamicFilterPropertiesAdder(filterProperties) +
+      dynamicFilterPropertiesAdder(filter_properties) +
       ` where id(n)=${id} `;
     if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
-      query = query + " and " + dynamicNotLabelAdder(notLabels) + ` return n`;
+      query =
+        query +
+        " and " +
+        dynamicNotLabelAdder(notLabelsWithoutEmptyString) +
+        ` return n`;
     } else {
-      query = query + dynamicNotLabelAdder(notLabels) + ` return n`;
+      query = query + ` return n`;
     }
 
-    filterProperties["id"] = id;
-    const parameters = filterProperties;
-    const node = await this.read(query, parameters);
+    filter_properties["id"] = id;
+    const node = await this.read(query, filter_properties);
+
     if (node.records.length === 0) {
       throw new HttpException(node_not_found, 404);
     } else {
@@ -1403,10 +1407,10 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findByLabelAndFilters(
     labels: Array<string> = [""],
-    filterProperties: object = {},
-    notLabels: Array<string> = [""]
+    filter_properties: object = {},
+    not_labels: Array<string> = [""]
   ) {
-    const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+    const notLabelsWithoutEmptyString = not_labels.filter((item) => {
       if (item.trim() !== "") {
         return item;
       }
@@ -1414,15 +1418,19 @@ export class Neo4jService implements OnApplicationShutdown {
     let query =
       "match (n" +
       dynamicLabelAdder(labels) +
-      dynamicFilterPropertiesAdder(filterProperties);
+      dynamicFilterPropertiesAdder(filter_properties);
 
     if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
-      query = query + " where " + dynamicNotLabelAdder(notLabels) + ` return n`;
+      query =
+        query +
+        " where " +
+        dynamicNotLabelAdder(notLabelsWithoutEmptyString) +
+        ` return n`;
     } else {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filterProperties);
+    const node = await this.read(query, filter_properties);
     if (node.records.length === 0) {
       return null;
     } else {
@@ -1432,16 +1440,16 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async updateByLabelAndFilter(
     labels: Array<string> = [],
-    filterProperties: object = {},
-    updateLabels: Array<string> = [],
-    updateProperties: object = {}
+    filter_properties: object = {},
+    update_labels: Array<string> = [],
+    update_properties: object = {}
   ) {
-    const updateLabelsWithoutEmptyString = updateLabels.filter((item) => {
+    const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
       if (item.trim() !== "") {
         return item;
       }
     });
-    const nodes = await this.findByLabelAndFilters(labels, filterProperties);
+    const nodes = await this.findByLabelAndFilters(labels, filter_properties);
     if (!nodes || nodes?.length === 0) {
       throw new HttpException(node_not_found, 404);
     }
@@ -1449,7 +1457,7 @@ export class Neo4jService implements OnApplicationShutdown {
       "match (n)" +
       "where id(n)=$id " +
       ` set ` +
-      dynamicUpdatePropertyAdder(updateProperties);
+      dynamicUpdatePropertyAdder(update_properties);
 
     if (
       updateLabelsWithoutEmptyString &&
@@ -1466,8 +1474,8 @@ export class Neo4jService implements OnApplicationShutdown {
 
     const result = Promise.all(
       nodes.map(async (item) => {
-        updateProperties["id"] = item["_fields"][0].identity.low;
-        const parameters = updateProperties;
+        update_properties["id"] = item["_fields"][0].identity.low;
+        const parameters = update_properties;
         const node = await this.write(query, parameters);
         if (node.records.length === 0) {
           return null;
@@ -1481,16 +1489,16 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async updateByIdAndFilter(
     id: number,
-    filterProperties: object = {},
-    updateLabels: Array<string> = [],
-    updateProperties: object = {}
+    filter_properties: object = {},
+    update_labels: Array<string> = [],
+    update_properties: object = {}
   ) {
-    const updateLabelsWithoutEmptyString = updateLabels.filter((item) => {
+    const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
       if (item.trim() !== "") {
         return item;
       }
     });
-    const isNodeExist = await this.findByIdAndFilters(id, filterProperties);
+    const isNodeExist = await this.findByIdAndFilters(id, filter_properties);
 
     if (!isNodeExist) {
       throw new HttpException(node_not_found, 404);
@@ -1498,7 +1506,7 @@ export class Neo4jService implements OnApplicationShutdown {
     let query =
       "match (n) " +
       ` where id(n)=${id} set ` +
-      dynamicUpdatePropertyAdder(updateProperties);
+      dynamicUpdatePropertyAdder(update_properties);
 
     if (
       updateLabelsWithoutEmptyString &&
@@ -1512,8 +1520,8 @@ export class Neo4jService implements OnApplicationShutdown {
     } else {
       query = query + " return n";
     }
-    updateProperties["id"] = id;
-    const parameters = updateProperties;
+    update_properties["id"] = id;
+    const parameters = update_properties;
     const node = await this.write(query, parameters);
     if (node.records.length === 0) {
       return null;
@@ -1524,8 +1532,8 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findChildrensByLabelsAsTree(
     labels: Array<string> = [],
-    rootFilters: object = {},
-    childrenFilters: object = {}
+    root_filters: object = {},
+    children_filters: object = {}
   ) {
     try {
       const labelsWithoutEmptyString = labels.filter((item) => {
@@ -1535,7 +1543,7 @@ export class Neo4jService implements OnApplicationShutdown {
       });
       const rootNode = await this.findByLabelAndFilters(
         labelsWithoutEmptyString,
-        rootFilters
+        root_filters
       );
       if (!rootNode) {
         throw new HttpException(
@@ -1546,11 +1554,11 @@ export class Neo4jService implements OnApplicationShutdown {
       const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
         `MATCH p=(n)-[:PARENT_OF*]->(m` +
-        dynamicFilterPropertiesAdder(childrenFilters) +
+        dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-      childrenFilters["rootId"] = rootId;
-      const result = await this.read(cypher, childrenFilters);
+      children_filters["rootId"] = rootId;
+      const result = await this.read(cypher, children_filters);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -1572,8 +1580,8 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findByLabelAndFiltersWithTreeStructure(
     labels: Array<string> = [],
-    rootFilters: object = {},
-    childrenFilters: object = {}
+    root_filters: object = {},
+    children_filters: object = {}
   ) {
     try {
       const labelsWithoutEmptyString = labels.filter((item) => {
@@ -1583,8 +1591,8 @@ export class Neo4jService implements OnApplicationShutdown {
       });
       let tree = await this.findChildrensByLabelsAsTree(
         labelsWithoutEmptyString,
-        rootFilters,
-        childrenFilters
+        root_filters,
+        children_filters
       );
       if (!tree) {
         throw new HttpException(
@@ -1592,9 +1600,9 @@ export class Neo4jService implements OnApplicationShutdown {
           404
         );
       } else if (Object.keys(tree).length === 0) {
-        tree = await this.findByLabelAndFilters(labels, rootFilters);
+        tree = await this.findByLabelAndFilters(labels, root_filters);
 
-        const rootNodeObject = { root: tree };
+        const rootNodeObject = { rroot: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
         const rootNodeObject = { root: tree };
@@ -1617,24 +1625,24 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async getParentByIdAndFilters(
     id: number,
-    nodeFilters: object = {},
-    rootFilters: object = {}
+    node_filters: object = {},
+    root_filters: object = {}
   ) {
     try {
       if (!id) {
         throw new HttpException(get_parent_by_id__must_entered_error, 400);
       }
-      const node = await this.findByIdAndFilters(+id, nodeFilters);
+      const node = await this.findByIdAndFilters(+id, node_filters);
       if (!node) {
         throw new HttpException(node_not_found, 404);
       }
       const query =
         "MATCH (c) where id(c)= $id match(k" +
-        dynamicFilterPropertiesAdder(rootFilters) +
+        dynamicFilterPropertiesAdder(root_filters) +
         "match (k)-[:PARENT_OF]->(c) return k";
 
-      rootFilters["id"] = id;
-      const res = await this.read(query, rootFilters);
+      root_filters["id"] = id;
+      const res = await this.read(query, root_filters);
       if (!res["records"][0].length) {
         throw new HttpException(parent_of_child_not_found, 404);
       }
@@ -1655,16 +1663,16 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async addParentRelationByIdAndFilters(
     child_id: number,
-    childFilters: object = {},
+    chil_filters: object = {},
     target_parent_id: number,
-    rootFilters: object = {}
+    target_parent_filters: object = {}
   ) {
     try {
       if (!child_id || !target_parent_id) {
         throw new HttpException("id must entered", 404);
       }
-      await this.findByIdAndFilters(child_id, childFilters);
-      await this.findByIdAndFilters(target_parent_id, rootFilters);
+      await this.findByIdAndFilters(child_id, chil_filters);
+      await this.findByIdAndFilters(target_parent_id, target_parent_filters);
 
       const parameters = { child_id, target_parent_id };
 
@@ -1692,8 +1700,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async addRelationByIdAndRelationNameWithoutFilters(
     first_node_id: number,
     second_node_id: number,
-    relationName: string,
-    relationDirection: RelationDirection = RelationDirection.RIGHT
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
       if (!first_node_id || !second_node_id) {
@@ -1704,16 +1712,16 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const parameters = { first_node_id, second_node_id };
       let res;
-      switch (relationDirection) {
+      switch (relation_direction) {
         case RelationDirection.RIGHT:
           res = await this.write(
-            `MATCH (c) where id(c)= $first_node_id MATCH (p ) where id(p)= $second_node_id MERGE (c)-[:${relationName}]-> (p)`,
+            `MATCH (c) where id(c)= $first_node_id MATCH (p ) where id(p)= $second_node_id MERGE (c)-[:${relation_name}]-> (p)`,
             parameters
           );
           break;
         case RelationDirection.LEFT:
           res = await this.write(
-            `MATCH (c) where id(c)= $first_node_id MATCH (p) where id(p)= $second_node_id MERGE (c)<-[:${relationName}]- (p)`,
+            `MATCH (c) where id(c)= $first_node_id MATCH (p) where id(p)= $second_node_id MERGE (c)<-[:${relation_name}]- (p)`,
             parameters
           );
           break;
@@ -1736,17 +1744,17 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  
+
   async addRelationByIdAndRelationNameWithFilters(
     first_node_id: number,
     first_node_filters: object = {},
     second_node_id: number,
     second_node_filters: object = {},
-    relationName: string,
-    relationDirection: RelationDirection = RelationDirection.RIGHT
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      if (!first_node_id || !second_node_id || !relationName) {
+      if (!first_node_id || !second_node_id || !relation_name) {
         throw new HttpException(
           add_relation_with_relation_name__must_entered_error,
           400
@@ -1758,8 +1766,8 @@ export class Neo4jService implements OnApplicationShutdown {
       const res = await this.addRelationByIdAndRelationNameWithoutFilters(
         first_node_id,
         second_node_id,
-        relationName,
-        relationDirection
+        relation_name,
+        relation_direction
       );
 
       const { relationshipsCreated } =
@@ -1788,11 +1796,11 @@ export class Neo4jService implements OnApplicationShutdown {
     first_node_properties: object = {},
     second_node_labels: Array<string> = [],
     second_node_properties: object = {},
-    relationName: string,
-    relationDirection: RelationDirection = RelationDirection.RIGHT
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      if (!relationName) {
+      if (!relation_name) {
         throw new HttpException("id must entered", 404);
       }
       const firstNodelabelsWithoutEmptyString = first_node_labels.filter(
@@ -1823,8 +1831,8 @@ export class Neo4jService implements OnApplicationShutdown {
       const res = await this.addRelationByIdAndRelationNameWithoutFilters(
         firstNode[0]["_fields"][0].identity.low,
         secondNode[0]["_fields"][0].identity.low,
-        relationName,
-        relationDirection
+        relation_name,
+        relation_direction
       );
 
       const { relationshipsCreated } =
@@ -1844,6 +1852,93 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else {
         throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+  async findChildrensByLabelsAsTreeOneLevel(
+    labels: Array<string> = [],
+    root_filters: object = {},
+    children_filters: object = {}
+  ) {
+    try {
+      const labelsWithoutEmptyString = labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const rootNode = await this.findByLabelAndFilters(
+        labelsWithoutEmptyString,
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      const cypher =
+        `MATCH p=(n)-[:PARENT_OF]->(m` +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      children_filters["rootId"] = rootId;
+      const result = await this.read(cypher, children_filters);
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findByLabelAndFiltersWithTreeStructureOneLevel(
+    labels: Array<string> = [],
+    root_filters: object = {},
+    children_filters: object = {}
+  ) {
+    try {
+      const labelsWithoutEmptyString = labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      let tree = await this.findChildrensByLabelsAsTreeOneLevel(
+        labelsWithoutEmptyString,
+        root_filters,
+        children_filters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByLabelAndFilters(labels, root_filters);
+
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        //throw newError(error, '500');
+        throw new HttpException(error, 500);
       }
     }
   }
