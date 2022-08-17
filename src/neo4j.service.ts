@@ -1677,7 +1677,7 @@ export class Neo4jService implements OnApplicationShutdown {
   async getParentByIdAndFilters(
     id: number,
     node_filters: object = {},
-    root_filters: object = {}
+    parent_filters: object = {}
   ) {
     try {
       if (!id) {
@@ -1689,11 +1689,11 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       const query =
         "MATCH (c) where id(c)= $id match(k" +
-        dynamicFilterPropertiesAdder(root_filters) +
+        dynamicFilterPropertiesAdder(parent_filters) +
         "match (k)-[:PARENT_OF]->(c) return k";
 
-      root_filters["id"] = id;
-      const res = await this.read(query, root_filters);
+        parent_filters["id"] = id;
+      const res = await this.read(query, parent_filters);
       if (!res["records"][0].length) {
         throw new HttpException(parent_of_child_not_found, 404);
       }
@@ -1714,7 +1714,7 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async addParentRelationByIdAndFilters(
     child_id: number,
-    chil_filters: object = {},
+    child_filters: object = {},
     target_parent_id: number,
     target_parent_filters: object = {}
   ) {
@@ -1722,7 +1722,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!child_id || !target_parent_id) {
         throw new HttpException("id must entered", 404);
       }
-      await this.findByIdAndFilters(child_id, chil_filters);
+      await this.findByIdAndFilters(child_id, child_filters);
       await this.findByIdAndFilters(target_parent_id, target_parent_filters);
 
       const parameters = { child_id, target_parent_id };
@@ -2072,7 +2072,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findChildrensByIdOneLevel(
     root_id: number,
-    rootFilters: object = {},
+    root_filters: object = {},
     children_labels: Array<string> = [],
     children_filters: object = {},
     relation_name: string,
@@ -2086,7 +2086,7 @@ export class Neo4jService implements OnApplicationShutdown {
           }
         }
       );
-      const rootNode = await this.findByIdAndFilters(root_id, rootFilters);
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
       if (!rootNode) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
