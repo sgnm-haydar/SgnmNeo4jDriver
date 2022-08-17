@@ -1942,4 +1942,121 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async findChildrensByLabelsOneLevel(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {}
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+      const rootNode = await this.findByLabelAndFilters(
+        rootLabelsWithoutEmptyString,
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      const cypher =
+        `MATCH p=(n)-[:PARENT_OF]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId   RETURN m`;
+
+      children_filters["rootId"] = rootId;
+      const result = await this.read(cypher, children_filters);
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findChildrensByIdOneLevel(
+    root_id: number,
+    rootFilters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    relation_direction: string = RelationDirection.RIGHT
+  ) {
+    try {
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+      const rootNode = await this.findByIdAndFilters(root_id, rootFilters);
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode.identity.low;
+      const parameters = { rootId, ...children_filters };
+      let cypher;
+      let response;
+      switch (relation_direction) {
+        case RelationDirection.RIGHT:
+          cypher =
+            `MATCH p=(n)-[:${relation_name}]->(m` +
+            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(children_filters) +
+            `  WHERE  id(n) = $rootId  RETURN m`;
+          children_filters["rootId"] = rootId;
+          response = await this.write(cypher, parameters);
+          break;
+        case RelationDirection.LEFT:
+          cypher =
+            `MATCH p=(n)<-[:${relation_name}]-(m` +
+            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(children_filters) +
+            `  WHERE  id(n) = $rootId  RETURN m`;
+          children_filters["rootId"] = rootId;
+          response = await this.write(cypher, parameters);
+          break;
+        default:
+          throw new HttpException(invalid_direction_error, 400);
+      }
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
