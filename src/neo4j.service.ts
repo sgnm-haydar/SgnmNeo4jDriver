@@ -1531,18 +1531,26 @@ export class Neo4jService implements OnApplicationShutdown {
   }
 
   async findChildrensByLabelsAsTree(
-    labels: Array<string> = [],
+    root_labels: Array<string> = [],
     root_filters: object = {},
+    children_labels: Array<string> = [],
     children_filters: object = {}
   ) {
     try {
-      const labelsWithoutEmptyString = labels.filter((item) => {
+      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
         if (item.trim() !== "") {
           return item;
         }
       });
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
       const rootNode = await this.findByLabelAndFilters(
-        labelsWithoutEmptyString,
+        rootLabelsWithoutEmptyString,
         root_filters
       );
       if (!rootNode) {
@@ -1554,6 +1562,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
         `MATCH p=(n)-[:PARENT_OF*]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
@@ -1579,19 +1588,29 @@ export class Neo4jService implements OnApplicationShutdown {
   }
 
   async findByLabelAndFiltersWithTreeStructure(
-    labels: Array<string> = [],
+    root_labels: Array<string> = [],
     root_filters: object = {},
+    children_labels: Array<string> = [],
     children_filters: object = {}
   ) {
     try {
-      const labelsWithoutEmptyString = labels.filter((item) => {
+      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
         if (item.trim() !== "") {
           return item;
         }
       });
+
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
       let tree = await this.findChildrensByLabelsAsTree(
-        labelsWithoutEmptyString,
+        rootLabelsWithoutEmptyString,
         root_filters,
+        childrenLabelsWithoutEmptyString,
         children_filters
       );
       if (!tree) {
@@ -1600,7 +1619,10 @@ export class Neo4jService implements OnApplicationShutdown {
           404
         );
       } else if (Object.keys(tree).length === 0) {
-        tree = await this.findByLabelAndFilters(labels, root_filters);
+        tree = await this.findByLabelAndFilters(
+          rootLabelsWithoutEmptyString,
+          root_filters
+        );
 
         const rootNodeObject = { rroot: tree[0]["_fields"][0] };
         return rootNodeObject;
