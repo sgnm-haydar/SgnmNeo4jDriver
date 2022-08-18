@@ -2579,7 +2579,7 @@ export class Neo4jService implements OnApplicationShutdown {
       parameters["rootId"] = id;
       const node = await this.write(query, parameters);
       if (node.records.length === 0) {
-        return null;
+        throw new HttpException("nodes not updates", 400);
       } else {
         return node.records;
       }
