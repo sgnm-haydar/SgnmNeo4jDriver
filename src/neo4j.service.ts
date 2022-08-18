@@ -1460,7 +1460,6 @@ export class Neo4jService implements OnApplicationShutdown {
     } else {
       query = query + ` return n`;
     }
-    console.log(query);
 
     const node = await this.read(query, filter_properties);
     if (node.records.length === 0) {
@@ -1817,9 +1816,9 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(node_not_found, 404);
       }
       const query =
-        "MATCH (c) where id(c)= $id match(k" +
+        "MATCH (n) where id(n)= $id match(m" +
         dynamicFilterPropertiesAdder(parent_filters) +
-        "match (k)-[:PARENT_OF]->(c) return k";
+        "match (m)-[:PARENT_OF]->(n) return m as parent,n as children";
 
       parent_filters["id"] = id;
       const res = await this.read(query, parent_filters);
@@ -1856,7 +1855,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const parameters = { child_id, target_parent_id };
 
-      const query = `MATCH (c)  where id(c)= $child_id MATCH (p) where id(p)= $target_parent_id  MERGE (p)-[:PARENT_OF]-> (c)`;
+      const query = `MATCH (m)  where id(m)= $child_id MATCH (n) where id(n)= $target_parent_id  MERGE (n)-[:PARENT_OF]-> (m) return n as parent,m as children`;
 
       const res = await this.write(query, parameters);
       if (!res) {
@@ -1895,13 +1894,13 @@ export class Neo4jService implements OnApplicationShutdown {
       switch (relation_direction) {
         case RelationDirection.RIGHT:
           res = await this.write(
-            `MATCH (c) where id(c)= $first_node_id MATCH (p ) where id(p)= $second_node_id MERGE (c)-[:${relation_name}]-> (p)`,
+            `MATCH (n) where id(n)= $first_node_id MATCH (m ) where id(m)= $second_node_id MERGE (n)-[:${relation_name}]-> (m) return n as parent,m as children`,
             parameters
           );
           break;
         case RelationDirection.LEFT:
           res = await this.write(
-            `MATCH (c) where id(c)= $first_node_id MATCH (p) where id(p)= $second_node_id MERGE (c)<-[:${relation_name}]- (p)`,
+            `MATCH (m) where id(m)= $first_node_id MATCH (n) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}]- (n) return n as parent,m as children`,
             parameters
           );
           break;
@@ -2178,7 +2177,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n)-[:PARENT_OF]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId   RETURN m`;
+        `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
 
       children_filters["rootId"] = rootId;
       const result = await this.read(cypher, children_filters);
@@ -2231,16 +2230,17 @@ export class Neo4jService implements OnApplicationShutdown {
             `MATCH p=(n)-[:${relation_name}]->(m` +
             dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(children_filters) +
-            `  WHERE  id(n) = $rootId  RETURN m`;
+            `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
           children_filters["rootId"] = rootId;
           response = await this.write(cypher, parameters);
           break;
         case RelationDirection.LEFT:
           cypher =
-            `MATCH p=(n)<-[:${relation_name}]-(m` +
+            `MATCH p=(n` +
             dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(children_filters) +
-            `  WHERE  id(n) = $rootId  RETURN m`;
+            `<-[:${relation_name}]-(m)` +
+            `  WHERE  id(m) = $rootId  RETURN m as parent,n as children`;
           children_filters["rootId"] = rootId;
           response = await this.write(cypher, parameters);
           break;
@@ -2374,18 +2374,18 @@ export class Neo4jService implements OnApplicationShutdown {
             `MATCH (n)-[:${relation_name}*]->(m` +
             dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(children_filters) +
-            `  WHERE  id(n) = $rootId   RETURN m`;
+            `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
 
           children_filters["rootId"] = rootId;
           result = await this.read(cypher, children_filters);
-          console.log(cypher);
           break;
         case RelationDirection.LEFT:
           cypher =
-            `MATCH p=(n)-[:${relation_name}*]->(m` +
+            `MATCH p=(n` +
             dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(children_filters) +
-            `  WHERE  id(n) = $rootId   RETURN m`;
+            `<-[:${relation_name}*]-(m` +
+            `  WHERE  id(m) = $rootId   RETURN m as parent,n as children`;
 
           children_filters["rootId"] = rootId;
           result = await this.read(cypher, children_filters);
