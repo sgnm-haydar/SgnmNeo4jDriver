@@ -17,12 +17,14 @@ import { NEO4J_OPTIONS, NEO4J_DRIVER } from "./neo4j.constants";
 import TransactionImpl from "neo4j-driver-core/lib/transaction";
 import { newError } from "neo4j-driver-core";
 import {
+  changeObjectKeyName,
   createDynamicCyperCreateQuery,
   dynamicFilterPropertiesAdder,
   dynamicLabelAdder,
   dynamicNotLabelAdder,
   dynamicOrLabelAdder,
   dynamicUpdatePropertyAdder,
+  dynamicUpdatePropertyAdderAndAddParameter1,
   updateNodeQuery,
 } from "./func/common.func";
 import { successResponse } from "./constant/success.response.object";
@@ -1391,7 +1393,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " and " +
-        dynamicNotLabelAdder(notLabelsWithoutEmptyString) +
+        dynamicNotLabelAdder('n',notLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1426,7 +1428,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " where " +
-        dynamicNotLabelAdder(notLabelsWithoutEmptyString) +
+        dynamicNotLabelAdder('n',notLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1455,7 +1457,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " where " +
-        dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
+        dynamicOrLabelAdder('n',orLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1488,7 +1490,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " and" +
-        dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
+        dynamicOrLabelAdder('n',orLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1522,7 +1524,7 @@ export class Neo4jService implements OnApplicationShutdown {
         "match (n)" +
         "where id(n)=$id " +
         ` set ` +
-        dynamicUpdatePropertyAdder(update_properties);
+        dynamicUpdatePropertyAdder('n',update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
@@ -1585,7 +1587,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let query =
         "match (n) " +
         ` where id(n)=${id} set ` +
-        dynamicUpdatePropertyAdder(update_properties);
+        dynamicUpdatePropertyAdder('n',update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
@@ -2013,7 +2015,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!relation_name) {
-        throw new HttpException("id must entered", 404);
+        throw new HttpException('relation name not entered', 404);
       }
       const firstNodelabelsWithoutEmptyString = first_node_labels.filter(
         (item) => {
@@ -2531,6 +2533,67 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else {
         throw new HttpException(error, 500);
+      }
+    }
+  }
+  async updateNodeChildrensByIdAndFilter(
+    id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name:string,
+    update_labels: Array<string> = [],
+    update_properties: object = {}
+  ) {
+    try {
+
+      if (!id || !relation_name) {
+        throw new HttpException("id must entered", 404);
+      }
+      const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+       await this.findByIdAndFilters(id, root_filters);
+
+      let query =
+        "match (m) " + `match(n`+ dynamicLabelAdder(children_labels)+ dynamicFilterPropertiesAdder(children_filters)+` match (m)-[:${relation_name}*]->(n)` +
+        ` where id(m)=$rootId set ` +
+        dynamicUpdatePropertyAdderAndAddParameter1('n',update_properties);
+
+      if (
+        updateLabelsWithoutEmptyString &&
+        updateLabelsWithoutEmptyString.length > 0
+      ) {
+        query =
+          query +
+          ", n" +
+          dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+          " return m as parent, n as children";
+      } else {
+        query = query + " return m as parent, n as children";
+      }
+      const update_properties1=changeObjectKeyName(update_properties,'1')
+      const parameters={...children_filters,...update_properties1}
+      parameters["rootId"] = id;
+      const node = await this.write(query, parameters);
+      if (node.records.length === 0) {
+        return null;
+      } else {
+        return node.records;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       }
     }
   }

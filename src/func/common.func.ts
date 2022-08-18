@@ -87,7 +87,7 @@ export function dynamicLabelAdder(labels: Array<string>) {
   return optionalLabels;
 }
 
-export function dynamicNotLabelAdder(notLabels: Array<string>) {
+export function dynamicNotLabelAdder(queryNodeName:string,notLabels: Array<string>) {
   let optionalLabels = "";
   const notLabelsWithoutEmptyString = notLabels.filter((item) => {
     if (item.trim() !== "") {
@@ -98,16 +98,16 @@ export function dynamicNotLabelAdder(notLabels: Array<string>) {
   if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
     notLabelsWithoutEmptyString.map((item, index) => {
       if (index === 0) {
-        optionalLabels = optionalLabels + `not n:${item} `;
+        optionalLabels = optionalLabels + `not ${queryNodeName}:${item} `;
       } else {
-        optionalLabels = optionalLabels + `and not n:${item} `;
+        optionalLabels = optionalLabels + `and not ${queryNodeName}:${item} `;
       }
     });
   }
   return optionalLabels;
 }
 
-export function dynamicOrLabelAdder(notLabels: Array<string>) {
+export function dynamicOrLabelAdder(queryNodeName:string,notLabels: Array<string>) {
   let optionalLabels = "";
   const notLabelsWithoutEmptyString = notLabels.filter((item) => {
     if (item.trim() !== "") {
@@ -118,9 +118,9 @@ export function dynamicOrLabelAdder(notLabels: Array<string>) {
   if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
     notLabelsWithoutEmptyString.map((item, index) => {
       if (index === 0) {
-        optionalLabels = optionalLabels + ` n:${item} `;
+        optionalLabels = optionalLabels + ` ${queryNodeName}:${item} `;
       } else {
-        optionalLabels = optionalLabels + `or n:${item} `;
+        optionalLabels = optionalLabels + `or ${queryNodeName}:${item} `;
       }
     });
   }
@@ -146,14 +146,38 @@ export function dynamicFilterPropertiesAdder(filterProperties) {
   return dynamicQueryParameter;
 }
 
-export function dynamicUpdatePropertyAdder(updateProperties: object) {
+export function dynamicUpdatePropertyAdder(queryNodeName:string,updateProperties: object) {
   let dynamicQueryParameter = "";
 
   Object.keys(updateProperties).forEach((element, index) => {
     if (Object.keys(updateProperties).length === index + 1) {
-      dynamicQueryParameter += `n.${element}` + `= $` + `${element}`;
+      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element}`;
     } else {
-      dynamicQueryParameter += `n.${element}` + `= $` + `${element} ,`;
+      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element} ,`;
+    }
+  });
+  return dynamicQueryParameter;
+}
+
+
+export function changeObjectKeyName(obj1:object,addedToKeyString:string){
+  const changedObject = Object.fromEntries(
+    Object.entries(obj1).map(([key, value]) => 
+      // Modify key here
+      [`${key}${addedToKeyString}`, value]
+    )
+  )
+  return changedObject
+}
+
+export function dynamicUpdatePropertyAdderAndAddParameter1(queryNodeName:string,updateProperties: object) {
+  let dynamicQueryParameter = "";
+
+  Object.keys(updateProperties).forEach((element, index) => {
+    if (Object.keys(updateProperties).length === index + 1) {
+      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element}1`;
+    } else {
+      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element}1 ,`;
     }
   });
   return dynamicQueryParameter;
