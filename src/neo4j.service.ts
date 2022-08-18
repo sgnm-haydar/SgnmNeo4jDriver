@@ -1905,7 +1905,7 @@ export class Neo4jService implements OnApplicationShutdown {
           );
           break;
         default:
-          throw new HttpException("please enter proper direction", 400);
+          throw new HttpException(invalid_direction_error, 400);
       }
 
       if (!res) {
@@ -2202,8 +2202,7 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_filters: object = {},
-    relation_name: string,
-    relation_direction: string = RelationDirection.RIGHT
+    relation_name: string
   ) {
     try {
       const childrenLabelsWithoutEmptyString = children_labels.filter(
@@ -2224,29 +2223,14 @@ export class Neo4jService implements OnApplicationShutdown {
       const parameters = { rootId, ...children_filters };
       let cypher;
       let response;
-      switch (relation_direction) {
-        case RelationDirection.RIGHT:
-          cypher =
-            `MATCH p=(n)-[:${relation_name}]->(m` +
-            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdder(children_filters) +
-            `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
-          children_filters["rootId"] = rootId;
-          response = await this.write(cypher, parameters);
-          break;
-        case RelationDirection.LEFT:
-          cypher =
-            `MATCH p=(n` +
-            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdder(children_filters) +
-            `<-[:${relation_name}]-(m)` +
-            `  WHERE  id(m) = $rootId  RETURN m as parent,n as children`;
-          children_filters["rootId"] = rootId;
-          response = await this.write(cypher, parameters);
-          break;
-        default:
-          throw new HttpException(invalid_direction_error, 400);
-      }
+
+      cypher =
+        `MATCH p=(n)-[:${relation_name}]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
+      children_filters["rootId"] = rootId;
+      response = await this.write(cypher, parameters);
 
       return response["records"];
     } catch (error) {
@@ -2335,60 +2319,76 @@ export class Neo4jService implements OnApplicationShutdown {
   }
 
   async findChildrenNodesByLabelsAndRelationName(
-    root_labels: Array<string> = [],
-    root_filters: object = {},
-    children_labels: Array<string> = [],
-    children_filters: object = {},
+    first_node_labels: Array<string> = [],
+    first_node__filters: object = {},
+    second_node_labels: Array<string> = [],
+    second_node_filters: object = {},
     relation_name: string,
     relation_direction: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
+      const firstNodeLabelsWithoutEmptyString = first_node_labels.filter(
         (item) => {
           if (item.trim() !== "") {
             return item;
           }
         }
       );
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        root_filters
+      const secondLabelsWithoutEmptyString = second_node_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
       );
-      if (!rootNode) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
+      let rootNode;
+
+      let rootId;
       let cypher: string;
       let result;
       switch (relation_direction) {
         case RelationDirection.RIGHT:
+          rootNode = await this.findByLabelAndFilters(
+            firstNodeLabelsWithoutEmptyString,
+            first_node__filters
+          );
+          if (!rootNode) {
+            throw new HttpException(
+              find_with_children_by_realm_as_tree__find_by_realm_error,
+              404
+            );
+          }
+          rootId = rootNode[0]["_fields"][0].identity.low;
           cypher =
             `MATCH (n)-[:${relation_name}*]->(m` +
-            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdder(children_filters) +
+            dynamicLabelAdder(secondLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(second_node_filters) +
             `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
 
-          children_filters["rootId"] = rootId;
-          result = await this.read(cypher, children_filters);
+          second_node_filters["rootId"] = rootId;
+          result = await this.read(cypher, second_node_filters);
           break;
         case RelationDirection.LEFT:
+          rootNode = await this.findByLabelAndFilters(
+            secondLabelsWithoutEmptyString,
+            second_node_filters
+          );
+          if (!rootNode) {
+            throw new HttpException(
+              find_with_children_by_realm_as_tree__find_by_realm_error,
+              404
+            );
+          }
+          rootId = rootNode[0]["_fields"][0].identity.low;
           cypher =
-            `MATCH p=(n` +
-            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdder(children_filters) +
-            `<-[:${relation_name}*]-(m` +
+            `MATCH (n` +
+            dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(first_node__filters) +
+            `<-[:${relation_name}*]-(m)` +
             `  WHERE  id(m) = $rootId   RETURN m as parent,n as children`;
 
-          children_filters["rootId"] = rootId;
-          result = await this.read(cypher, children_filters);
+          first_node__filters["rootId"] = rootId;
+          result = await this.read(cypher, first_node__filters);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
@@ -2404,10 +2404,7 @@ export class Neo4jService implements OnApplicationShutdown {
           error.status
         );
       } else {
-        throw new HttpException(
-          "library_server_error",
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
       }
     }
   }
