@@ -1440,7 +1440,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async findByOrLabelAndFilters(
+  async findByOrLabelsAndFilters(
     or_labels: Array<string> = [""],
     filter_properties: object = {}
   ) {
@@ -1455,6 +1455,39 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " where " +
+        dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
+        ` return n`;
+    } else {
+      query = query + ` return n`;
+    }
+
+    const node = await this.read(query, filter_properties);
+    if (node.records.length === 0) {
+      throw new HttpException(node_not_found, 404);
+    } else {
+      return node.records;
+    }
+  }
+
+  async findByIdAndOrLabelsAndFilters(
+    id: number,
+    or_labels: Array<string> = [""],
+    filter_properties: object = {}
+  ) {
+    const orLabelsWithoutEmptyString = or_labels.filter((item) => {
+      if (item.trim() !== "") {
+        return item;
+      }
+    });
+    let query =
+      "match (n " +
+      dynamicFilterPropertiesAdder(filter_properties) +
+      ` where id(n)=${id} `;
+
+    if (orLabelsWithoutEmptyString && orLabelsWithoutEmptyString.length > 0) {
+      query =
+        query +
+        " and" +
         dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
         ` return n`;
     } else {
