@@ -21,6 +21,7 @@ import {
   dynamicFilterPropertiesAdder,
   dynamicLabelAdder,
   dynamicNotLabelAdder,
+  dynamicOrLabelAdder,
   dynamicUpdatePropertyAdder,
   updateNodeQuery,
 } from "./func/common.func";
@@ -1433,7 +1434,37 @@ export class Neo4jService implements OnApplicationShutdown {
 
     const node = await this.read(query, filter_properties);
     if (node.records.length === 0) {
-      return null;
+      throw new HttpException(node_not_found, 404);
+    } else {
+      return node.records;
+    }
+  }
+
+  async findByOrLabelAndFilters(
+    or_labels: Array<string> = [""],
+    filter_properties: object = {}
+  ) {
+    const orLabelsWithoutEmptyString = or_labels.filter((item) => {
+      if (item.trim() !== "") {
+        return item;
+      }
+    });
+    let query = "match (n " + dynamicFilterPropertiesAdder(filter_properties);
+
+    if (orLabelsWithoutEmptyString && orLabelsWithoutEmptyString.length > 0) {
+      query =
+        query +
+        " where " +
+        dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
+        ` return n`;
+    } else {
+      query = query + ` return n`;
+    }
+    console.log(query);
+
+    const node = await this.read(query, filter_properties);
+    if (node.records.length === 0) {
+      throw new HttpException(node_not_found, 404);
     } else {
       return node.records;
     }
@@ -2299,6 +2330,84 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else {
         throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findChildrenNodesByLabelsAndRelationName(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+      const rootNode = await this.findByLabelAndFilters(
+        rootLabelsWithoutEmptyString,
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      let cypher: string;
+      let result;
+      switch (relation_direction) {
+        case RelationDirection.RIGHT:
+          cypher =
+            `MATCH (n)-[:${relation_name}*]->(m` +
+            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(children_filters) +
+            `  WHERE  id(n) = $rootId   RETURN m`;
+
+          children_filters["rootId"] = rootId;
+          result = await this.read(cypher, children_filters);
+          console.log(cypher);
+          break;
+        case RelationDirection.LEFT:
+          cypher =
+            `MATCH p=(n)-[:${relation_name}*]->(m` +
+            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(children_filters) +
+            `  WHERE  id(n) = $rootId   RETURN m`;
+
+          children_filters["rootId"] = rootId;
+          result = await this.read(cypher, children_filters);
+          break;
+        default:
+          throw new HttpException(invalid_direction_error, 400);
+      }
+      if (!result["records"].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          "library_server_error",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       }
     }
   }

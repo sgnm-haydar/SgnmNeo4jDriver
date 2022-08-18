@@ -73,14 +73,14 @@ export function updateNodeQuery(id, dto) {
 }
 
 export function dynamicLabelAdder(labels: Array<string>) {
-  let optionalLabels = '';
+  let optionalLabels = "";
 
   if (labels && labels.length > 0) {
     labels.map((item) => {
-      if (item.trim() === '') {
+      if (item.trim() === "") {
         optionalLabels = optionalLabels;
       } else {
-        optionalLabels = optionalLabels + ':' + item;
+        optionalLabels = optionalLabels + ":" + item;
       }
     });
   }
@@ -88,9 +88,9 @@ export function dynamicLabelAdder(labels: Array<string>) {
 }
 
 export function dynamicNotLabelAdder(notLabels: Array<string>) {
-  let optionalLabels = '';
+  let optionalLabels = "";
   const notLabelsWithoutEmptyString = notLabels.filter((item) => {
-    if (item.trim() !== '') {
+    if (item.trim() !== "") {
       return item;
     }
   });
@@ -107,11 +107,31 @@ export function dynamicNotLabelAdder(notLabels: Array<string>) {
   return optionalLabels;
 }
 
+export function dynamicOrLabelAdder(notLabels: Array<string>) {
+  let optionalLabels = "";
+  const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+    if (item.trim() !== "") {
+      return item;
+    }
+  });
+
+  if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
+    notLabelsWithoutEmptyString.map((item, index) => {
+      if (index === 0) {
+        optionalLabels = optionalLabels + ` n:${item} `;
+      } else {
+        optionalLabels = optionalLabels + `or n:${item} `;
+      }
+    });
+  }
+  return optionalLabels;
+}
+
 export function dynamicFilterPropertiesAdder(filterProperties) {
   if (!filterProperties || Object.keys(filterProperties).length === 0) {
-    return ')';
+    return ")";
   }
-  let dynamicQueryParameter = '';
+  let dynamicQueryParameter = "";
 
   Object.keys(filterProperties).forEach((element, index) => {
     if (index === 0) {
@@ -127,7 +147,7 @@ export function dynamicFilterPropertiesAdder(filterProperties) {
 }
 
 export function dynamicUpdatePropertyAdder(updateProperties: object) {
-  let dynamicQueryParameter = '';
+  let dynamicQueryParameter = "";
 
   Object.keys(updateProperties).forEach((element, index) => {
     if (Object.keys(updateProperties).length === index + 1) {
