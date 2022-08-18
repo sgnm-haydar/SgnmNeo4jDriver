@@ -1692,7 +1692,7 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(parent_filters) +
         "match (k)-[:PARENT_OF]->(c) return k";
 
-        parent_filters["id"] = id;
+      parent_filters["id"] = id;
       const res = await this.read(query, parent_filters);
       if (!res["records"][0].length) {
         throw new HttpException(parent_of_child_not_found, 404);
@@ -2010,7 +2010,6 @@ export class Neo4jService implements OnApplicationShutdown {
           error.status
         );
       } else {
-        //throw newError(error, '500');
         throw new HttpException(error, 500);
       }
     }
@@ -2121,6 +2120,79 @@ export class Neo4jService implements OnApplicationShutdown {
       }
 
       return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+  async findChildrensByIdsAsTreeOneLevel(
+    id: number,
+    root_filters: object = {},
+    children_filters: object = {}
+  ) {
+    try {
+      const rootNode = await this.findByIdAndFilters(id, root_filters);
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      const cypher =
+        `MATCH p=(n)-[:PARENT_OF]->(m` +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      children_filters["rootId"] = rootId;
+      const result = await this.read(cypher, children_filters);
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findByIdAndFiltersWithTreeStructureOneLevel(
+    id: number,
+    rootFilters: object = {},
+    childrenFilters: object = {}
+  ) {
+    try {
+      let tree = await this.findChildrensByIdsAsTreeOneLevel(
+        id,
+        rootFilters,
+        childrenFilters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByIdAndFilters(id, rootFilters);
+
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(
