@@ -1711,7 +1711,7 @@ export class Neo4jService implements OnApplicationShutdown {
           root_filters
         );
 
-        const rootNodeObject = { rroot: tree[0]["_fields"][0] };
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
         const rootNodeObject = { root: tree };
