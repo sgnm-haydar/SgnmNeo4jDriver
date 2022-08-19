@@ -1511,20 +1511,21 @@ export class Neo4jService implements OnApplicationShutdown {
     update_properties: object = {}
   ) {
     try {
+      const nodelabelsWithoutEmptyString = labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
       const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
         if (item.trim() !== "") {
           return item;
         }
       });
-      const nodes = await this.findByLabelAndFilters(labels, filter_properties);
-      if (!nodes || nodes?.length === 0) {
-        throw new HttpException(node_not_found, 404);
-      }
+     
       let query =
-        "match (n)" +
-        "where id(n)=$id " +
+        "match (n"+ dynamicLabelAdder(nodelabelsWithoutEmptyString) +dynamicFilterPropertiesAdder(filter_properties) +
         ` set ` +
-        dynamicUpdatePropertyAdder('n',update_properties);
+        dynamicUpdatePropertyAdderAndAddParameter1('n',update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
@@ -1538,20 +1539,12 @@ export class Neo4jService implements OnApplicationShutdown {
       } else {
         query = query + " return n";
       }
+       console.log(query)
+       const update_properties1=changeObjectKeyName(update_properties,'1') 
+       const parameters={...filter_properties, ...update_properties1}
 
-      const result = Promise.all(
-        nodes.map(async (item) => {
-          update_properties["id"] = item["_fields"][0].identity.low;
-          const parameters = update_properties;
-          const node = await this.write(query, parameters);
-          if (node.records.length === 0) {
-            throw new HttpException(node_not_updated, 400);
-          } else {
-            return node.records[0]["_fields"][0];
-          }
-        })
-      );
-      return result;
+       const result=this.write(query,parameters)
+        return result;
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(
@@ -1560,7 +1553,7 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else {
         throw new HttpException(
-          library_server_error,
+          error,
           HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
