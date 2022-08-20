@@ -2661,6 +2661,19 @@ export class Neo4jService implements OnApplicationShutdown {
          cypher =  cypher + ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
+
+
+      Object.keys(root_filters).forEach((element_root) => {
+        let i = 0;
+        Object.keys(children_filters).forEach((element_child) => {
+             if (element_root ===  element_child) {
+                i = 1;
+              }
+           });
+           if (i == 0) {
+            children_filters[element_root] = root_filters[element_root];
+           }
+          });  
       const result = await this.read(cypher, children_filters);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
