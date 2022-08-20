@@ -2590,4 +2590,161 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+
+
+
+  async findChildrensByLabelsAndNotLabelsAsTreeOneLevel(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {}
+
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+      
+      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+      const rootNode = await this.findByLabelAndFilters(
+        rootLabelsWithoutEmptyString,
+        //notLabels parametresi olmalımı
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      let cypher =
+        `MATCH p=(n ` +dynamicLabelAdder(rootLabelsWithoutEmptyString) + dynamicFilterPropertiesAdder(root_filters) +
+        ` -[:PARENT_OF]->(m ` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId `// WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+        if (rootNotLabelsWithoutEmptyString && rootNotLabelsWithoutEmptyString.length > 0) {
+          cypher =
+           cypher +
+            " and " +
+            dynamicNotLabelAdder('n',rootNotLabelsWithoutEmptyString);
+        } 
+        if (childrenNotLabelsWithoutEmptyString && childrenNotLabelsWithoutEmptyString.length > 0) {
+          cypher =
+           cypher +
+            " and " +
+            dynamicNotLabelAdder('m',childrenNotLabelsWithoutEmptyString);
+         } 
+         cypher =  cypher + ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      children_filters["rootId"] = rootId;
+      const result = await this.read(cypher, children_filters);
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findByLabelAndNotLabelAndFiltersWithTreeStructureOneLevel(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {}
+  ) {
+    try {
+      const rootlabelsWithoutEmptyString = root_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenlabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      
+      let tree = await this.findChildrensByLabelsAndNotLabelsAsTreeOneLevel(
+        rootlabelsWithoutEmptyString,
+        rootNotLabelsWithoutEmptyString,
+        root_filters,
+        childrenlabelsWithoutEmptyString,
+        childrenNotLabelsWithoutEmptyString,
+        children_filters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByLabelAndFilters(
+          rootlabelsWithoutEmptyString,
+          root_filters
+        );
+
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
