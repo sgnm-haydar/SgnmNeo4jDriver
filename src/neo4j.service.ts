@@ -2793,4 +2793,96 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+
+  async deleteRelationByIdAndRelationNameWithFilters(
+    first_node_id: number,
+    first_node_filters: object = {},
+    second_node_id: number,
+    second_node_filters: object = {},
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      if (!first_node_id || !second_node_id || !relation_name) {
+        throw new HttpException(required_fields_must_entered, 400);
+      }
+      await this.findByIdAndFilters(first_node_id, first_node_filters);
+      await this.findByIdAndFilters(second_node_id, second_node_filters);
+
+      const res = await this.deleteRelationByIdAndRelationNameWithoutFilters(
+        first_node_id,
+        second_node_id,
+        relation_name,
+        relation_direction
+      );
+
+      const { relationshipsCreated } =
+        await res.summary.updateStatistics.updates();
+      if (relationshipsCreated === 0) {
+        throw new HttpException(
+          add_relation_with_relation_name__create_relation_error,
+          400
+        );
+      }
+      return res;
+    } catch (error) {
+      if (error?.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
+  async deleteRelationByIdAndRelationNameWithoutFilters(
+    first_node_id: number,
+    second_node_id: number,
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  ) {
+    try {
+      if (!first_node_id || !second_node_id) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      await this.findByIdAndFilters(first_node_id, {});
+      await this.findByIdAndFilters(second_node_id, {});
+
+      const parameters = { first_node_id, second_node_id };
+      let res;
+      switch (relation_direction) {
+        case RelationDirection.RIGHT:
+          res = await this.write(
+            `MATCH (n) where id(n)= $first_node_id MATCH (m ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
+            parameters
+          );
+          break;
+        case RelationDirection.LEFT:
+          res = await this.write(
+            `MATCH (m) where id(m)= $first_node_id MATCH (n) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
+            parameters
+          );
+          break;
+        default:
+          throw new HttpException(invalid_direction_error, 400);
+      }
+
+      if (!res) {
+        throw new HttpException(null, 400);
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException({}, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
 }
