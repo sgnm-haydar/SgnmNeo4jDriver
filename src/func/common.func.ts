@@ -23,7 +23,6 @@ export function createDynamicCyperCreateQuery(
 
   if (labels && labels.length > 0) {
     labels.map((item) => {
-      console.log(item);
       if (item.trim() === "") {
         optionalLabels = optionalLabels;
       } else {
@@ -87,7 +86,10 @@ export function dynamicLabelAdder(labels: Array<string>) {
   return optionalLabels;
 }
 
-export function dynamicNotLabelAdder(queryNodeName:string,notLabels: Array<string>) {
+export function dynamicNotLabelAdder(
+  queryNodeName: string,
+  notLabels: Array<string>
+) {
   let optionalLabels = "";
   const notLabelsWithoutEmptyString = notLabels.filter((item) => {
     if (item.trim() !== "") {
@@ -107,7 +109,10 @@ export function dynamicNotLabelAdder(queryNodeName:string,notLabels: Array<strin
   return optionalLabels;
 }
 
-export function dynamicOrLabelAdder(queryNodeName:string,notLabels: Array<string>) {
+export function dynamicOrLabelAdder(
+  queryNodeName: string,
+  notLabels: Array<string>
+) {
   let optionalLabels = "";
   const notLabelsWithoutEmptyString = notLabels.filter((item) => {
     if (item.trim() !== "") {
@@ -146,39 +151,58 @@ export function dynamicFilterPropertiesAdder(filterProperties) {
   return dynamicQueryParameter;
 }
 
-export function dynamicUpdatePropertyAdder(queryNodeName:string,updateProperties: object) {
+export function dynamicUpdatePropertyAdder(
+  queryNodeName: string,
+  updateProperties: object
+) {
   let dynamicQueryParameter = "";
 
   Object.keys(updateProperties).forEach((element, index) => {
     if (Object.keys(updateProperties).length === index + 1) {
-      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element}`;
+      dynamicQueryParameter +=
+        `${queryNodeName}.${element}` + `= $` + `${element}`;
     } else {
-      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element} ,`;
+      dynamicQueryParameter +=
+        `${queryNodeName}.${element}` + `= $` + `${element} ,`;
     }
   });
   return dynamicQueryParameter;
 }
 
-
-export function changeObjectKeyName(obj1:object,addedToKeyString:string){
+export function changeObjectKeyName(obj1: object, addedToKeyString: string) {
   const changedObject = Object.fromEntries(
-    Object.entries(obj1).map(([key, value]) => 
+    Object.entries(obj1).map(([key, value]) =>
       // Modify key here
       [`${key}${addedToKeyString}`, value]
     )
-  )
-  return changedObject
+  );
+  return changedObject;
 }
 
-export function dynamicUpdatePropertyAdderAndAddParameter1(queryNodeName:string,updateProperties: object) {
+export function dynamicUpdatePropertyAdderAndAddParameter1(
+  queryNodeName: string,
+  updateProperties: object
+) {
   let dynamicQueryParameter = "";
 
   Object.keys(updateProperties).forEach((element, index) => {
     if (Object.keys(updateProperties).length === index + 1) {
-      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element}1`;
+      dynamicQueryParameter +=
+        `${queryNodeName}.${element}` + `= $` + `${element}1`;
     } else {
-      dynamicQueryParameter += `${queryNodeName}.${element}` + `= $` + `${element}1 ,`;
+      dynamicQueryParameter +=
+        `${queryNodeName}.${element}` + `= $` + `${element}1 ,`;
     }
   });
   return dynamicQueryParameter;
+}
+
+export function filterArrayForEmptyString(array: string[]) {
+  const arrayWithoutEmptyString = array.filter((item) => {
+    if (item.trim() !== "" || item !== undefined || item !== null) {
+      return item;
+    }
+  });
+
+  return arrayWithoutEmptyString;
 }

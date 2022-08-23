@@ -100,15 +100,11 @@ export class AppController {
 
   @Patch(":id")
   update(@Param("id") id: string, @Body() updateDto: UpdateDto) {
-    return await this.neo4jService.updateById(id, updateDto);
+    return await this.neo4jService.updateByIdAndFilter(id,{isActive=true},[], updateDto);
   }
 }
 ```
 
-
-## Methods
-
-some method like `delete(id)` used other method like `updateIsDeleted(true)` check github for more details source code in `src/neo4j.service.ts`
 
 ```ts
 getConfig(): Neo4jConfig;

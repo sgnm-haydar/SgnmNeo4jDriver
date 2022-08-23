@@ -25,6 +25,7 @@ import {
   dynamicOrLabelAdder,
   dynamicUpdatePropertyAdder,
   dynamicUpdatePropertyAdderAndAddParameter1,
+  filterArrayForEmptyString,
   updateNodeQuery,
 } from "./func/common.func";
 import { successResponse } from "./constant/success.response.object";
@@ -1354,13 +1355,7 @@ export class Neo4jService implements OnApplicationShutdown {
     filter_properties: object = {},
     excluded_labels: Array<string> = []
   ) {
-    const excludedLabelsLabelsWithoutEmptyString = excluded_labels.filter(
-      (item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      }
-    );
+    const excludedLabelsLabelsWithoutEmptyString =filterArrayForEmptyString(excluded_labels)
     let query =
       "match (n" +
       dynamicFilterPropertiesAdder(filter_properties) +
@@ -1393,13 +1388,8 @@ export class Neo4jService implements OnApplicationShutdown {
     filter_properties: object = {},
     excluded_labels: Array<string> = [""]
   ) {
-    const excludedLabelsLabelsWithoutEmptyString = excluded_labels.filter(
-      (item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      }
-    );
+    const excludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(excluded_labels);
     let query =
       "match (n" +
       dynamicLabelAdder(labels) +
@@ -1430,11 +1420,7 @@ export class Neo4jService implements OnApplicationShutdown {
     or_labels: Array<string> = [""],
     filter_properties: object = {}
   ) {
-    const orLabelsWithoutEmptyString = or_labels.filter((item) => {
-      if (item.trim() !== "") {
-        return item;
-      }
-    });
+    const orLabelsWithoutEmptyString = filterArrayForEmptyString(or_labels);
     let query = "match (n " + dynamicFilterPropertiesAdder(filter_properties);
 
     if (orLabelsWithoutEmptyString && orLabelsWithoutEmptyString.length > 0) {
@@ -1460,11 +1446,7 @@ export class Neo4jService implements OnApplicationShutdown {
     or_labels: Array<string> = [""],
     filter_properties: object = {}
   ) {
-    const orLabelsWithoutEmptyString = or_labels.filter((item) => {
-      if (item.trim() !== "") {
-        return item;
-      }
-    });
+    const orLabelsWithoutEmptyString = filterArrayForEmptyString(or_labels);
     let query =
       "match (n " +
       dynamicFilterPropertiesAdder(filter_properties) +
@@ -1495,16 +1477,9 @@ export class Neo4jService implements OnApplicationShutdown {
     update_properties: object = {}
   ) {
     try {
-      const nodelabelsWithoutEmptyString = labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
+      const nodelabelsWithoutEmptyString = filterArrayForEmptyString(labels);
+      const updateLabelsWithoutEmptyString =
+        filterArrayForEmptyString(update_labels);
 
       let query =
         "match (n" +
@@ -1550,11 +1525,8 @@ export class Neo4jService implements OnApplicationShutdown {
     update_properties: object = {}
   ) {
     try {
-      const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
+      const updateLabelsWithoutEmptyString =
+        filterArrayForEmptyString(update_labels);
       const isNodeExist = await this.findByIdAndFilters(id, filter_properties);
 
       if (!isNodeExist) {
@@ -1607,18 +1579,11 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
       const rootNode = await this.findByLabelAndFilters(
         rootLabelsWithoutEmptyString,
         root_filters
@@ -1664,19 +1629,11 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
       let tree = await this.findChildrensByLabelsAsTree(
         rootLabelsWithoutEmptyString,
         root_filters,
@@ -1722,13 +1679,8 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
       if (!rootNode) {
         throw new HttpException(
@@ -1771,13 +1723,8 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
       let tree = await this.findChildrensByIdsAsTree(
         root_id,
         root_filters,
@@ -1990,21 +1937,11 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const firstNodelabelsWithoutEmptyString = first_node_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const firstNodelabelsWithoutEmptyString =
+        filterArrayForEmptyString(first_node_labels);
 
-      const secondNodelabelsWithoutEmptyString = second_node_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const secondNodelabelsWithoutEmptyString =
+        filterArrayForEmptyString(second_node_labels);
 
       const firstNode = await this.findByLabelAndFilters(
         firstNodelabelsWithoutEmptyString,
@@ -2049,18 +1986,10 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByLabelAndFilters(
         rootLabelsWithoutEmptyString,
         root_filters
@@ -2103,18 +2032,10 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootlabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const childrenlabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const rootlabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenlabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
       let tree = await this.findChildrensByLabelsAsTreeOneLevel(
         rootlabelsWithoutEmptyString,
@@ -2157,19 +2078,11 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
       const rootNode = await this.findByLabelAndFilters(
         rootLabelsWithoutEmptyString,
         root_filters
@@ -2216,13 +2129,8 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
       if (!rootNode) {
         throw new HttpException(
@@ -2347,20 +2255,10 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const firstNodeLabelsWithoutEmptyString = first_node_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
-      const secondNodeLabelsWithoutEmptyString = second_node_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const firstNodeLabelsWithoutEmptyString =
+        filterArrayForEmptyString(first_node_labels);
+      const secondNodeLabelsWithoutEmptyString =
+        filterArrayForEmptyString(second_node_labels);
 
       let rootNode;
       let rootId;
@@ -2441,21 +2339,11 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const firstNodeLabelsWithoutEmptyString = first_node_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const firstNodeLabelsWithoutEmptyString =
+        filterArrayForEmptyString(first_node_labels);
 
-      const secondNodeLabelsWithoutEmptyString = second_node_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const secondNodeLabelsWithoutEmptyString =
+        filterArrayForEmptyString(second_node_labels);
 
       let rootNode;
       let rootId;
@@ -2538,17 +2426,16 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(required_fields_must_entered, 404);
       }
 
-      const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
+      const updateLabelsWithoutEmptyString =
+        filterArrayForEmptyString(update_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
       await this.findByIdAndFilters(id, root_filters);
 
       let query =
         "match (m) " +
         `match(n` +
-        dynamicLabelAdder(children_labels) +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(children_filters) +
         ` match (m)-[:${relation_name}*]->(n)` +
         ` where id(m)=$rootId set ` +
@@ -2596,31 +2483,15 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const childrenLabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const rootNotLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_not_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const childrenNotLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_not_labels);
 
-      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
       const rootNode = await this.findByLabelAndFilters(
         rootLabelsWithoutEmptyString,
         //notLabels parametresi olmalımı
@@ -2702,18 +2573,10 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
-      const rootlabelsWithoutEmptyString = root_labels.filter((item) => {
-        if (item.trim() !== "") {
-          return item;
-        }
-      });
-      const childrenlabelsWithoutEmptyString = children_labels.filter(
-        (item) => {
-          if (item.trim() !== "") {
-            return item;
-          }
-        }
-      );
+      const rootlabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenlabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
       const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
         if (item.trim() !== "") {
@@ -2770,8 +2633,11 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!params || Object.keys(params).length === 0) {
         throw new HttpException(create_node__must_entered_error, 400);
       }
+
+      const labelsWithoutEmptyString = filterArrayForEmptyString(labels);
+
       let cyperQuery;
-      if (!labels) {
+      if (!labelsWithoutEmptyString) {
         cyperQuery = createDynamicCyperCreateQuery(params);
       } else {
         cyperQuery = createDynamicCyperCreateQuery(params, labels);

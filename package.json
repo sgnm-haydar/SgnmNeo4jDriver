@@ -16,7 +16,8 @@
     "neo4j",
     "sgnm-neo4j-driver",
     "nest-neo4j",
-    "nest-neo4j-driver"
+    "nest-neo4j-driver",
+    "neo4j-driver"
   ],
   "author": "",
   "license": "ISC",
