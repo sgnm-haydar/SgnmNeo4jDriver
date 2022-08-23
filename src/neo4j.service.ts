@@ -17,12 +17,14 @@ import { NEO4J_OPTIONS, NEO4J_DRIVER } from "./neo4j.constants";
 import TransactionImpl from "neo4j-driver-core/lib/transaction";
 import { newError } from "neo4j-driver-core";
 import {
+  changeObjectKeyName,
   createDynamicCyperCreateQuery,
   dynamicFilterPropertiesAdder,
   dynamicLabelAdder,
   dynamicNotLabelAdder,
   dynamicOrLabelAdder,
   dynamicUpdatePropertyAdder,
+  dynamicUpdatePropertyAdderAndAddParameter1,
   updateNodeQuery,
 } from "./func/common.func";
 import { successResponse } from "./constant/success.response.object";
@@ -1396,7 +1398,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " and " +
-        dynamicNotLabelAdder(excludedLabelsLabelsWithoutEmptyString) +
+        dynamicNotLabelAdder("n", excludedLabelsLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1436,7 +1438,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " where " +
-        dynamicNotLabelAdder(excludedLabelsLabelsWithoutEmptyString) +
+        dynamicNotLabelAdder("n", excludedLabelsLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1465,7 +1467,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " where " +
-        dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
+        dynamicOrLabelAdder("n", orLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1498,7 +1500,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query =
         query +
         " and" +
-        dynamicOrLabelAdder(orLabelsWithoutEmptyString) +
+        dynamicOrLabelAdder("n", orLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1519,20 +1521,23 @@ export class Neo4jService implements OnApplicationShutdown {
     update_properties: object = {}
   ) {
     try {
+      const nodelabelsWithoutEmptyString = labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
       const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
         if (item.trim() !== "") {
           return item;
         }
       });
-      const nodes = await this.findByLabelAndFilters(labels, filter_properties);
-      if (!nodes || nodes?.length === 0) {
-        throw new HttpException(node_not_found, 404);
-      }
+
       let query =
-        "match (n)" +
-        "where id(n)=$id " +
+        "match (n" +
+        dynamicLabelAdder(nodelabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(filter_properties) +
         ` set ` +
-        dynamicUpdatePropertyAdder(update_properties);
+        dynamicUpdatePropertyAdderAndAddParameter1("n", update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
@@ -1546,19 +1551,11 @@ export class Neo4jService implements OnApplicationShutdown {
       } else {
         query = query + " return n";
       }
+      console.log(query);
+      const update_properties1 = changeObjectKeyName(update_properties, "1");
+      const parameters = { ...filter_properties, ...update_properties1 };
 
-      const result = Promise.all(
-        nodes.map(async (item) => {
-          update_properties["id"] = item["_fields"][0].identity.low;
-          const parameters = update_properties;
-          const node = await this.write(query, parameters);
-          if (node.records.length === 0) {
-            throw new HttpException(node_not_updated, 400);
-          } else {
-            return node.records[0]["_fields"][0];
-          }
-        })
-      );
+      const result = this.write(query, parameters);
       return result;
     } catch (error) {
       if (error.response?.code) {
@@ -1567,10 +1564,7 @@ export class Neo4jService implements OnApplicationShutdown {
           error.status
         );
       } else {
-        throw new HttpException(
-          library_server_error,
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
       }
     }
   }
@@ -1595,7 +1589,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let query =
         "match (n) " +
         ` where id(n)=${id} set ` +
-        dynamicUpdatePropertyAdder(update_properties);
+        dynamicUpdatePropertyAdder("n", update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
@@ -1726,7 +1720,7 @@ export class Neo4jService implements OnApplicationShutdown {
           root_filters
         );
 
-        const rootNodeObject = { rroot: tree[0]["_fields"][0] };
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
         const rootNodeObject = { root: tree };
@@ -1824,7 +1818,7 @@ export class Neo4jService implements OnApplicationShutdown {
       } else if (Object.keys(tree).length === 0) {
         tree = await this.findByIdAndFilters(root_id, root_filters);
 
-        const rootNodeObject = { rroot: tree[0]["_fields"][0] };
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
         const rootNodeObject = { root: tree };
@@ -2023,7 +2017,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!relation_name) {
-        throw new HttpException("id must entered", 404);
+        throw new HttpException("relation name not entered", 404);
       }
       const firstNodelabelsWithoutEmptyString = first_node_labels.filter(
         (item) => {
@@ -2533,6 +2527,245 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
       return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+  async updateNodeChildrensByIdAndFilter(
+    id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    update_labels: Array<string> = [],
+    update_properties: object = {}
+  ) {
+    try {
+      if (!id || !relation_name) {
+        throw new HttpException("id must entered", 404);
+      }
+      const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      await this.findByIdAndFilters(id, root_filters);
+
+      let query =
+        "match (m) " +
+        `match(n` +
+        dynamicLabelAdder(children_labels) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        ` match (m)-[:${relation_name}*]->(n)` +
+        ` where id(m)=$rootId set ` +
+        dynamicUpdatePropertyAdderAndAddParameter1("n", update_properties);
+
+      if (
+        updateLabelsWithoutEmptyString &&
+        updateLabelsWithoutEmptyString.length > 0
+      ) {
+        query =
+          query +
+          ", n" +
+          dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+          " return m as parent, n as children";
+      } else {
+        query = query + " return m as parent, n as children";
+      }
+      const update_properties1 = changeObjectKeyName(update_properties, "1");
+      const parameters = { ...children_filters, ...update_properties1 };
+      parameters["rootId"] = id;
+      const node = await this.write(query, parameters);
+      if (node.records.length === 0) {
+        throw new HttpException("nodes not updates", 400);
+      } else {
+        return node.records;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
+  async findChildrensByLabelsAndNotLabelsAsTreeOneLevel(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {}
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString = root_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenLabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+      const rootNode = await this.findByLabelAndFilters(
+        rootLabelsWithoutEmptyString,
+        //notLabels parametresi olmalımı
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      let cypher =
+        `MATCH p=(n ` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        ` -[:PARENT_OF]->(m ` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId `; // WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+      if (
+        rootNotLabelsWithoutEmptyString &&
+        rootNotLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          " and " +
+          dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
+      }
+      if (
+        childrenNotLabelsWithoutEmptyString &&
+        childrenNotLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          " and " +
+          dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
+      }
+      cypher =
+        cypher +
+        ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      children_filters["rootId"] = rootId;
+
+      Object.keys(root_filters).forEach((element_root) => {
+        let i = 0;
+        Object.keys(children_filters).forEach((element_child) => {
+          if (element_root === element_child) {
+            i = 1;
+          }
+        });
+        if (i == 0) {
+          children_filters[element_root] = root_filters[element_root];
+        }
+      });
+      const result = await this.read(cypher, children_filters);
+      if (!result["records"][0].length) {
+        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+      }
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findByLabelAndNotLabelAndFiltersWithTreeStructureOneLevel(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {}
+  ) {
+    try {
+      const rootlabelsWithoutEmptyString = root_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenlabelsWithoutEmptyString = children_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      let tree = await this.findChildrensByLabelsAndNotLabelsAsTreeOneLevel(
+        rootlabelsWithoutEmptyString,
+        rootNotLabelsWithoutEmptyString,
+        root_filters,
+        childrenlabelsWithoutEmptyString,
+        childrenNotLabelsWithoutEmptyString,
+        children_filters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByLabelAndFilters(
+          rootlabelsWithoutEmptyString,
+          root_filters
+        );
+
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(
