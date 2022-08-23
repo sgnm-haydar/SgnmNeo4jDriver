@@ -2684,9 +2684,9 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const { relationshipsCreated } =
         await res.summary.updateStatistics.updates();
-      if (relationshipsCreated === 0) {
+      if (!res || !res["records"] ||  !res["records"].length ||  res["records"].length == 0) {
         throw new HttpException(
-          add_relation_with_relation_name__create_relation_error,
+          deleteParentRelationError,
           400
         );
       }
