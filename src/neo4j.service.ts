@@ -69,6 +69,7 @@ import {
   library_server_error,
   invalid_direction_error,
   node_not_updated,
+  required_fields_must_entered,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
 @Injectable()
@@ -1846,7 +1847,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!id) {
-        throw new HttpException(get_parent_by_id__must_entered_error, 400);
+        throw new HttpException(required_fields_must_entered, 400);
       }
       const node = await this.findByIdAndFilters(+id, node_filters);
       if (!node) {
@@ -1885,7 +1886,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!child_id || !target_parent_id) {
-        throw new HttpException("id must entered", 404);
+        throw new HttpException(required_fields_must_entered, 404);
       }
       await this.findByIdAndFilters(child_id, child_filters);
       await this.findByIdAndFilters(target_parent_id, target_parent_filters);
@@ -1921,7 +1922,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!first_node_id || !second_node_id) {
-        throw new HttpException("id must entered", 404);
+        throw new HttpException(required_fields_must_entered, 404);
       }
       await this.findByIdAndFilters(first_node_id, {});
       await this.findByIdAndFilters(second_node_id, {});
@@ -1971,10 +1972,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!first_node_id || !second_node_id || !relation_name) {
-        throw new HttpException(
-          add_relation_with_relation_name__must_entered_error,
-          400
-        );
+        throw new HttpException(required_fields_must_entered, 400);
       }
       await this.findByIdAndFilters(first_node_id, first_node_filters);
       await this.findByIdAndFilters(second_node_id, second_node_filters);
@@ -2017,7 +2015,7 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!relation_name) {
-        throw new HttpException("relation name not entered", 404);
+        throw new HttpException(required_fields_must_entered, 404);
       }
       const firstNodelabelsWithoutEmptyString = first_node_labels.filter(
         (item) => {
@@ -2242,6 +2240,9 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string
   ) {
     try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
       const childrenLabelsWithoutEmptyString = children_labels.filter(
         (item) => {
           if (item.trim() !== "") {
@@ -2287,6 +2288,9 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {}
   ) {
     try {
+      if (!id) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
       const rootNode = await this.findByIdAndFilters(id, root_filters);
       if (!rootNode) {
         throw new HttpException(
@@ -2324,6 +2328,9 @@ export class Neo4jService implements OnApplicationShutdown {
     childrenFilters: object = {}
   ) {
     try {
+      if (!id) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
       let tree = await this.findChildrensByIdsAsTreeOneLevel(
         id,
         rootFilters,
@@ -2364,6 +2371,9 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_direction: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
       const firstNodeLabelsWithoutEmptyString = first_node_labels.filter(
         (item) => {
           if (item.trim() !== "") {
@@ -2455,6 +2465,9 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_direction: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
       const firstNodeLabelsWithoutEmptyString = first_node_labels.filter(
         (item) => {
           if (item.trim() !== "") {
@@ -2549,8 +2562,9 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       if (!id || !relation_name) {
-        throw new HttpException("id must entered", 404);
+        throw new HttpException(required_fields_must_entered, 404);
       }
+
       const updateLabelsWithoutEmptyString = update_labels.filter((item) => {
         if (item.trim() !== "") {
           return item;

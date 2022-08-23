@@ -454,3 +454,7 @@ export const node_cannot_delete: errorObject = {
   message: "Node can not delete",
   code: CustomNeo4jError.NODE_CANNOT_DELETE,
 };
+export const required_fields_must_entered: errorObject = {
+  message: "required fields must entered",
+  code: CustomNeo4jError.REQUIRED_FIELDS_MUST_ENTERED,
+};
