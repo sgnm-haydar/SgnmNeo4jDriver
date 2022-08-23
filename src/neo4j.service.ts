@@ -499,7 +499,7 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async createNode(params: object, labels?: string[]) {
     try {
-      if (!params) {
+      if (!params || Object.keys(params).length === 0) {
         throw new HttpException(create_node__must_entered_error, 400);
       }
       let cyperQuery;
@@ -1376,22 +1376,27 @@ export class Neo4jService implements OnApplicationShutdown {
   async findByIdAndFilters(
     id: number,
     filter_properties: object = {},
-    not_labels: Array<string> = []
+    excluded_labels: Array<string> = []
   ) {
-    const notLabelsWithoutEmptyString = not_labels.filter((item) => {
-      if (item.trim() !== "") {
-        return item;
+    const excludedLabelsLabelsWithoutEmptyString = excluded_labels.filter(
+      (item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
       }
-    });
+    );
     let query =
       "match (n" +
       dynamicFilterPropertiesAdder(filter_properties) +
       ` where id(n)=${id} `;
-    if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
+    if (
+      excludedLabelsLabelsWithoutEmptyString &&
+      excludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
       query =
         query +
         " and " +
-        dynamicNotLabelAdder(notLabelsWithoutEmptyString) +
+        dynamicNotLabelAdder(excludedLabelsLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;
@@ -1410,23 +1415,28 @@ export class Neo4jService implements OnApplicationShutdown {
   async findByLabelAndFilters(
     labels: Array<string> = [""],
     filter_properties: object = {},
-    not_labels: Array<string> = [""]
+    excluded_labels: Array<string> = [""]
   ) {
-    const notLabelsWithoutEmptyString = not_labels.filter((item) => {
-      if (item.trim() !== "") {
-        return item;
+    const excludedLabelsLabelsWithoutEmptyString = excluded_labels.filter(
+      (item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
       }
-    });
+    );
     let query =
       "match (n" +
       dynamicLabelAdder(labels) +
       dynamicFilterPropertiesAdder(filter_properties);
 
-    if (notLabelsWithoutEmptyString && notLabelsWithoutEmptyString.length > 0) {
+    if (
+      excludedLabelsLabelsWithoutEmptyString &&
+      excludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
       query =
         query +
         " where " +
-        dynamicNotLabelAdder(notLabelsWithoutEmptyString) +
+        dynamicNotLabelAdder(excludedLabelsLabelsWithoutEmptyString) +
         ` return n`;
     } else {
       query = query + ` return n`;

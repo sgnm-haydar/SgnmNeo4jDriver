@@ -12,9 +12,10 @@
 This repository provides [Neo4j](https://www.neo4j.com) integration for [Nest](http://nestjs.com/).
 
 ## Description of Library
-(as default u can use `read()` and `write()` method for  your own cyper query)
-This package convenient for tree structure .
-for tree structure as default package creates Parent Relation with `[:CHILD_OF]`  and for CHİLD relation with `[:CHİLDREN]` 
+
+(as default u can use `read()` and `write()` method for your own cyper query)
+This package convenient for tree structure and normal cyper usage .
+For parent relation default we use PARENT_OF relation but u can change it with functions
 
 ## Installation
 
@@ -103,35 +104,11 @@ export class AppController {
   }
 }
 ```
-## sample node
 
-
-```ts
-{
-"code": "uniq-id",
-"labelclass": "node", //sample match(n:node label)
-"selectable": false, //fot tree stcructure 
-"self_id": 0,//id of node
-"label": " custom name", 
-"isActive": true,//node is active
-"createdAt": "2022-04-11T00:00:00", //create time
-"isDeleted": false,//node is deleted
-"name": "Test Node", //node name
-"tag": [
-          "test Tag",
-          "Person"
-        ],//if u tag node 
-"class_name": "TestClass", //node from class that u create
-"key": "11-00-00-00&0", //uniqe key
-"updatedAt": "2022-04-11T00:00:00", //update time
-"hasParent": false //node has parent for tree structure
-}
-```
 
 ## Methods
 
 some method like `delete(id)` used other method like `updateIsDeleted(true)` check github for more details source code in `src/neo4j.service.ts`
-
 
 ```ts
 getConfig(): Neo4jConfig;
@@ -139,23 +116,85 @@ getReadSession(database?: string): Session;
 getWriteSession(database?: string): Session;
 read(query: string, params?: object, database?: string): Result;
 write(query: string, params?: object, database?: string): Result;
-findByIdWithTreeStructure(id: string);
-getChildrenCount(id: string);
-getParentById(id: string);
-create(entity:object);
-findAllByClassName(data: PaginationNeo4jParamsWithClassName);
-delete(id: string);
-deleteParentRelation(id: string);
-deleteChildrenRelation(id: string);
-createChildrenByLabelClass(entity: object);
-updateIsSelectableProp(id: string, selectable: boolean); 
-updateIsDeletedProp(id: string, isDeleted: boolean);
-updateHasParentProp(id: string, hasParent: boolean);
-findOneNodeByKey(key: string);
-addRelations(_id: string, _target_parent_id: string);
-updateById(id: string, params: object);
-createNode(params: object);
-findRootNodeByClassName(params: findNodeCountByClassNameDto);
-findNodeCountByClassName(class_name: string);
-findById(id: string);
+findByIdAndFilters(id: number,filter_properties: object = {},excluded_labels: Array<string> = [])
+findByLabelAndFilters(labels: Array<string> = [""],filter_properties: object = {},excluded_labels: Array<string> = [""])
+findByOrLabelsAndFilters(or_labels: Array<string> = [""],filter_properties: object = {})
+findByIdAndOrLabelsAndFilters(id: number,or_labels: Array<string> = [""],filter_properties: object = {})
+updateByLabelAndFilter(labels: Array<string> = [],filter_properties: object = {},update_labels: Array<string> = [],update_properties: object = {} )
+updateByIdAndFilter(id: number,filter_properties: object = {},update_labels: Array<string> = [],update_properties: object = {})
+createNode(params: object, labels?: string[])
+findChildrensByLabelsAsTree(root_labels: Array<string> = [],root_filters: object = {},children_labels: Array<string> = [],children_filters: object = {})
+findByLabelAndFiltersWithTreeStructure(root_labels: Array<string> = [],root_filters: object = {},children_labels: Array<string> = [], children_filters: object = {})
+findChildrensByIdsAsTree(root_id: number,root_filters: object = {},children_labels: Array<string> = [],children_filters: object = {})
+findByIdAndFiltersWithTreeStructure(root_id: number,root_filters: object = {},children_labels: Array<string> = [],children_filters: object = {})
+getParentByIdAndFilters(id: number,node_filters: object = {},parent_filters: object = {})
+addParentRelationByIdAndFilters(child_id: number,child_filters: object = {},target_parent_id: number,target_parent_filters: object = {})
+addRelationByIdAndRelationNameWithoutFilters(first_node_id: number,second_node_id: number,relation_name: string,relation_direction: RelationDirection = RelationDirection.RIGHT)
+addRelationByIdAndRelationNameWithFilters(
+    first_node_id: number,
+    first_node_filters: object = {},
+    second_node_id: number,
+    second_node_filters: object = {},
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  )
+  addRelationByLabelsAndFiltersAndRelationName(
+    first_node_labels: Array<string> = [],
+    first_node_properties: object = {},
+    second_node_labels: Array<string> = [],
+    second_node_properties: object = {},
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  )
+ findChildrensByLabelsAsTreeOneLevel(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {}
+  ) 
+findByLabelAndFiltersWithTreeStructureOneLevel(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {}
+  )
+findChildrensByLabelsOneLevel(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {}
+  )
+findChildrensByIdOneLevel(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string
+  ) 
+findChildrensByIdsAsTreeOneLevel(
+    id: number,
+    root_filters: object = {},
+    children_filters: object = {}
+  ) 
+findByIdAndFiltersWithTreeStructureOneLevel(
+    id: number,
+    rootFilters: object = {},
+    childrenFilters: object = {}
+  )
+ findChildrenNodesByLabelsAndRelationName(
+    first_node_labels: Array<string> = [],
+    first_node_filters: object = {},
+    second_node_labels: Array<string> = [],
+    second_node_filters: object = {},
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  )
+findChildrensByLabelsAndRelationNameOneLevel(
+    first_node_labels: Array<string> = [],
+    first_node_filters: object = {},
+    second_node_labels: Array<string> = [],
+    second_node_filters: object = {},
+    relation_name: string,
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  )
 ```
