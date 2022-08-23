@@ -500,34 +500,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  async createNode(params: object, labels?: string[]) {
-    try {
-      if (!params || Object.keys(params).length === 0) {
-        throw new HttpException(create_node__must_entered_error, 400);
-      }
-      let cyperQuery;
-      if (!labels) {
-        cyperQuery = createDynamicCyperCreateQuery(params);
-      } else {
-        cyperQuery = createDynamicCyperCreateQuery(params, labels);
-      }
 
-      const res = await this.write(cyperQuery, params);
-      if (!res["records"][0].length) {
-        throw new HttpException(create_node__node_not_created_error, 400);
-      }
-      return res["records"][0]["_fields"][0];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw newError(error, "500");
-      }
-    }
-  }
   async findOneNodeByKey(key: string) {
     try {
       if (!key) {
@@ -2788,6 +2761,35 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else {
         throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async createNode(params: object, labels?: string[]) {
+    try {
+      if (!params || Object.keys(params).length === 0) {
+        throw new HttpException(create_node__must_entered_error, 400);
+      }
+      let cyperQuery;
+      if (!labels) {
+        cyperQuery = createDynamicCyperCreateQuery(params);
+      } else {
+        cyperQuery = createDynamicCyperCreateQuery(params, labels);
+      }
+
+      const res = await this.write(cyperQuery, params);
+      if (!res["records"][0].length) {
+        throw new HttpException(create_node__node_not_created_error, 400);
+      }
+      return res["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw newError(error, "500");
       }
     }
   }
