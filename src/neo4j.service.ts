@@ -2638,7 +2638,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let labelsWithoutEmptyString;
       if (labels) {
         labelsWithoutEmptyString = filterArrayForEmptyString(labels);
-        cyperQuery = createDynamicCyperCreateQuery(params, labels);
+        cyperQuery = createDynamicCyperCreateQuery(params, labelsWithoutEmptyString);
       }
       else {
         cyperQuery = createDynamicCyperCreateQuery(params);
