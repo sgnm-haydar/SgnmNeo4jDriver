@@ -2634,13 +2634,14 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(create_node__must_entered_error, 400);
       }
 
-      const labelsWithoutEmptyString = filterArrayForEmptyString(labels);
-
       let cyperQuery;
-      if (!labelsWithoutEmptyString) {
-        cyperQuery = createDynamicCyperCreateQuery(params);
-      } else {
+      let labelsWithoutEmptyString;
+      if (labels) {
+        labelsWithoutEmptyString = filterArrayForEmptyString(labels);
         cyperQuery = createDynamicCyperCreateQuery(params, labels);
+      }
+      else {
+        cyperQuery = createDynamicCyperCreateQuery(params);
       }
 
       const res = await this.write(cyperQuery, params);

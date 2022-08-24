@@ -198,11 +198,16 @@ export function dynamicUpdatePropertyAdderAndAddParameter1(
 }
 
 export function filterArrayForEmptyString(array: string[]) {
-  const arrayWithoutEmptyString = array.filter((item) => {
-    if (item.trim() !== "" || item !== undefined || item !== null) {
-      return item;
-    }
-  });
+  let arrayWithoutEmptyString;
+  if (array.length > 0) {
+    arrayWithoutEmptyString = array.filter((item) => {
+      if (item.trim() !== "" || item !== undefined || item !== null) {
+        return item;
+      }
+    });
+  } else {
+    arrayWithoutEmptyString = [];
+  }
 
   return arrayWithoutEmptyString;
 }
