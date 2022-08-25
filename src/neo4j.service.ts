@@ -1353,9 +1353,11 @@ export class Neo4jService implements OnApplicationShutdown {
   async findByIdAndFilters(
     id: number,
     filter_properties: object = {},
-    excluded_labels: Array<string> = []
+    excluded_labels: Array<string> = [],
+    databaseOrTransaction?: string | Transaction
   ) {
-    const excludedLabelsLabelsWithoutEmptyString =filterArrayForEmptyString(excluded_labels)
+    const excludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(excluded_labels);
     let query =
       "match (n" +
       dynamicFilterPropertiesAdder(filter_properties) +
@@ -1374,7 +1376,11 @@ export class Neo4jService implements OnApplicationShutdown {
     }
 
     filter_properties["id"] = id;
-    const node = await this.read(query, filter_properties);
+    const node = await this.read(
+      query,
+      filter_properties,
+      databaseOrTransaction
+    );
 
     if (node.records.length === 0) {
       throw new HttpException(node_not_found, 404);
@@ -1386,7 +1392,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async findByLabelAndFilters(
     labels: Array<string> = [""],
     filter_properties: object = {},
-    excluded_labels: Array<string> = [""]
+    excluded_labels: Array<string> = [""],
+    databaseOrTransaction?: string | Transaction
   ) {
     const excludedLabelsLabelsWithoutEmptyString =
       filterArrayForEmptyString(excluded_labels);
@@ -1418,7 +1425,8 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findByOrLabelsAndFilters(
     or_labels: Array<string> = [""],
-    filter_properties: object = {}
+    filter_properties: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     const orLabelsWithoutEmptyString = filterArrayForEmptyString(or_labels);
     let query = "match (n " + dynamicFilterPropertiesAdder(filter_properties);
@@ -1444,7 +1452,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async findByIdAndOrLabelsAndFilters(
     id: number,
     or_labels: Array<string> = [""],
-    filter_properties: object = {}
+    filter_properties: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     const orLabelsWithoutEmptyString = filterArrayForEmptyString(or_labels);
     let query =
@@ -1474,7 +1483,8 @@ export class Neo4jService implements OnApplicationShutdown {
     labels: Array<string> = [],
     filter_properties: object = {},
     update_labels: Array<string> = [],
-    update_properties: object = {}
+    update_properties: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const nodelabelsWithoutEmptyString = filterArrayForEmptyString(labels);
@@ -1522,7 +1532,8 @@ export class Neo4jService implements OnApplicationShutdown {
     id: number,
     filter_properties: object = {},
     update_labels: Array<string> = [],
-    update_properties: object = {}
+    update_properties: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const updateLabelsWithoutEmptyString =
@@ -1576,7 +1587,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_labels: Array<string> = [],
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -1626,7 +1638,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_labels: Array<string> = [],
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -1676,7 +1689,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_id: number,
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const childrenLabelsWithoutEmptyString =
@@ -1720,7 +1734,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_id: number,
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const childrenLabelsWithoutEmptyString =
@@ -1763,7 +1778,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async getParentByIdAndFilters(
     id: number,
     node_filters: object = {},
-    parent_filters: object = {}
+    parent_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!id) {
@@ -1802,7 +1818,8 @@ export class Neo4jService implements OnApplicationShutdown {
     child_id: number,
     child_filters: object = {},
     target_parent_id: number,
-    target_parent_filters: object = {}
+    target_parent_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!child_id || !target_parent_id) {
@@ -1838,7 +1855,8 @@ export class Neo4jService implements OnApplicationShutdown {
     first_node_id: number,
     second_node_id: number,
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!first_node_id || !second_node_id) {
@@ -1888,7 +1906,8 @@ export class Neo4jService implements OnApplicationShutdown {
     second_node_id: number,
     second_node_filters: object = {},
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!first_node_id || !second_node_id || !relation_name) {
@@ -1931,7 +1950,8 @@ export class Neo4jService implements OnApplicationShutdown {
     second_node_labels: Array<string> = [],
     second_node_properties: object = {},
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!relation_name) {
@@ -1983,7 +2003,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_labels: Array<string> = [],
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -2029,7 +2050,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_labels: Array<string> = [],
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootlabelsWithoutEmptyString =
@@ -2075,7 +2097,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_labels: Array<string> = [],
     root_filters: object = {},
     children_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -2123,7 +2146,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_filters: object = {},
-    relation_name: string
+    relation_name: string,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!relation_name) {
@@ -2166,7 +2190,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async findChildrensByIdsAsTreeOneLevel(
     id: number,
     root_filters: object = {},
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!id) {
@@ -2206,7 +2231,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async findByIdAndFiltersWithTreeStructureOneLevel(
     id: number,
     rootFilters: object = {},
-    childrenFilters: object = {}
+    childrenFilters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!id) {
@@ -2249,7 +2275,8 @@ export class Neo4jService implements OnApplicationShutdown {
     second_node_labels: Array<string> = [],
     second_node_filters: object = {},
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!relation_name) {
@@ -2333,7 +2360,8 @@ export class Neo4jService implements OnApplicationShutdown {
     second_node_labels: Array<string> = [],
     second_node_filters: object = {},
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!relation_name) {
@@ -2419,7 +2447,8 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     relation_name: string,
     update_labels: Array<string> = [],
-    update_properties: object = {}
+    update_properties: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!id || !relation_name) {
@@ -2480,7 +2509,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_not_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -2570,7 +2600,8 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_not_labels: Array<string> = [],
-    children_filters: object = {}
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       const rootlabelsWithoutEmptyString =
@@ -2628,7 +2659,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createNode(params: object, labels?: string[]) {
+  async createNode(params: object, labels?: string[],databaseOrTransaction?: string | Transaction) {
     try {
       if (!params || Object.keys(params).length === 0) {
         throw new HttpException(create_node__must_entered_error, 400);
@@ -2638,9 +2669,11 @@ export class Neo4jService implements OnApplicationShutdown {
       let labelsWithoutEmptyString;
       if (labels) {
         labelsWithoutEmptyString = filterArrayForEmptyString(labels);
-        cyperQuery = createDynamicCyperCreateQuery(params, labelsWithoutEmptyString);
-      }
-      else {
+        cyperQuery = createDynamicCyperCreateQuery(
+          params,
+          labelsWithoutEmptyString
+        );
+      } else {
         cyperQuery = createDynamicCyperCreateQuery(params);
       }
 
@@ -2667,7 +2700,8 @@ export class Neo4jService implements OnApplicationShutdown {
     second_node_id: number,
     second_node_filters: object = {},
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!first_node_id || !second_node_id || !relation_name) {
@@ -2685,11 +2719,13 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const { relationshipsCreated } =
         await res.summary.updateStatistics.updates();
-      if (!res || !res["records"] ||  !res["records"].length ||  res["records"].length == 0) {
-        throw new HttpException(
-          deleteParentRelationError,
-          400
-        );
+      if (
+        !res ||
+        !res["records"] ||
+        !res["records"].length ||
+        res["records"].length == 0
+      ) {
+        throw new HttpException(deleteParentRelationError, 400);
       }
       return res;
     } catch (error) {
@@ -2708,7 +2744,8 @@ export class Neo4jService implements OnApplicationShutdown {
     first_node_id: number,
     second_node_id: number,
     relation_name: string,
-    relation_direction: RelationDirection = RelationDirection.RIGHT
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!first_node_id || !second_node_id) {
@@ -2751,5 +2788,4 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 }
