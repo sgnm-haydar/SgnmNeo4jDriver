@@ -1415,7 +1415,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filter_properties);
+    const node = await this.read(query, filter_properties,databaseOrTransaction);
     if (node.records.length === 0) {
       throw new HttpException(node_not_found, 404);
     } else {
@@ -1441,7 +1441,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filter_properties);
+    const node = await this.read(query, filter_properties,databaseOrTransaction);
     if (node.records.length === 0) {
       throw new HttpException(node_not_found, 404);
     } else {
@@ -1471,7 +1471,7 @@ export class Neo4jService implements OnApplicationShutdown {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filter_properties);
+    const node = await this.read(query, filter_properties,databaseOrTransaction);
     if (node.records.length === 0) {
       throw new HttpException(node_not_found, 404);
     } else {
@@ -1514,7 +1514,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const update_properties1 = changeObjectKeyName(update_properties, "1");
       const parameters = { ...filter_properties, ...update_properties1 };
 
-      const result = this.write(query, parameters);
+      const result = this.write(query, parameters,databaseOrTransaction);
       return result;
     } catch (error) {
       if (error.response?.code) {
@@ -1562,7 +1562,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       update_properties["id"] = id;
       const parameters = update_properties;
-      const node = await this.write(query, parameters);
+      const node = await this.write(query, parameters,databaseOrTransaction);
       if (node.records.length === 0) {
         return null;
       } else {
@@ -1614,7 +1614,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters);
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -1710,7 +1710,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters);
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -1795,7 +1795,7 @@ export class Neo4jService implements OnApplicationShutdown {
         "match (m)-[:PARENT_OF]->(n) return m as parent,n as children";
 
       parent_filters["id"] = id;
-      const res = await this.read(query, parent_filters);
+      const res = await this.read(query, parent_filters,databaseOrTransaction);
       if (!res["records"][0].length) {
         throw new HttpException(parent_of_child_not_found, 404);
       }
@@ -1832,7 +1832,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const query = `MATCH (m)  where id(m)= $child_id MATCH (n) where id(n)= $target_parent_id  MERGE (n)-[:PARENT_OF]-> (m) return n as parent,m as children`;
 
-      const res = await this.write(query, parameters);
+      const res = await this.write(query, parameters,databaseOrTransaction);
       if (!res) {
         throw new HttpException(null, 400);
       }
@@ -1871,13 +1871,13 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.RIGHT:
           res = await this.write(
             `MATCH (n) where id(n)= $first_node_id MATCH (m ) where id(m)= $second_node_id MERGE (n)-[:${relation_name}]-> (m) return n as parent,m as children`,
-            parameters
+            parameters,databaseOrTransaction
           );
           break;
         case RelationDirection.LEFT:
           res = await this.write(
             `MATCH (m) where id(m)= $first_node_id MATCH (n) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}]- (n) return n as parent,m as children`,
-            parameters
+            parameters,databaseOrTransaction
           );
           break;
         default:
@@ -2029,7 +2029,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters);
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -2124,7 +2124,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters);
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -2173,7 +2173,7 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
       children_filters["rootId"] = rootId;
-      response = await this.write(cypher, parameters);
+      response = await this.write(cypher, parameters,databaseOrTransaction);
 
       return response["records"];
     } catch (error) {
@@ -2211,7 +2211,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters);
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -2312,7 +2312,7 @@ export class Neo4jService implements OnApplicationShutdown {
             `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
 
           second_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, second_node_filters);
+          result = await this.read(cypher, second_node_filters,databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
           rootNode = await this.findByLabelAndFilters(
@@ -2334,7 +2334,7 @@ export class Neo4jService implements OnApplicationShutdown {
             `  WHERE  id(m) = $rootId   RETURN m as parent,n as children`;
 
           first_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, first_node_filters);
+          result = await this.read(cypher, first_node_filters,databaseOrTransaction);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
@@ -2398,7 +2398,7 @@ export class Neo4jService implements OnApplicationShutdown {
             `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
 
           second_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, second_node_filters);
+          result = await this.read(cypher, second_node_filters,databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
           rootNode = await this.findByLabelAndFilters(
@@ -2420,7 +2420,7 @@ export class Neo4jService implements OnApplicationShutdown {
             `  WHERE  id(m) = $rootId   RETURN m as parent,n as children`;
 
           first_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, first_node_filters);
+          result = await this.read(cypher, first_node_filters,databaseOrTransaction);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
@@ -2485,7 +2485,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const update_properties1 = changeObjectKeyName(update_properties, "1");
       const parameters = { ...children_filters, ...update_properties1 };
       parameters["rootId"] = id;
-      const node = await this.write(query, parameters);
+      const node = await this.write(query, parameters,databaseOrTransaction);
       if (node.records.length === 0) {
         throw new HttpException("nodes not updates", 400);
       } else {
@@ -2577,7 +2577,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters[element_root] = root_filters[element_root];
         }
       });
-      const result = await this.read(cypher, children_filters);
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -2677,7 +2677,7 @@ export class Neo4jService implements OnApplicationShutdown {
         cyperQuery = createDynamicCyperCreateQuery(params);
       }
 
-      const res = await this.write(cyperQuery, params);
+      const res = await this.write(cyperQuery, params,databaseOrTransaction);
       if (!res["records"][0].length) {
         throw new HttpException(create_node__node_not_created_error, 400);
       }
@@ -2760,13 +2760,13 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.RIGHT:
           res = await this.write(
             `MATCH (n) where id(n)= $first_node_id MATCH (m ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
-            parameters
+            parameters,databaseOrTransaction
           );
           break;
         case RelationDirection.LEFT:
           res = await this.write(
             `MATCH (m) where id(m)= $first_node_id MATCH (n) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
-            parameters
+            parameters,databaseOrTransaction
           );
           break;
         default:
@@ -2785,6 +2785,35 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else {
         throw new HttpException({}, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+  async copySubGrapFromOneNodeToAnotherById(
+    root_id: number,
+    target_root_id: number,
+    relation_name:string,
+    databaseOrTransaction?: string | Transaction,
+  ) {
+    try {
+      if (!root_id || !target_root_id || !relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const cypher = `MATCH  (rootA),
+      (rootB) where id(rootA)=$root_id and id(rootB)=$target_root_id
+      MATCH path = (rootA)-[:${relation_name}*]->(node)
+      WITH rootA, rootB, collect(path) as paths
+      CALL apoc.refactor.cloneSubgraphFromPaths(paths, {
+      standinNodes:[[rootA, rootB]]
+      })
+      YIELD input, output, error
+      RETURN input, output, error`;
+
+      const result = await this.write(cypher, { root_id, target_root_id },databaseOrTransaction);
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException({ message: error.response?.message, code: error.response?.code }, error.status);
+      } else {
+        throw new HttpException(error, 500);
       }
     }
   }
