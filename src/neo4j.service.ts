@@ -2339,9 +2339,7 @@ export class Neo4jService implements OnApplicationShutdown {
         default:
           throw new HttpException(invalid_direction_error, 400);
       }
-      if (!result["records"].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
-      }
+ 
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
