@@ -1416,11 +1416,8 @@ export class Neo4jService implements OnApplicationShutdown {
     }
 
     const node = await this.read(query, filter_properties,databaseOrTransaction);
-    if (node.records.length === 0) {
-      throw new HttpException(node_not_found, 404);
-    } else {
       return node.records;
-    }
+    
   }
 
   async findByOrLabelsAndFilters(
@@ -1442,11 +1439,8 @@ export class Neo4jService implements OnApplicationShutdown {
     }
 
     const node = await this.read(query, filter_properties,databaseOrTransaction);
-    if (node.records.length === 0) {
-      throw new HttpException(node_not_found, 404);
-    } else {
-      return node.records;
-    }
+     return node.records;
+    
   }
 
   async findByIdAndOrLabelsAndFilters(
@@ -1472,11 +1466,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
 
     const node = await this.read(query, filter_properties,databaseOrTransaction);
-    if (node.records.length === 0) {
-      throw new HttpException(node_not_found, 404);
-    } else {
-      return node.records;
-    }
+    return node.records;
   }
 
   async updateByLabelAndFilter(
