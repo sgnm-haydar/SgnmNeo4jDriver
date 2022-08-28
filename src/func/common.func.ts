@@ -19,10 +19,11 @@ export function createDynamicCyperCreateQuery(
   entity: object,
   labels?: Array<string>
 ) {
+  let uniqueLabels = [...new Set(labels)];
   let optionalLabels = "";
 
-  if (labels && labels.length > 0) {
-    labels.map((item) => {
+  if (uniqueLabels && uniqueLabels.length > 0) {
+    uniqueLabels.map((item) => {
       if (item.trim() === "") {
         optionalLabels = optionalLabels;
       } else {
@@ -72,10 +73,11 @@ export function updateNodeQuery(id, dto) {
 }
 
 export function dynamicLabelAdder(labels: Array<string>) {
+  let uniqueLabels = [...new Set(labels)];
   let optionalLabels = "";
 
-  if (labels && labels.length > 0) {
-    labels.map((item) => {
+  if (uniqueLabels && uniqueLabels.length > 0) {
+    uniqueLabels.map((item) => {
       if (item.trim() === "") {
         optionalLabels = optionalLabels;
       } else {
@@ -90,8 +92,9 @@ export function dynamicNotLabelAdder(
   queryNodeName: string,
   notLabels: Array<string>
 ) {
+  let uniqueOrLabels = [...new Set(notLabels)];
   let optionalLabels = "";
-  const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+  const notLabelsWithoutEmptyString = uniqueOrLabels.filter((item) => {
     if (item.trim() !== "") {
       return item;
     }
@@ -113,8 +116,9 @@ export function dynamicOrLabelAdder(
   queryNodeName: string,
   notLabels: Array<string>
 ) {
+  let uniqueNotLabels = [...new Set(notLabels)];
   let optionalLabels = "";
-  const notLabelsWithoutEmptyString = notLabels.filter((item) => {
+  const notLabelsWithoutEmptyString = uniqueNotLabels.filter((item) => {
     if (item.trim() !== "") {
       return item;
     }
