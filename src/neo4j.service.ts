@@ -2115,9 +2115,6 @@ export class Neo4jService implements OnApplicationShutdown {
 
       children_filters["rootId"] = rootId;
       const result = await this.read(cypher, children_filters,databaseOrTransaction);
-      if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
-      }
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
