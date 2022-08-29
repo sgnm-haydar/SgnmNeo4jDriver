@@ -20,6 +20,7 @@ import {
   changeObjectKeyName,
   createDynamicCyperCreateQuery,
   dynamicFilterPropertiesAdder,
+  dynamicFilterPropertiesAdderAndAddParameterKey,
   dynamicLabelAdder,
   dynamicNotLabelAdder,
   dynamicOrLabelAdder,
@@ -1573,6 +1574,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  //düzenlendi
   async findChildrensByLabelsAsTree(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -1586,25 +1588,17 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
 
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        root_filters
-      );
-      if (!rootNode) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
-        `MATCH p=(n)-[:PARENT_OF*]->(m` +
+        `MATCH p=(n`+ dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +'-[:PARENT_OF*]->(m' +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-      children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+        children_filters=changeObjectKeyName(children_filters)
+        const parameters={...root_filters,...children_filters}
+      
+      const result = await this.read(cypher, parameters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -1910,7 +1904,8 @@ export class Neo4jService implements OnApplicationShutdown {
         first_node_id,
         second_node_id,
         relation_name,
-        relation_direction
+        relation_direction,
+        databaseOrTransaction,    
       );
 
       const { relationshipsCreated } =
@@ -1934,6 +1929,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+ //düzenlendi
   async addRelationByLabelsAndFiltersAndRelationName(
     first_node_labels: Array<string> = [],
     first_node_properties: object = {},
@@ -1953,42 +1949,52 @@ export class Neo4jService implements OnApplicationShutdown {
       const secondNodelabelsWithoutEmptyString =
         filterArrayForEmptyString(second_node_labels);
 
-      const firstNode = await this.findByLabelAndFilters(
-        firstNodelabelsWithoutEmptyString,
-        first_node_properties
-      );
-      const secondNode = await this.findByLabelAndFilters(
-        secondNodelabelsWithoutEmptyString,
-        second_node_properties
-      );
-
-      const res = await this.addRelationByIdAndRelationNameWithoutFilters(
-        firstNode[0]["_fields"][0].identity.low,
-        secondNode[0]["_fields"][0].identity.low,
-        relation_name,
-        relation_direction
-      );
-
+      let cyper;
+      let res;
+      let parameters;
+      switch (relation_direction) {
+        case RelationDirection.RIGHT:
+          cyper=  `MATCH (n`+ dynamicLabelAdder(firstNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_properties)+`MATCH (m`+dynamicLabelAdder(secondNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdderAndAddParameterKey(second_node_properties)  +`MERGE (n)-[:${relation_name}]-> (m) return n as parent,m as children`;
+          second_node_properties=changeObjectKeyName(second_node_properties)
+          parameters={...second_node_properties,...first_node_properties}
+          res = await this.write(
+           cyper,
+            parameters,databaseOrTransaction
+          );
+          break;
+        case RelationDirection.LEFT:
+           cyper= `MATCH (m`+ dynamicLabelAdder(firstNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_properties)+`MATCH (n`+dynamicLabelAdder(secondNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdderAndAddParameterKey(second_node_properties)  +`MERGE (m)<-[:${relation_name}]- (n) return n as parent,m as children`;
+          second_node_properties=changeObjectKeyName(second_node_properties)
+          parameters={...second_node_properties,...first_node_properties}
+          res = await this.write(
+            cyper,
+            parameters,databaseOrTransaction
+          );
+          break;
+        default:
+          throw new HttpException(invalid_direction_error, 400);
+      }
       const { relationshipsCreated } =
-        await res.summary.updateStatistics.updates();
-      if (relationshipsCreated === 0) {
-        throw new HttpException(
-          add_relation_with_relation_name__create_relation_error,
-          400
-        );
-      }
-      return res;
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response.message, code: error.response.code },
-          error.status
-        );
-      } else {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-      }
+      await res.summary.updateStatistics.updates();
+    if (relationshipsCreated === 0) {
+      throw new HttpException(
+        add_relation_with_relation_name__create_relation_error,
+        400
+      );
+    }
+    return res;
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response.message, code: error.response.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+  }
+  //düzenlendi
   async findChildrensByLabelsAsTreeOneLevel(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -2001,25 +2007,16 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(root_labels);
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        root_filters
-      );
-      if (!rootNode) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
-      const cypher =
-        `MATCH p=(n)-[:PARENT_OF]->(m` +
-        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-      children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+      const cypher =
+        `MATCH p=(n`+ dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters)+`-[:PARENT_OF]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+        children_filters=changeObjectKeyName(children_filters)
+        const parameters={...root_filters,...children_filters}
+      const result = await this.read(cypher, parameters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
@@ -2083,6 +2080,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  //düzenlendi
   async findChildrensByLabelsOneLevel(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -2096,25 +2094,15 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
 
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        root_filters
-      );
-      if (!rootNode) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
-        `MATCH p=(n)-[:PARENT_OF]->(m` +
+        `MATCH p=(n`+ dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters)+`-[:PARENT_OF]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` RETURN n as parent,m as children`;
 
-      children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+      children_filters=changeObjectKeyName(children_filters)
+      const parameters={...root_filters,...children_filters}
+      const result = await this.read(cypher, parameters,databaseOrTransaction);
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
@@ -2256,6 +2244,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  //düzeltildi
   async findChildrenNodesByLabelsAndRelationName(
     first_node_labels: Array<string> = [],
     first_node_filters: object = {},
@@ -2274,54 +2263,37 @@ export class Neo4jService implements OnApplicationShutdown {
       const secondNodeLabelsWithoutEmptyString =
         filterArrayForEmptyString(second_node_labels);
 
-      let rootNode;
-      let rootId;
+      let parameters;
       let cypher: string;
       let result: QueryResult;
 
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-          rootNode = await this.findByLabelAndFilters(
-            firstNodeLabelsWithoutEmptyString,
-            first_node_filters
-          );
-          if (!rootNode) {
-            throw new HttpException(
-              find_with_children_by_realm_as_tree__find_by_realm_error,
-              404
-            );
-          }
-          rootId = rootNode[0]["_fields"][0].identity.low;
           cypher =
-            `MATCH (n)-[:${relation_name}*]->(m` +
+            `MATCH (n`+ dynamicLabelAdder(firstNodeLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_filters)+`-[:${relation_name}*]->(m` +
             dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdder(second_node_filters) +
-            `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
+            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters) +
+            ` RETURN n as parent,m as children`;
 
-          second_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, second_node_filters,databaseOrTransaction);
+            second_node_filters=changeObjectKeyName(second_node_filters)
+             parameters={...first_node_filters,...second_node_filters}
+        
+          result = await this.read(cypher, parameters,databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
-          rootNode = await this.findByLabelAndFilters(
-            secondNodeLabelsWithoutEmptyString,
-            second_node_filters
-          );
-          if (!rootNode) {
-            throw new HttpException(
-              find_with_children_by_realm_as_tree__find_by_realm_error,
-              404
-            );
-          }
-          rootId = rootNode[0]["_fields"][0].identity.low;
+          
           cypher =
             `MATCH (n` +
             dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(first_node_filters) +
-            `<-[:${relation_name}*]-(m)` +
-            `  WHERE  id(m) = $rootId   RETURN m as parent,n as children`;
+            `<-[:${relation_name}*]-(m`+dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters)  +
+            `   RETURN m as parent,n as children`;
 
-          first_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, first_node_filters,databaseOrTransaction);
+            second_node_filters=changeObjectKeyName(second_node_filters)
+             parameters={...first_node_filters,...second_node_filters}
+        
+          result = await this.read(cypher, parameters,databaseOrTransaction);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
@@ -2339,6 +2311,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  //düzeltildi
   async findChildrensByLabelsAndRelationNameOneLevel(
     first_node_labels: Array<string> = [],
     first_node_filters: object = {},
@@ -2358,61 +2331,43 @@ export class Neo4jService implements OnApplicationShutdown {
       const secondNodeLabelsWithoutEmptyString =
         filterArrayForEmptyString(second_node_labels);
 
-      let rootNode;
-      let rootId;
+      let parameters;
       let cypher: string;
-      let result: QueryResult;
+      let result:QueryResult;
 
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-          rootNode = await this.findByLabelAndFilters(
-            firstNodeLabelsWithoutEmptyString,
-            first_node_filters
-          );
-          if (!rootNode) {
-            throw new HttpException(
-              find_with_children_by_realm_as_tree__find_by_realm_error,
-              404
-            );
-          }
-          rootId = rootNode[0]["_fields"][0].identity.low;
           cypher =
-            `MATCH (n)-[:${relation_name}]->(m` +
+            `MATCH (n`+ dynamicLabelAdder(firstNodeLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_filters)+`-[:${relation_name}]->(m` +
             dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdder(second_node_filters) +
-            `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
+            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters) +
+            ` RETURN n as parent,m as children`;
 
-          second_node_filters["rootId"] = rootId;
-          result = await this.read(cypher, second_node_filters,databaseOrTransaction);
+            second_node_filters=changeObjectKeyName(second_node_filters)
+            parameters={...first_node_filters,...second_node_filters}
+         
+          result = await this.read(cypher, parameters,databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
-          rootNode = await this.findByLabelAndFilters(
-            secondNodeLabelsWithoutEmptyString,
-            second_node_filters
-          );
-          if (!rootNode) {
-            throw new HttpException(
-              find_with_children_by_realm_as_tree__find_by_realm_error,
-              404
-            );
-          }
-          rootId = rootNode[0]["_fields"][0].identity.low;
+         
           cypher =
             `MATCH (n` +
             dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(first_node_filters) +
-            `<-[:${relation_name}]-(m)` +
-            `  WHERE  id(m) = $rootId   RETURN m as parent,n as children`;
+            `<-[:${relation_name}]-(m` +
+            dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters) + 
+            ` RETURN m as parent,n as children`;
 
-          first_node_filters["rootId"] = rootId;
+            second_node_filters=changeObjectKeyName(second_node_filters)
+            parameters={...first_node_filters,...second_node_filters}
+
           result = await this.read(cypher, first_node_filters,databaseOrTransaction);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
       }
-      if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
-      }
+
       return result["records"];
     } catch (error) {
       if (error.response?.code) {

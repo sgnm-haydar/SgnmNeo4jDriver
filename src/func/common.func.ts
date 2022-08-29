@@ -173,7 +173,7 @@ export function dynamicUpdatePropertyAdder(
   return dynamicQueryParameter;
 }
 
-export function changeObjectKeyName(obj1: object, addedToKeyString: string) {
+export function changeObjectKeyName(obj1: object, addedToKeyString: string="1") {
   const changedObject = Object.fromEntries(
     Object.entries(obj1).map(([key, value]) =>
       // Modify key here
@@ -196,6 +196,25 @@ export function dynamicUpdatePropertyAdderAndAddParameter1(
     } else {
       dynamicQueryParameter +=
         `${queryNodeName}.${element}` + `= $` + `${element}1 ,`;
+    }
+  });
+  return dynamicQueryParameter;
+}
+
+export function dynamicFilterPropertiesAdderAndAddParameterKey(filterProperties,parameterKey:string="1") {
+  if (!filterProperties || Object.keys(filterProperties).length === 0) {
+    return ")";
+  }
+  let dynamicQueryParameter = "";
+
+  Object.keys(filterProperties).forEach((element, index) => {
+    if (index === 0) {
+      dynamicQueryParameter += ` { ${element}` + `: $` + `${element}`+parameterKey;
+    } else {
+      dynamicQueryParameter += `,${element}` + `: $` + `${element}`+parameterKey;
+    }
+    if (Object.keys(filterProperties).length === index + 1) {
+      dynamicQueryParameter += ` })`;
     }
   });
   return dynamicQueryParameter;
