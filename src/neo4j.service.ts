@@ -1574,7 +1574,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  //düzenlendi
+
   async findChildrensByLabelsAsTree(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -1929,7 +1929,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
- //düzenlendi
+
   async addRelationByLabelsAndFiltersAndRelationName(
     first_node_labels: Array<string> = [],
     first_node_properties: object = {},
@@ -1994,7 +1994,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
   }
-  //düzenlendi
+
   async findChildrensByLabelsAsTreeOneLevel(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -2080,7 +2080,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  //düzenlendi
+
   async findChildrensByLabelsOneLevel(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -2244,7 +2244,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  //düzeltildi
+
   async findChildrenNodesByLabelsAndRelationName(
     first_node_labels: Array<string> = [],
     first_node_filters: object = {},
@@ -2311,7 +2311,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  //düzeltildi
+
   async findChildrensByLabelsAndRelationNameOneLevel(
     first_node_labels: Array<string> = [],
     first_node_filters: object = {},
@@ -2816,26 +2816,19 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(root_labels);
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
-
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        root_filters
-      );
-      if (!rootNode) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
-        `MATCH p=(n)-[:PARENT_OF*]->(m` +
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[:PARENT_OF*]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` RETURN n as parent,m as children`;
 
-      children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+        children_filters=changeObjectKeyName(children_filters)
+       const parameters={...root_filters,...children_filters}
+
+      const result = await this.read(cypher,parameters,databaseOrTransaction);
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
