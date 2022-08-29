@@ -183,19 +183,20 @@ export function changeObjectKeyName(obj1: object, addedToKeyString: string="1") 
   return changedObject;
 }
 
-export function dynamicUpdatePropertyAdderAndAddParameter1(
+export function dynamicUpdatePropertyAdderAndAddParameterKey(
   queryNodeName: string,
-  updateProperties: object
+  updateProperties: object,
+  parameterKey:string='1'
 ) {
   let dynamicQueryParameter = "";
 
   Object.keys(updateProperties).forEach((element, index) => {
     if (Object.keys(updateProperties).length === index + 1) {
       dynamicQueryParameter +=
-        `${queryNodeName}.${element}` + `= $` + `${element}1`;
+        `${queryNodeName}.${element}` + `= $` + `${element}`+parameterKey;
     } else {
       dynamicQueryParameter +=
-        `${queryNodeName}.${element}` + `= $` + `${element}1 ,`;
+        `${queryNodeName}.${element}` + `= $` + `${element}` +parameterKey+`,`;
     }
   });
   return dynamicQueryParameter;

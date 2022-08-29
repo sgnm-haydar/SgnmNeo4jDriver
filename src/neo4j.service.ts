@@ -25,7 +25,7 @@ import {
   dynamicNotLabelAdder,
   dynamicOrLabelAdder,
   dynamicUpdatePropertyAdder,
-  dynamicUpdatePropertyAdderAndAddParameter1,
+  dynamicUpdatePropertyAdderAndAddParameterKey,
   filterArrayForEmptyString,
   updateNodeQuery,
 } from "./func/common.func";
@@ -1487,7 +1487,7 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(nodelabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(filter_properties) +
         ` set ` +
-        dynamicUpdatePropertyAdderAndAddParameter1("n", update_properties);
+        dynamicUpdatePropertyAdderAndAddParameterKey("n", update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
@@ -2408,7 +2408,7 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(children_filters) +
         ` match (m)-[:${relation_name}*]->(n)` +
         ` where id(m)=$rootId set ` +
-        dynamicUpdatePropertyAdderAndAddParameter1("n", update_properties);
+        dynamicUpdatePropertyAdderAndAddParameterKey("n", update_properties);
 
       if (
         updateLabelsWithoutEmptyString &&
