@@ -2804,4 +2804,48 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async findChildrensByLabelsAndFilters(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      const rootNode = await this.findByLabelAndFilters(
+        rootLabelsWithoutEmptyString,
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
+      const cypher =
+        `MATCH p=(n)-[:PARENT_OF*]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId   RETURN n as parent,m as children`;
+
+      children_filters["rootId"] = rootId;
+      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+      return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
