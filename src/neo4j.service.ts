@@ -2817,17 +2817,6 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
 
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        root_filters
-      );
-      if (!rootNode || rootNode.length == 0) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
