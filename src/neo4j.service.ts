@@ -1680,7 +1680,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
-      if (!rootNode) {
+      if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
@@ -2131,7 +2131,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
-      if (!rootNode) {
+      if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
@@ -2173,7 +2173,7 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(required_fields_must_entered, 404);
       }
       const rootNode = await this.findByIdAndFilters(id, root_filters);
-      if (!rootNode) {
+      if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
@@ -2467,7 +2467,7 @@ export class Neo4jService implements OnApplicationShutdown {
         //notLabels parametresi olmalımı
         root_filters
       );
-      if (!rootNode) {
+      if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
@@ -2773,7 +2773,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
-      if (!rootNode) {
+      if (!rootNode  || rootNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
@@ -2816,6 +2816,18 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(root_labels);
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
+
+      const rootNode = await this.findByLabelAndFilters(
+        rootLabelsWithoutEmptyString,
+        root_filters
+      );
+      if (!rootNode || rootNode.length == 0) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode[0]["_fields"][0].identity.low;
       const cypher =
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
