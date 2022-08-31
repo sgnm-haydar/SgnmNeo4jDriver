@@ -2468,14 +2468,13 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(root_filters) +
         ` -[:PARENT_OF]->(m ` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(children_filters)
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) + 'where '
       if (
         rootNotLabelsWithoutEmptyString &&
         rootNotLabelsWithoutEmptyString.length > 0
       ) {
         cypher =
           cypher +
-          " and " +
           dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
       }
       if (
