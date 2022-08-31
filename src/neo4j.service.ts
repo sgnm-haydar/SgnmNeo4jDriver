@@ -2462,26 +2462,13 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenNotLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_not_labels);
 
-      const rootNode = await this.findByLabelAndFilters(
-        rootLabelsWithoutEmptyString,
-        //notLabels parametresi olmalımı
-        root_filters
-      );
-      if (!rootNode || rootNode.length == 0) {
-        throw new HttpException(
-          find_with_children_by_realm_as_tree__find_by_realm_error,
-          404
-        );
-      }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
       let cypher =
         `MATCH p=(n ` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
         ` -[:PARENT_OF]->(m ` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId `; // WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+        dynamicFilterPropertiesAdder(children_filters)
       if (
         rootNotLabelsWithoutEmptyString &&
         rootNotLabelsWithoutEmptyString.length > 0
@@ -2504,8 +2491,7 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher +
         ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-      children_filters["rootId"] = rootId;
-
+    
       Object.keys(root_filters).forEach((element_root) => {
         let i = 0;
         Object.keys(children_filters).forEach((element_child) => {
@@ -2517,7 +2503,9 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters[element_root] = root_filters[element_root];
         }
       });
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+      children_filters=changeObjectKeyName(children_filters)  
+      const parameters={...root_filters,...children_filters}
+      const result = await this.read(cypher, parameters,databaseOrTransaction);
       if (!result["records"][0].length) {
         throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
       }
