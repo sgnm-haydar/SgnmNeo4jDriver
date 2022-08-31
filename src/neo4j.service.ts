@@ -1610,9 +1610,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const parameters = { ...root_filters, ...children_filters };
 
       const result = await this.read(cypher, parameters, databaseOrTransaction);
-      if (!result["records"][0].length) {
-        return result.records;
-      }
+
       return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
@@ -1710,9 +1708,6 @@ export class Neo4jService implements OnApplicationShutdown {
         children_filters,
         databaseOrTransaction
       );
-      if (!result["records"][0].length) {
-        return result["records"];
-      }
       return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
@@ -2048,9 +2043,7 @@ export class Neo4jService implements OnApplicationShutdown {
       children_filters = changeObjectKeyName(children_filters);
       const parameters = { ...root_filters, ...children_filters };
       const result = await this.read(cypher, parameters, databaseOrTransaction);
-      if (!result["records"][0].length) {
-        return result["records"];
-      }
+
       return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
@@ -2225,9 +2218,6 @@ export class Neo4jService implements OnApplicationShutdown {
         children_filters,
         databaseOrTransaction
       );
-      if (!result["records"][0].length) {
-        return result["records"];
-      }
       return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
@@ -2558,9 +2548,6 @@ export class Neo4jService implements OnApplicationShutdown {
       children_filters = changeObjectKeyName(children_filters);
       const parameters = { ...root_filters, ...children_filters };
       const result = await this.read(cypher, parameters, databaseOrTransaction);
-      if (!result["records"][0].length) {
-        return result["records"];
-      }
       return result["records"][0]["_fields"][0];
     } catch (error) {
       if (error.response?.code) {
