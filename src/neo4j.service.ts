@@ -1416,9 +1416,12 @@ export class Neo4jService implements OnApplicationShutdown {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filter_properties,databaseOrTransaction);
-      return node.records;
-    
+    const node = await this.read(
+      query,
+      filter_properties,
+      databaseOrTransaction
+    );
+    return node.records;
   }
 
   async findByOrLabelsAndFilters(
@@ -1439,9 +1442,12 @@ export class Neo4jService implements OnApplicationShutdown {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filter_properties,databaseOrTransaction);
-     return node.records;
-    
+    const node = await this.read(
+      query,
+      filter_properties,
+      databaseOrTransaction
+    );
+    return node.records;
   }
 
   async findByIdAndOrLabelsAndFilters(
@@ -1466,7 +1472,11 @@ export class Neo4jService implements OnApplicationShutdown {
       query = query + ` return n`;
     }
 
-    const node = await this.read(query, filter_properties,databaseOrTransaction);
+    const node = await this.read(
+      query,
+      filter_properties,
+      databaseOrTransaction
+    );
     return node.records;
   }
 
@@ -1501,11 +1511,11 @@ export class Neo4jService implements OnApplicationShutdown {
       } else {
         query = query + " return n";
       }
-      console.log(query);
+
       const update_properties1 = changeObjectKeyName(update_properties, "1");
       const parameters = { ...filter_properties, ...update_properties1 };
 
-      const result = this.write(query, parameters,databaseOrTransaction);
+      const result = this.write(query, parameters, databaseOrTransaction);
       return result;
     } catch (error) {
       if (error.response?.code) {
@@ -1553,7 +1563,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       update_properties["id"] = id;
       const parameters = update_properties;
-      const node = await this.write(query, parameters,databaseOrTransaction);
+      const node = await this.write(query, parameters, databaseOrTransaction);
       if (node.records.length === 0) {
         return null;
       } else {
@@ -1574,7 +1584,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
   async findChildrensByLabelsAsTree(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -1589,18 +1598,20 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(children_labels);
 
       const cypher =
-        `MATCH p=(n`+ dynamicLabelAdder(rootLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(root_filters) +'-[:PARENT_OF*]->(m' +
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        "-[:PARENT_OF*]->(m" +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-        children_filters=changeObjectKeyName(children_filters)
-        const parameters={...root_filters,...children_filters}
-      
-      const result = await this.read(cypher, parameters,databaseOrTransaction);
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
       if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+        return result.records;
       }
       return result["records"][0]["_fields"][0];
     } catch (error) {
@@ -1694,9 +1705,13 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+      const result = await this.read(
+        cypher,
+        children_filters,
+        databaseOrTransaction
+      );
       if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+        return result["records"];
       }
       return result["records"][0]["_fields"][0];
     } catch (error) {
@@ -1779,7 +1794,7 @@ export class Neo4jService implements OnApplicationShutdown {
         "match (m)-[:PARENT_OF]->(n) return m as parent,n as children";
 
       parent_filters["id"] = id;
-      const res = await this.read(query, parent_filters,databaseOrTransaction);
+      const res = await this.read(query, parent_filters, databaseOrTransaction);
       if (!res["records"][0].length) {
         throw new HttpException(parent_of_child_not_found, 404);
       }
@@ -1816,7 +1831,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const query = `MATCH (m)  where id(m)= $child_id MATCH (n) where id(n)= $target_parent_id  MERGE (n)-[:PARENT_OF]-> (m) return n as parent,m as children`;
 
-      const res = await this.write(query, parameters,databaseOrTransaction);
+      const res = await this.write(query, parameters, databaseOrTransaction);
       if (!res) {
         throw new HttpException(null, 400);
       }
@@ -1855,13 +1870,15 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.RIGHT:
           res = await this.write(
             `MATCH (n) where id(n)= $first_node_id MATCH (m ) where id(m)= $second_node_id MERGE (n)-[:${relation_name}]-> (m) return n as parent,m as children`,
-            parameters,databaseOrTransaction
+            parameters,
+            databaseOrTransaction
           );
           break;
         case RelationDirection.LEFT:
           res = await this.write(
             `MATCH (m) where id(m)= $first_node_id MATCH (n) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}]- (n) return n as parent,m as children`,
-            parameters,databaseOrTransaction
+            parameters,
+            databaseOrTransaction
           );
           break;
         default:
@@ -1905,7 +1922,7 @@ export class Neo4jService implements OnApplicationShutdown {
         second_node_id,
         relation_name,
         relation_direction,
-        databaseOrTransaction,    
+        databaseOrTransaction
       );
 
       const { relationshipsCreated } =
@@ -1928,7 +1945,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 
   async addRelationByLabelsAndFiltersAndRelationName(
     first_node_labels: Array<string> = [],
@@ -1954,45 +1970,57 @@ export class Neo4jService implements OnApplicationShutdown {
       let parameters;
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-          cyper=  `MATCH (n`+ dynamicLabelAdder(firstNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_properties)+`MATCH (m`+dynamicLabelAdder(secondNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdderAndAddParameterKey(second_node_properties)  +`MERGE (n)-[:${relation_name}]-> (m) return n as parent,m as children`;
-          second_node_properties=changeObjectKeyName(second_node_properties)
-          parameters={...second_node_properties,...first_node_properties}
-          res = await this.write(
-           cyper,
-            parameters,databaseOrTransaction
-          );
+          cyper =
+            `MATCH (n` +
+            dynamicLabelAdder(firstNodelabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(first_node_properties) +
+            `MATCH (m` +
+            dynamicLabelAdder(secondNodelabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_properties
+            ) +
+            `MERGE (n)-[:${relation_name}]-> (m) return n as parent,m as children`;
+          second_node_properties = changeObjectKeyName(second_node_properties);
+          parameters = { ...second_node_properties, ...first_node_properties };
+          res = await this.write(cyper, parameters, databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
-           cyper= `MATCH (m`+ dynamicLabelAdder(firstNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_properties)+`MATCH (n`+dynamicLabelAdder(secondNodelabelsWithoutEmptyString)+dynamicFilterPropertiesAdderAndAddParameterKey(second_node_properties)  +`MERGE (m)<-[:${relation_name}]- (n) return n as parent,m as children`;
-          second_node_properties=changeObjectKeyName(second_node_properties)
-          parameters={...second_node_properties,...first_node_properties}
-          res = await this.write(
-            cyper,
-            parameters,databaseOrTransaction
-          );
+          cyper =
+            `MATCH (m` +
+            dynamicLabelAdder(firstNodelabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(first_node_properties) +
+            `MATCH (n` +
+            dynamicLabelAdder(secondNodelabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_properties
+            ) +
+            `MERGE (m)<-[:${relation_name}]- (n) return n as parent,m as children`;
+          second_node_properties = changeObjectKeyName(second_node_properties);
+          parameters = { ...second_node_properties, ...first_node_properties };
+          res = await this.write(cyper, parameters, databaseOrTransaction);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
       }
       const { relationshipsCreated } =
-      await res.summary.updateStatistics.updates();
-    if (relationshipsCreated === 0) {
-      throw new HttpException(
-        add_relation_with_relation_name__create_relation_error,
-        400
-      );
+        await res.summary.updateStatistics.updates();
+      if (relationshipsCreated === 0) {
+        throw new HttpException(
+          add_relation_with_relation_name__create_relation_error,
+          400
+        );
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
-    return res;
-  } catch (error) {
-    if (error.response?.code) {
-      throw new HttpException(
-        { message: error.response.message, code: error.response.code },
-        error.status
-      );
-    } else {
-      throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
   }
 
   async findChildrensByLabelsAsTreeOneLevel(
@@ -2009,16 +2037,19 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(children_labels);
 
       const cypher =
-        `MATCH p=(n`+ dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters)+`-[:PARENT_OF]->(m` +
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[:PARENT_OF]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-        children_filters=changeObjectKeyName(children_filters)
-        const parameters={...root_filters,...children_filters}
-      const result = await this.read(cypher, parameters,databaseOrTransaction);
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
       if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+        return result["records"];
       }
       return result["records"][0]["_fields"][0];
     } catch (error) {
@@ -2095,14 +2126,17 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(children_labels);
 
       const cypher =
-        `MATCH p=(n`+ dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters)+`-[:PARENT_OF]->(m` +
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[:PARENT_OF]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` RETURN n as parent,m as children`;
 
-      children_filters=changeObjectKeyName(children_filters)
-      const parameters={...root_filters,...children_filters}
-      const result = await this.read(cypher, parameters,databaseOrTransaction);
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
@@ -2148,7 +2182,7 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
       children_filters["rootId"] = rootId;
-      response = await this.write(cypher, parameters,databaseOrTransaction);
+      response = await this.write(cypher, parameters, databaseOrTransaction);
 
       return response["records"];
     } catch (error) {
@@ -2186,9 +2220,13 @@ export class Neo4jService implements OnApplicationShutdown {
         `  WHERE  id(n) = $rootId  WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
-      const result = await this.read(cypher, children_filters,databaseOrTransaction);
+      const result = await this.read(
+        cypher,
+        children_filters,
+        databaseOrTransaction
+      );
       if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+        return result["records"];
       }
       return result["records"][0]["_fields"][0];
     } catch (error) {
@@ -2244,7 +2282,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
   async findChildrenNodesByLabelsAndRelationName(
     first_node_labels: Array<string> = [],
     first_node_filters: object = {},
@@ -2270,35 +2307,42 @@ export class Neo4jService implements OnApplicationShutdown {
       switch (relation_direction) {
         case RelationDirection.RIGHT:
           cypher =
-            `MATCH (n`+ dynamicLabelAdder(firstNodeLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_filters)+`-[:${relation_name}*]->(m` +
+            `MATCH (n` +
+            dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(first_node_filters) +
+            `-[:${relation_name}*]->(m` +
             dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_filters
+            ) +
             ` RETURN n as parent,m as children`;
 
-            second_node_filters=changeObjectKeyName(second_node_filters)
-             parameters={...first_node_filters,...second_node_filters}
-        
-          result = await this.read(cypher, parameters,databaseOrTransaction);
+          second_node_filters = changeObjectKeyName(second_node_filters);
+          parameters = { ...first_node_filters, ...second_node_filters };
+
+          result = await this.read(cypher, parameters, databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
-          
           cypher =
             `MATCH (n` +
             dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(first_node_filters) +
-            `<-[:${relation_name}*]-(m`+dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters)  +
+            `<-[:${relation_name}*]-(m` +
+            dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_filters
+            ) +
             `   RETURN m as parent,n as children`;
 
-            second_node_filters=changeObjectKeyName(second_node_filters)
-             parameters={...first_node_filters,...second_node_filters}
-        
-          result = await this.read(cypher, parameters,databaseOrTransaction);
+          second_node_filters = changeObjectKeyName(second_node_filters);
+          parameters = { ...first_node_filters, ...second_node_filters };
+
+          result = await this.read(cypher, parameters, databaseOrTransaction);
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
       }
- 
+
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
@@ -2333,36 +2377,46 @@ export class Neo4jService implements OnApplicationShutdown {
 
       let parameters;
       let cypher: string;
-      let result:QueryResult;
+      let result: QueryResult;
 
       switch (relation_direction) {
         case RelationDirection.RIGHT:
           cypher =
-            `MATCH (n`+ dynamicLabelAdder(firstNodeLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(first_node_filters)+`-[:${relation_name}]->(m` +
+            `MATCH (n` +
+            dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(first_node_filters) +
+            `-[:${relation_name}]->(m` +
             dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_filters
+            ) +
             ` RETURN n as parent,m as children`;
 
-            second_node_filters=changeObjectKeyName(second_node_filters)
-            parameters={...first_node_filters,...second_node_filters}
-         
-          result = await this.read(cypher, parameters,databaseOrTransaction);
+          second_node_filters = changeObjectKeyName(second_node_filters);
+          parameters = { ...first_node_filters, ...second_node_filters };
+
+          result = await this.read(cypher, parameters, databaseOrTransaction);
           break;
         case RelationDirection.LEFT:
-         
           cypher =
             `MATCH (n` +
             dynamicLabelAdder(firstNodeLabelsWithoutEmptyString) +
             dynamicFilterPropertiesAdder(first_node_filters) +
             `<-[:${relation_name}]-(m` +
             dynamicLabelAdder(secondNodeLabelsWithoutEmptyString) +
-            dynamicFilterPropertiesAdderAndAddParameterKey(second_node_filters) + 
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_filters
+            ) +
             ` RETURN m as parent,n as children`;
 
-            second_node_filters=changeObjectKeyName(second_node_filters)
-            parameters={...first_node_filters,...second_node_filters}
+          second_node_filters = changeObjectKeyName(second_node_filters);
+          parameters = { ...first_node_filters, ...second_node_filters };
 
-          result = await this.read(cypher, first_node_filters,databaseOrTransaction);
+          result = await this.read(
+            cypher,
+            first_node_filters,
+            databaseOrTransaction
+          );
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
@@ -2425,7 +2479,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const update_properties1 = changeObjectKeyName(update_properties, "1");
       const parameters = { ...children_filters, ...update_properties1 };
       parameters["rootId"] = id;
-      const node = await this.write(query, parameters,databaseOrTransaction);
+      const node = await this.write(query, parameters, databaseOrTransaction);
       if (node.records.length === 0) {
         throw new HttpException("nodes not updates", 400);
       } else {
@@ -2468,14 +2522,14 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(root_filters) +
         ` -[:PARENT_OF]->(m ` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) + 'where '
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        "where ";
       if (
         rootNotLabelsWithoutEmptyString &&
         rootNotLabelsWithoutEmptyString.length > 0
       ) {
         cypher =
-          cypher +
-          dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
+          cypher + dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
       }
       if (
         childrenNotLabelsWithoutEmptyString &&
@@ -2490,7 +2544,6 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher +
         ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-    
       Object.keys(root_filters).forEach((element_root) => {
         let i = 0;
         Object.keys(children_filters).forEach((element_child) => {
@@ -2502,11 +2555,11 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters[element_root] = root_filters[element_root];
         }
       });
-      children_filters=changeObjectKeyName(children_filters)  
-      const parameters={...root_filters,...children_filters}
-      const result = await this.read(cypher, parameters,databaseOrTransaction);
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
       if (!result["records"][0].length) {
-        throw new HttpException(find_with_children_by_realm_as_tree_error, 404);
+        return result["records"];
       }
       return result["records"][0]["_fields"][0];
     } catch (error) {
@@ -2586,7 +2639,11 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async createNode(params: object, labels?: string[],databaseOrTransaction?: string | Transaction) {
+  async createNode(
+    params: object,
+    labels?: string[],
+    databaseOrTransaction?: string | Transaction
+  ) {
     try {
       if (!params || Object.keys(params).length === 0) {
         throw new HttpException(create_node__must_entered_error, 400);
@@ -2604,7 +2661,7 @@ export class Neo4jService implements OnApplicationShutdown {
         cyperQuery = createDynamicCyperCreateQuery(params);
       }
 
-      const res = await this.write(cyperQuery, params,databaseOrTransaction);
+      const res = await this.write(cyperQuery, params, databaseOrTransaction);
       if (!res["records"][0].length) {
         throw new HttpException(create_node__node_not_created_error, 400);
       }
@@ -2641,7 +2698,8 @@ export class Neo4jService implements OnApplicationShutdown {
         first_node_id,
         second_node_id,
         relation_name,
-        relation_direction
+        relation_direction,
+        databaseOrTransaction
       );
 
       const { relationshipsCreated } =
@@ -2687,21 +2745,19 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.RIGHT:
           res = await this.write(
             `MATCH (n) where id(n)= $first_node_id MATCH (m ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
-            parameters,databaseOrTransaction
+            parameters,
+            databaseOrTransaction
           );
           break;
         case RelationDirection.LEFT:
           res = await this.write(
             `MATCH (m) where id(m)= $first_node_id MATCH (n) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
-            parameters,databaseOrTransaction
+            parameters,
+            databaseOrTransaction
           );
           break;
         default:
           throw new HttpException(invalid_direction_error, 400);
-      }
-
-      if (!res) {
-        throw new HttpException(null, 400);
       }
       return res;
     } catch (error) {
@@ -2718,8 +2774,8 @@ export class Neo4jService implements OnApplicationShutdown {
   async copySubGrapFromOneNodeToAnotherById(
     root_id: number,
     target_root_id: number,
-    relation_name:string,
-    databaseOrTransaction?: string | Transaction,
+    relation_name: string,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!root_id || !target_root_id || !relation_name) {
@@ -2735,10 +2791,17 @@ export class Neo4jService implements OnApplicationShutdown {
       YIELD input, output, error
       RETURN input, output, error`;
 
-      const result = await this.write(cypher, { root_id, target_root_id },databaseOrTransaction);
+      const result = await this.write(
+        cypher,
+        { root_id, target_root_id },
+        databaseOrTransaction
+      );
     } catch (error) {
       if (error.response?.code) {
-        throw new HttpException({ message: error.response?.message, code: error.response?.code }, error.status);
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
       } else {
         throw new HttpException(error, 500);
       }
@@ -2760,7 +2823,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
-      if (!rootNode  || rootNode.length == 0) {
+      if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
@@ -2777,7 +2840,7 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
       children_filters["rootId"] = rootId;
-      response = await this.write(cypher, parameters,databaseOrTransaction);
+      response = await this.write(cypher, parameters, databaseOrTransaction);
 
       return response["records"];
     } catch (error) {
@@ -2813,10 +2876,10 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` RETURN n as parent,m as children`;
 
-        children_filters=changeObjectKeyName(children_filters)
-       const parameters={...root_filters,...children_filters}
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
 
-      const result = await this.read(cypher,parameters,databaseOrTransaction);
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
     } catch (error) {
       if (error.response?.code) {
