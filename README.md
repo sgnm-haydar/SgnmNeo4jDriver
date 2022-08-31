@@ -100,11 +100,15 @@ export class AppController {
 
   @Patch(":id")
   update(@Param("id") id: string, @Body() updateDto: UpdateDto) {
-    return await this.neo4jService.updateByIdAndFilter(id,{isActive=true},[], updateDto);
+    return await this.neo4jService.updateByIdAndFilter(
+      id,
+      { isActive = true },
+      [],
+      updateDto
+    );
   }
 }
 ```
-
 
 ```ts
 getConfig(): Neo4jConfig;
@@ -147,7 +151,7 @@ addRelationByIdAndRelationNameWithFilters(
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_filters: object = {}
-  ) 
+  )
 findByLabelAndFiltersWithTreeStructureOneLevel(
     root_labels: Array<string> = [],
     root_filters: object = {},
@@ -166,12 +170,12 @@ findChildrensByIdOneLevel(
     children_labels: Array<string> = [],
     children_filters: object = {},
     relation_name: string
-  ) 
+  )
 findChildrensByIdsAsTreeOneLevel(
     id: number,
     root_filters: object = {},
     children_filters: object = {}
-  ) 
+  )
 findByIdAndFiltersWithTreeStructureOneLevel(
     id: number,
     rootFilters: object = {},

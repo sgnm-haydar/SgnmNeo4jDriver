@@ -2776,6 +2776,9 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     databaseOrTransaction?: string | Transaction
   ) {
+     await this.findByIdAndFilters(root_id, {});
+     await this.findByIdAndFilters(target_root_id, {});
+    
     try {
       if (!root_id || !target_root_id || !relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
