@@ -1656,7 +1656,10 @@ export class Neo4jService implements OnApplicationShutdown {
           rootLabelsWithoutEmptyString,
           root_filters
         );
-
+        if (!tree.length) {
+          const rootNodeObject = { root: {} };
+          return rootNodeObject;
+        }
         const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
@@ -2086,7 +2089,10 @@ export class Neo4jService implements OnApplicationShutdown {
           rootlabelsWithoutEmptyString,
           root_filters
         );
-
+        if (!tree.length) {
+          const rootNodeObject = { root: {} };
+          return rootNodeObject;
+        }
         const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
@@ -2253,7 +2259,10 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       } else if (Object.keys(tree).length === 0) {
         tree = await this.findByIdAndFilters(id, rootFilters);
-
+        if (!tree.length) {
+          const rootNodeObject = { root: {} };
+          return rootNodeObject;
+        }
         const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
@@ -2607,7 +2616,10 @@ export class Neo4jService implements OnApplicationShutdown {
           rootlabelsWithoutEmptyString,
           root_filters
         );
-
+        if (!tree.length) {
+          const rootNodeObject = { root: {} };
+          return rootNodeObject;
+        }
         const rootNodeObject = { root: tree[0]["_fields"][0] };
         return rootNodeObject;
       } else {
