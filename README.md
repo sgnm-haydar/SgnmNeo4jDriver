@@ -193,4 +193,38 @@ findChildrensByLabelsAndRelationNameOneLevel(
     relation_name: string,
     relation_direction: RelationDirection = RelationDirection.RIGHT
   )
+ updateNodeChildrensByIdAndFilter(
+    id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    update_labels: Array<string> = [],
+    update_properties: object = {},
+    databaseOrTransaction?: string | Transaction
+  )
+findChildrensByLabelsAndNotLabelsAsTreeOneLevel(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  )
+findByLabelAndNotLabelAndFiltersWithTreeStructureOneLevel(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  )
+copySubGrapFromOneNodeToAnotherById(
+    root_id: number,
+    target_root_id: number,
+    relation_name: string,
+    databaseOrTransaction?: string | Transaction
+  )
 ```
