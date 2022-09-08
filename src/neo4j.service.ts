@@ -1529,60 +1529,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async updateByIdAndFilter(
-    id: number,
-    filter_properties: object = {},
-    update_labels: Array<string> = [],
-    update_properties: object = {},
-    databaseOrTransaction?: string | Transaction
-  ) {
-    try {
-      const updateLabelsWithoutEmptyString =
-        filterArrayForEmptyString(update_labels);
-      const isNodeExist = await this.findByIdAndFilters(id, filter_properties);
-
-      if (!isNodeExist) {
-        throw new HttpException(node_not_found, 404);
-      }
-      let query =
-        "match (n) " +
-        ` where id(n)=${id} set ` +
-        dynamicUpdatePropertyAdder("n", update_properties);
-
-      if (
-        updateLabelsWithoutEmptyString &&
-        updateLabelsWithoutEmptyString.length > 0
-      ) {
-        query =
-          query +
-          ", n" +
-          dynamicLabelAdder(updateLabelsWithoutEmptyString) +
-          " return n";
-      } else {
-        query = query + " return n";
-      }
-      update_properties["id"] = id;
-      const parameters = update_properties;
-      const node = await this.write(query, parameters, databaseOrTransaction);
-      if (node.records.length === 0) {
-        return null;
-      } else {
-        return node.records[0]["_fields"][0];
-      }
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response?.message, code: error.response?.code },
-          error.status
-        );
-      } else {
-        throw new HttpException(
-          library_server_error,
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-      }
-    }
-  }
 
   async findChildrensByLabelsAsTree(
     root_labels: Array<string> = [],
@@ -2894,4 +2840,118 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+
+    async findChildrensByChildIdAndFilters(
+      root_labels: Array<string> = [],
+      root_filters: object = {},
+      child_id: number,
+      children_labels: Array<string> = [],
+      children_filters: object = {},
+      relation_name: string,
+      databaseOrTransaction?: string | Transaction
+    ) {
+      try {
+        if (!relation_name) {
+          throw new HttpException(required_fields_must_entered, 404);
+        }
+        const childrenLabelsWithoutEmptyString =
+          filterArrayForEmptyString(children_labels);
+        const rootLabelsWithoutEmptyString =
+          filterArrayForEmptyString(root_labels);  
+        const childNode = await this.findByIdAndFilters(child_id, children_filters);
+        if (!childNode || childNode.length == 0) {
+          throw new HttpException(
+            find_with_children_by_realm_as_tree__find_by_realm_error,
+            404
+          );
+        }
+        const childId = childNode.identity.low;
+        const parameters = { ...root_filters, childId};
+        let cypher;
+        let response;
+  
+        cypher =
+          `MATCH p=(n `+dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters) +`-[:${relation_name}*]->(m)` +
+          dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+          `  WHERE  id(m) = $childId  RETURN n as parent,m as children`;
+        response = await this.write(cypher, parameters, databaseOrTransaction);
+  
+        return response["records"];
+      } catch (error) {
+        if (error.response?.code) {
+          throw new HttpException(
+            { message: error.response?.message, code: error.response?.code },
+            error.status
+          );
+        } else {
+          throw new HttpException(error, 500);
+        }
+      }
+    }
+  
+    async updateByIdAndFilter(
+      id: number,
+      filter_properties: object = {},
+      update_labels: Array<string> = [],
+      update_properties: object = {},
+      databaseOrTransaction?: string | Transaction
+    ) {
+      try {
+        const updateLabelsWithoutEmptyString =
+          filterArrayForEmptyString(update_labels);
+        const isNodeExist = await this.findByIdAndFilters(id, filter_properties);
+  
+        if (!isNodeExist) {
+          throw new HttpException(node_not_found, 404);
+        }
+        let query =
+          "match (n) " +
+          ` where id(n)=${id} set ` +
+          dynamicUpdatePropertyAdder("n", update_properties);
+  
+        if (
+          updateLabelsWithoutEmptyString &&
+          updateLabelsWithoutEmptyString.length > 0
+        ) {
+          if (!update_properties || Object.keys(update_properties).length === 0)
+          {
+            query =
+            query +
+            "  n" +
+            dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+            " return n";
+          }
+          else {
+            query =
+            query +
+            ", n" +
+            dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+            " return n";
+          }
+          
+        } else {
+          query = query + " return n";
+        }
+        update_properties["id"] = id;
+        const parameters = update_properties;
+        const node = await this.write(query, parameters, databaseOrTransaction);
+        if (node.records.length === 0) {
+          return null;
+        } else {
+          return node.records[0]["_fields"][0];
+        }
+      } catch (error) {
+        if (error.response?.code) {
+          throw new HttpException(
+            { message: error.response?.message, code: error.response?.code },
+            error.status
+          );
+        } else {
+          throw new HttpException(
+            library_server_error,
+            HttpStatus.INTERNAL_SERVER_ERROR
+          );
+        }
+      }
+    }
 }
