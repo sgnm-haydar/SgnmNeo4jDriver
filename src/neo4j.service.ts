@@ -2955,4 +2955,51 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async findChildrensByChildIdAndFilters(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    child_id: number,
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);  
+      const childNode = await this.findByIdAndFilters(child_id, children_filters);
+      if (!childNode || childNode.length == 0) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const childId = childNode.identity.low;
+      const parameters = { ...root_filters, childId};
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n `+dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters) +`-[:${relation_name}*]->(m)` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        `  WHERE  id(m) = $childId  RETURN n as parent,m as children`;
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
