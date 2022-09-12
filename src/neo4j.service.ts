@@ -2239,8 +2239,8 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findByIdAndFiltersWithTreeStructureOneLevel(
     id: number,
-    rootFilters: object = {},
-    childrenFilters: object = {},
+    root_filters: object = {},
+    children_filters: object = {},
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -2249,8 +2249,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       let tree = await this.findChildrensByIdsAsTreeOneLevel(
         id,
-        rootFilters,
-        childrenFilters
+        root_filters,
+        children_filters
       );
       if (!tree) {
         throw new HttpException(
@@ -2258,7 +2258,7 @@ export class Neo4jService implements OnApplicationShutdown {
           404
         );
       } else if (Object.keys(tree).length === 0) {
-        tree = await this.findByIdAndFilters(id, rootFilters);
+        tree = await this.findByIdAndFilters(id, root_filters);
         if (!tree.length) {
           const rootNodeObject = { root: {} };
           return rootNodeObject;
@@ -2776,9 +2776,9 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     databaseOrTransaction?: string | Transaction
   ) {
-     await this.findByIdAndFilters(root_id, {});
-     await this.findByIdAndFilters(target_root_id, {});
-    
+    await this.findByIdAndFilters(root_id, {});
+    await this.findByIdAndFilters(target_root_id, {});
+
     try {
       if (!root_id || !target_root_id || !relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
@@ -2883,6 +2883,62 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findNodesByIdsAndRelationName(
+    first_node_id: number,
+    first_node_filters: object = {},
+    seconde_node_id: number,
+    seconde_node_filters: object = {},
+    relation_name: string,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+
+      const firstNode = await this.findByIdAndFilters(
+        first_node_id,
+        first_node_filters
+      );
+      const secondNode = await this.findByIdAndFilters(
+        seconde_node_id,
+        seconde_node_filters
+      );
+      if (
+        !firstNode ||
+        firstNode.length == 0 ||
+        secondNode ||
+        secondNode.length === 0
+      ) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const firstNodeId = firstNode.identity.low;
+      const secondNodeId = secondNode.identity.low;
+      const parameters = { firstNodeId, secondNodeId };
+      let cypher;
+      let response;
+
+      cypher = `MATCH p=(n)-[:${relation_name}*]->(m)
+          WHERE  id(n) = $firstNodeId and id(m) = $secondNodeId RETURN n as parent,m as children`;
+
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(

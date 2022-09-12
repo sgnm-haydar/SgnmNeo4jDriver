@@ -458,3 +458,8 @@ export const required_fields_must_entered: errorObject = {
   message: "required fields must entered",
   code: CustomNeo4jError.REQUIRED_FIELDS_MUST_ENTERED,
 };
+
+export const undefined_value_recieved: errorObject = {
+  message: "fields are null or undefined",
+  code: CustomNeo4jError.UNDEFINED_VALUE_RECİEVED,
+};

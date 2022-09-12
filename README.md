@@ -178,8 +178,8 @@ findChildrensByIdsAsTreeOneLevel(
   )
 findByIdAndFiltersWithTreeStructureOneLevel(
     id: number,
-    rootFilters: object = {},
-    childrenFilters: object = {}
+    root_filters: object = {},
+    children_filters: object = {}
   )
  findChildrenNodesByLabelsAndRelationName(
     first_node_labels: Array<string> = [],

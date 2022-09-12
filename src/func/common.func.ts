@@ -1,14 +1,19 @@
+import { HttpException } from "@nestjs/common";
 import { int } from "neo4j-driver";
+import { undefined_value_recieved } from "../constant/custom.error.object";
 
 //transfer dto(object come from client) properties to specific node entity object
 export function assignDtoPropToEntity(entity, dto) {
-  Object.keys(dto).forEach((element) => {
+  Object.entries(dto).forEach((element) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
     if (
-      element != "parentId" &&
-      element != "labels" &&
-      element != "parentKey"
+      element[0] != "parentId" &&
+      element[0] != "labels" &&
+      element[0] != "parentKey"
     ) {
-      entity[element] = dto[element];
+      entity[element[0]] = dto[element[0]];
     }
   });
 
@@ -34,11 +39,14 @@ export function createDynamicCyperCreateQuery(
 
   let dynamicQueryParameter = `CREATE (node${optionalLabels} {`;
 
-  Object.keys(entity).forEach((element, index) => {
+  Object.entries(entity).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
     if (index === 0) {
-      dynamicQueryParameter += ` ${element}` + `: $` + `${element}`;
+      dynamicQueryParameter += ` ${element[0]}` + `: $` + `${element[0]}`;
     } else {
-      dynamicQueryParameter += `,${element}` + `: $` + `${element}`;
+      dynamicQueryParameter += `,${element[0]}` + `: $` + `${element[0]}`;
     }
     if (Object.keys(entity).length === index + 1) {
       dynamicQueryParameter += ` }) return node`;
@@ -50,8 +58,11 @@ export function createDynamicCyperCreateQuery(
 
 export function createDynamicCyperObject(entity) {
   const dynamicObject = {};
-  Object.keys(entity).forEach((element) => {
-    dynamicObject[element] = entity[element];
+  Object.entries(entity).forEach((element) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
+    dynamicObject[element[0]] = entity[element[0]];
   });
 
   return dynamicObject;
@@ -142,11 +153,14 @@ export function dynamicFilterPropertiesAdder(filterProperties) {
   }
   let dynamicQueryParameter = "";
 
-  Object.keys(filterProperties).forEach((element, index) => {
+  Object.entries(filterProperties).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
     if (index === 0) {
-      dynamicQueryParameter += ` { ${element}` + `: $` + `${element}`;
+      dynamicQueryParameter += ` { ${element[0]}` + `: $` + `${element[0]}`;
     } else {
-      dynamicQueryParameter += `,${element}` + `: $` + `${element}`;
+      dynamicQueryParameter += `,${element[0]}` + `: $` + `${element[0]}`;
     }
     if (Object.keys(filterProperties).length === index + 1) {
       dynamicQueryParameter += ` })`;
@@ -161,19 +175,25 @@ export function dynamicUpdatePropertyAdder(
 ) {
   let dynamicQueryParameter = "";
 
-  Object.keys(updateProperties).forEach((element, index) => {
+  Object.entries(updateProperties).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
     if (Object.keys(updateProperties).length === index + 1) {
       dynamicQueryParameter +=
-        `${queryNodeName}.${element}` + `= $` + `${element}`;
+        `${queryNodeName}.${element[0]}` + `= $` + `${element[0]}`;
     } else {
       dynamicQueryParameter +=
-        `${queryNodeName}.${element}` + `= $` + `${element} ,`;
+        `${queryNodeName}.${element[0]}` + `= $` + `${element[0]} ,`;
     }
   });
   return dynamicQueryParameter;
 }
 
-export function changeObjectKeyName(obj1: object, addedToKeyString: string="1") {
+export function changeObjectKeyName(
+  obj1: object,
+  addedToKeyString: string = "1"
+) {
   const changedObject = Object.fromEntries(
     Object.entries(obj1).map(([key, value]) =>
       // Modify key here
@@ -186,33 +206,51 @@ export function changeObjectKeyName(obj1: object, addedToKeyString: string="1") 
 export function dynamicUpdatePropertyAdderAndAddParameterKey(
   queryNodeName: string,
   updateProperties: object,
-  parameterKey:string='1'
+  parameterKey: string = "1"
 ) {
   let dynamicQueryParameter = "";
 
-  Object.keys(updateProperties).forEach((element, index) => {
+  Object.entries(updateProperties).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
     if (Object.keys(updateProperties).length === index + 1) {
       dynamicQueryParameter +=
-        `${queryNodeName}.${element}` + `= $` + `${element}`+parameterKey;
+        `${queryNodeName}.${element[0]}` +
+        `= $` +
+        `${element[0]}` +
+        parameterKey;
     } else {
       dynamicQueryParameter +=
-        `${queryNodeName}.${element}` + `= $` + `${element}` +parameterKey+`,`;
+        `${queryNodeName}.${element[0]}` +
+        `= $` +
+        `${element[0]}` +
+        parameterKey +
+        `,`;
     }
   });
   return dynamicQueryParameter;
 }
 
-export function dynamicFilterPropertiesAdderAndAddParameterKey(filterProperties,parameterKey:string="1") {
+export function dynamicFilterPropertiesAdderAndAddParameterKey(
+  filterProperties,
+  parameterKey: string = "1"
+) {
   if (!filterProperties || Object.keys(filterProperties).length === 0) {
     return ")";
   }
   let dynamicQueryParameter = "";
 
-  Object.keys(filterProperties).forEach((element, index) => {
+  Object.entries(filterProperties).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
     if (index === 0) {
-      dynamicQueryParameter += ` { ${element}` + `: $` + `${element}`+parameterKey;
+      dynamicQueryParameter +=
+        ` { ${element[0]}` + `: $` + `${element[0]}` + parameterKey;
     } else {
-      dynamicQueryParameter += `,${element}` + `: $` + `${element}`+parameterKey;
+      dynamicQueryParameter +=
+        `,${element[0]}` + `: $` + `${element[0]}` + parameterKey;
     }
     if (Object.keys(filterProperties).length === index + 1) {
       dynamicQueryParameter += ` })`;
