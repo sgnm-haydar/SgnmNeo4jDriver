@@ -2939,7 +2939,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let cypher;
       let response;
 
-      cypher = `MATCH p=(n)-[:${relation_name}*]->(m) WHERE  id(n) = $firstNodeId and  id(m) = $secondNameId RETURN n as parent,m as children`;
+      cypher = `MATCH p=(n)-[:${relation_name}*]->(m) WHERE  id(n) = $firstNodeId and  id(m) = $secondNodeId RETURN n as parent,m as children`;
 
       response = await this.write(cypher, parameters, databaseOrTransaction);
 
