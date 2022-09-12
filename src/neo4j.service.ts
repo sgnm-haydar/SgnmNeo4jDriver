@@ -1479,7 +1479,68 @@ export class Neo4jService implements OnApplicationShutdown {
     );
     return node.records;
   }
+  async updateByIdAndFilter(
+    id: number,
+    filter_properties: object = {},
+    update_labels: Array<string> = [],
+    update_properties: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const updateLabelsWithoutEmptyString =
+        filterArrayForEmptyString(update_labels);
+      const isNodeExist = await this.findByIdAndFilters(id, filter_properties);
 
+      if (!isNodeExist) {
+        throw new HttpException(node_not_found, 404);
+      }
+      let query =
+        "match (n) " +
+        ` where id(n)=${id} set ` +
+        dynamicUpdatePropertyAdder("n", update_properties);
+
+      if (
+        updateLabelsWithoutEmptyString &&
+        updateLabelsWithoutEmptyString.length > 0
+      ) {
+        if (!update_properties || Object.keys(update_properties).length === 0) {
+          query =
+            query +
+            "  n" +
+            dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+            " return n";
+        } else {
+          query =
+            query +
+            ", n" +
+            dynamicLabelAdder(updateLabelsWithoutEmptyString) +
+            " return n";
+        }
+      } else {
+        query = query + " return n";
+      }
+      update_properties["id"] = id;
+      const parameters = update_properties;
+      const node = await this.write(query, parameters, databaseOrTransaction);
+      if (node.records.length === 0) {
+        return null;
+      } else {
+        return node.records[0]["_fields"][0];
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
   async updateByLabelAndFilter(
     labels: Array<string> = [],
     filter_properties: object = {},
