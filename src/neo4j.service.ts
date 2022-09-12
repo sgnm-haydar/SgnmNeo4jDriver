@@ -2954,4 +2954,58 @@ export class Neo4jService implements OnApplicationShutdown {
         }
       }
     }
+    async findNodesByIdAndRelationName(
+      first_node_id: number,
+      first_node_filters: object = {},
+      second_node_id: number,
+      second_node_filters: object = {},
+      relation_name: string,
+      databaseOrTransaction?: string | Transaction
+    ) {
+      try {
+        if (!relation_name) {
+          throw new HttpException(required_fields_must_entered, 404);
+        }
+  
+        const firstNode = await this.findByIdAndFilters(
+          first_node_id,
+          first_node_filters
+        );
+        const secondNode = await this.findByIdAndFilters(
+          second_node_id,
+          second_node_filters
+        );
+        if (
+          !firstNode ||
+          Object.keys(firstNode).length === 0 ||
+          !secondNode ||
+          Object.keys(secondNode).length === 0
+        ) {
+          throw new HttpException(
+            find_with_children_by_realm_as_tree__find_by_realm_error,
+            404
+          );
+        }
+        const firstNodeId = firstNode.identity.low;
+        const secondNodeId = secondNode.identity.low;
+        const parameters = { firstNodeId, secondNodeId };
+        let cypher;
+        let response;
+  
+        cypher = `MATCH p=(n)-[:${relation_name}*]->(m) WHERE  id(n) = $firstNodeId and  id(m) = $secondNameId RETURN n as parent,m as children`;
+  
+        response = await this.write(cypher, parameters, databaseOrTransaction);
+  
+        return response["records"];
+      } catch (error) {
+        if (error.response?.code) {
+          throw new HttpException(
+            { message: error.response?.message, code: error.response?.code },
+            error.status
+          );
+        } else {
+          throw new HttpException(error, 500);
+        }
+      }
+    }
 }
