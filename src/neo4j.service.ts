@@ -2971,8 +2971,11 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
       const rootLabelsWithoutEmptyString =
-        filterArrayForEmptyString(root_labels);  
-      const childNode = await this.findByIdAndFilters(child_id, children_filters);
+        filterArrayForEmptyString(root_labels);
+      const childNode = await this.findByIdAndFilters(
+        child_id,
+        children_filters
+      );
       if (!childNode || childNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
@@ -2980,14 +2983,102 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       }
       const childId = childNode.identity.low;
-      const parameters = { ...root_filters, childId};
+      const parameters = { ...root_filters, childId };
       let cypher;
       let response;
 
       cypher =
-        `MATCH p=(n `+dynamicLabelAdder(rootLabelsWithoutEmptyString)+dynamicFilterPropertiesAdder(root_filters) +`-[:${relation_name}*]->(m)` +
+        `MATCH p=(n ` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[:${relation_name}*]->(m)` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         `  WHERE  id(m) = $childId  RETURN n as parent,m as children`;
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+  async findAllRelationsByIdOnOneLevel(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
+      if (!rootNode || Object.keys(rootNode).length == 0) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode.identity.low;
+      const parameters = { ...root_filters, rootId };
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n)
+        -[:r*1]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(m) = $rootId  RETURN n as parent,m as children`;
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findAllRelationsByLabelsOnOneLevel(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n ` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[:r*1]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` RETURN n as parent,m as children`;
+
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
       response = await this.write(cypher, parameters, databaseOrTransaction);
 
       return response["records"];
