@@ -3093,4 +3093,71 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+
+  async findChildrensByIdAndNotLabelsOneLevel(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    excluded_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+
+      const excludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(excluded_labels);
+
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
+      if (!rootNode || rootNode.length == 0) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode.identity.low;
+      const parameters = { rootId, ...children_filters };
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n)-[r:${relation_name}]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId `;
+        if (
+          excludedLabelsLabelsWithoutEmptyString &&
+          excludedLabelsLabelsWithoutEmptyString.length > 0
+        ) {
+          cypher =
+          cypher +
+            " and " +
+            dynamicNotLabelAdder("m", excludedLabelsLabelsWithoutEmptyString) +
+            ` RETURN n as parent,m as children, r as relation`;
+        } else {
+          cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+        }
+
+
+
+      children_filters["rootId"] = rootId;
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
