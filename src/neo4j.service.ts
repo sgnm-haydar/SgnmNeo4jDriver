@@ -2182,10 +2182,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let response;
 
       cypher =
-        `MATCH p=(n)-[:${relation_name}]->(m` +
+        `MATCH p=(n)-[r:${relation_name}]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(children_filters) +
-        `  WHERE  id(n) = $rootId  RETURN n as parent,m as children`;
+        `  WHERE  id(n) = $rootId  RETURN n as parent,m as children, r as relation`;
       children_filters["rootId"] = rootId;
       response = await this.write(cypher, parameters, databaseOrTransaction);
 
