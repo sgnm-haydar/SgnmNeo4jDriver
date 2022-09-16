@@ -2959,8 +2959,7 @@ export class Neo4jService implements OnApplicationShutdown {
     root_labels: Array<string> = [],
     root_filters: object = {},
     child_id: number,
-    children_labels: Array<string> = [],
-    children_filters: object = {},
+    child_filters: object = {},
     relation_name: string,
     databaseOrTransaction?: string | Transaction
   ) {
@@ -2968,13 +2967,12 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const childrenLabelsWithoutEmptyString =
-        filterArrayForEmptyString(children_labels);
+     
       const rootLabelsWithoutEmptyString =
         filterArrayForEmptyString(root_labels);
       const childNode = await this.findByIdAndFilters(
         child_id,
-        children_filters
+        child_filters
       );
       if (!childNode || childNode.length == 0) {
         throw new HttpException(
@@ -2992,7 +2990,6 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
         `-[:${relation_name}*]->(m)` +
-        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         `  WHERE  id(m) = $childId  RETURN n as parent,m as children`;
       response = await this.write(cypher, parameters, databaseOrTransaction);
 
