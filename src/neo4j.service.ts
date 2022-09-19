@@ -1785,9 +1785,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!id) {
-        throw new HttpException(required_fields_must_entered, 400);
-      }
+
       const node = await this.findByIdAndFilters(+id, node_filters);
       if (!node) {
         throw new HttpException(node_not_found, 404);
@@ -1825,9 +1823,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!child_id || !target_parent_id) {
-        throw new HttpException(required_fields_must_entered, 404);
-      }
+  
       await this.findByIdAndFilters(child_id, child_filters);
       await this.findByIdAndFilters(target_parent_id, target_parent_filters);
 
@@ -1862,9 +1858,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!first_node_id || !second_node_id) {
-        throw new HttpException(required_fields_must_entered, 404);
-      }
+ 
       await this.findByIdAndFilters(first_node_id, {});
       await this.findByIdAndFilters(second_node_id, {});
 
@@ -1915,9 +1909,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!first_node_id || !second_node_id || !relation_name) {
-        throw new HttpException(required_fields_must_entered, 400);
-      }
+ 
       await this.findByIdAndFilters(first_node_id, first_node_filters);
       await this.findByIdAndFilters(second_node_id, second_node_filters);
 
@@ -2208,9 +2200,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!id) {
-        throw new HttpException(required_fields_must_entered, 404);
-      }
+ 
       const rootNode = await this.findByIdAndFilters(id, root_filters);
       if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
@@ -2250,9 +2240,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!id) {
-        throw new HttpException(required_fields_must_entered, 404);
-      }
+
       let tree = await this.findChildrensByIdsAsTreeOneLevel(
         id,
         root_filters,
@@ -2450,7 +2438,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!id || !relation_name) {
+      if ( !relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
 
@@ -2738,9 +2726,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if (!first_node_id || !second_node_id) {
-        throw new HttpException(required_fields_must_entered, 404);
-      }
+
       await this.findByIdAndFilters(first_node_id, {});
       await this.findByIdAndFilters(second_node_id, {});
 
@@ -2786,9 +2772,7 @@ export class Neo4jService implements OnApplicationShutdown {
     await this.findByIdAndFilters(target_root_id, {});
 
     try {
-      if (!root_id || !target_root_id || !relation_name) {
-        throw new HttpException(required_fields_must_entered, 404);
-      }
+
       const cypher = `MATCH  (rootA),
       (rootB) where id(rootA)=$root_id and id(rootB)=$target_root_id
       MATCH path = (rootA)-[:${relation_name}*]->(node)
