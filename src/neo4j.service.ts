@@ -233,9 +233,6 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async addParentRelationById(child_id: string, target_parent_id: string) {
     try {
-      if (!child_id || !target_parent_id) {
-        throw new HttpException("id must entered", 404);
-      }
       const res = await this.write(
         "MATCH (c {isDeleted: false}) where id(c)= $id MATCH (p {isDeleted: false}) where id(p)= $target_parent_id  MERGE (p)-[:PARENT_OF]-> (c)",
         { id: parseInt(child_id), target_parent_id: parseInt(target_parent_id) }
@@ -284,9 +281,6 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async addRelations(_id: string, _target_parent_id: string) {
     try {
-      if (!_id || !_target_parent_id) {
-        throw new HttpException("id must entered", 400);
-      }
       await this.addParentRelationById(_id, _target_parent_id);
     } catch (error) {
       if (error.response?.code) {
@@ -871,12 +865,6 @@ export class Neo4jService implements OnApplicationShutdown {
     relationDirection: RelationDirection = RelationDirection.RIGHT
   ) {
     try {
-      if (!first_node_id || !second_node_id || !relationName) {
-        throw new HttpException(
-          add_relation_with_relation_name__must_entered_error,
-          400
-        );
-      }
       let res: QueryResult;
       switch (relationDirection) {
         case RelationDirection.RIGHT:
@@ -1785,7 +1773,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-
       const node = await this.findByIdAndFilters(+id, node_filters);
       if (!node) {
         throw new HttpException(node_not_found, 404);
@@ -1823,7 +1810,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-  
       await this.findByIdAndFilters(child_id, child_filters);
       await this.findByIdAndFilters(target_parent_id, target_parent_filters);
 
@@ -1858,7 +1844,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
- 
       await this.findByIdAndFilters(first_node_id, {});
       await this.findByIdAndFilters(second_node_id, {});
 
@@ -1909,7 +1894,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
- 
       await this.findByIdAndFilters(first_node_id, first_node_filters);
       await this.findByIdAndFilters(second_node_id, second_node_filters);
 
@@ -2200,7 +2184,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
- 
       const rootNode = await this.findByIdAndFilters(id, root_filters);
       if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
@@ -2240,7 +2223,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-
       let tree = await this.findChildrensByIdsAsTreeOneLevel(
         id,
         root_filters,
@@ -2438,7 +2420,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      if ( !relation_name) {
+      if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
 
@@ -2726,7 +2708,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-
       await this.findByIdAndFilters(first_node_id, {});
       await this.findByIdAndFilters(second_node_id, {});
 
@@ -2772,7 +2753,6 @@ export class Neo4jService implements OnApplicationShutdown {
     await this.findByIdAndFilters(target_root_id, {});
 
     try {
-
       const cypher = `MATCH  (rootA),
       (rootB) where id(rootA)=$root_id and id(rootB)=$target_root_id
       MATCH path = (rootA)-[:${relation_name}*]->(node)
@@ -2951,13 +2931,10 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-     
+
       const rootLabelsWithoutEmptyString =
         filterArrayForEmptyString(root_labels);
-      const childNode = await this.findByIdAndFilters(
-        child_id,
-        child_filters
-      );
+      const childNode = await this.findByIdAndFilters(child_id, child_filters);
       if (!childNode || childNode.length == 0) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
@@ -3090,7 +3067,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
 
       const excludedLabelsLabelsWithoutEmptyString =
-      filterArrayForEmptyString(excluded_labels);
+        filterArrayForEmptyString(excluded_labels);
 
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
@@ -3111,20 +3088,18 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId `;
-        if (
-          excludedLabelsLabelsWithoutEmptyString &&
-          excludedLabelsLabelsWithoutEmptyString.length > 0
-        ) {
-          cypher =
+      if (
+        excludedLabelsLabelsWithoutEmptyString &&
+        excludedLabelsLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
           cypher +
-            " and " +
-            dynamicNotLabelAdder("m", excludedLabelsLabelsWithoutEmptyString) +
-            ` RETURN n as parent,m as children, r as relation`;
-        } else {
-          cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
-        }
-
-
+          " and " +
+          dynamicNotLabelAdder("m", excludedLabelsLabelsWithoutEmptyString) +
+          ` RETURN n as parent,m as children, r as relation`;
+      } else {
+        cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+      }
 
       children_filters["rootId"] = rootId;
       response = await this.write(cypher, parameters, databaseOrTransaction);
