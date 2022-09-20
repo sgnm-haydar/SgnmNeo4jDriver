@@ -2580,7 +2580,8 @@ export class Neo4jService implements OnApplicationShutdown {
         root_filters,
         childrenlabelsWithoutEmptyString,
         childrenNotLabelsWithoutEmptyString,
-        children_filters
+        children_filters,
+        databaseOrTransaction
       );
       if (!tree) {
         throw new HttpException(
