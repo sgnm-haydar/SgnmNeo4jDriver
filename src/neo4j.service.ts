@@ -2588,6 +2588,7 @@ export class Neo4jService implements OnApplicationShutdown {
           tree_structure_not_found_by_realm_name_error,
           404
         );
+        console.log()
       } else if (Object.keys(tree).length === 0) {
         tree = await this.findByLabelAndFilters(
           rootlabelsWithoutEmptyString,
