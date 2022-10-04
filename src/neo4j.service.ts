@@ -3149,9 +3149,9 @@ export class Neo4jService implements OnApplicationShutdown {
           cypher +
           " where " +
           dynamicNotLabelAdder("n", excludedLabelsLabelsWithoutEmptyString) +
-          ` RETURN n as parent,m as children, r as relation`;
+          ` RETURN n as parent,m as children`;
       } else {
-        cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+        cypher = cypher + ` RETURN n as parent,m as children`;
       }
       ` RETURN n as parent,m as children`;
 
