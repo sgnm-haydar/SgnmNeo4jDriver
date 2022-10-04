@@ -3171,4 +3171,156 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async findChildrensByLabelsAndNotLabelsAsTree(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const rootNotLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_not_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const childrenNotLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_not_labels);
+
+      let cypher =
+        `MATCH p=(n ` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        ` -[:PARENT_OF*]->(m ` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        "where ";
+     
+        let cypher1 = "";  
+        if (
+          rootNotLabelsWithoutEmptyString &&
+          rootNotLabelsWithoutEmptyString.length > 0
+        ) {
+          cypher1 = dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
+          cypher = cypher + cypher1;
+        }
+        if (
+          childrenNotLabelsWithoutEmptyString &&
+          childrenNotLabelsWithoutEmptyString.length > 0
+        ) {
+          if (cypher1 !== "") {
+            cypher =
+            cypher +
+            " and " +
+            dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
+          }
+          else {
+            cypher =
+            cypher +
+            dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
+          }
+          
+        }
+
+      cypher =
+        cypher +
+        ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      Object.keys(root_filters).forEach((element_root) => {
+        let i = 0;
+        Object.keys(children_filters).forEach((element_child) => {
+          if (element_root === element_child) {
+            i = 1;
+          }
+        });
+        if (i == 0) {
+          children_filters[element_root] = root_filters[element_root];
+        }
+      });
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findByLabelAndNotLabelAndFiltersWithTreeStructure(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootlabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenlabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
+        if (item.trim() !== "") {
+          return item;
+        }
+      });
+      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
+
+      let tree = await this.findChildrensByLabelsAndNotLabelsAsTree(
+        rootlabelsWithoutEmptyString,
+        rootNotLabelsWithoutEmptyString,
+        root_filters,
+        childrenlabelsWithoutEmptyString,
+        childrenNotLabelsWithoutEmptyString,
+        children_filters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByLabelAndFilters(
+          rootlabelsWithoutEmptyString,
+          root_filters
+        );
+        if (!tree.length) {
+          const rootNodeObject = { root: {} };
+          return rootNodeObject;
+        }
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  } 
 }
