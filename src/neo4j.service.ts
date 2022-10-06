@@ -3122,7 +3122,7 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_filters: object = {},
-    exculuded_labels: Array<string> = [],
+    root_exculuded_labels: Array<string> = [],
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -3130,8 +3130,9 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(root_labels);
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
-      const excludedLabelsLabelsWithoutEmptyString =
-        filterArrayForEmptyString(exculuded_labels);
+      const excludedLabelsLabelsWithoutEmptyString = filterArrayForEmptyString(
+        root_exculuded_labels
+      );
 
       let cypher =
         `MATCH p=(n` +
@@ -3198,32 +3199,30 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         "where ";
-     
-        let cypher1 = "";  
-        if (
-          rootNotLabelsWithoutEmptyString &&
-          rootNotLabelsWithoutEmptyString.length > 0
-        ) {
-          cypher1 = dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
-          cypher = cypher + cypher1;
-        }
-        if (
-          childrenNotLabelsWithoutEmptyString &&
-          childrenNotLabelsWithoutEmptyString.length > 0
-        ) {
-          if (cypher1 !== "") {
-            cypher =
+
+      let cypher1 = "";
+      if (
+        rootNotLabelsWithoutEmptyString &&
+        rootNotLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher1 = dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
+        cypher = cypher + cypher1;
+      }
+      if (
+        childrenNotLabelsWithoutEmptyString &&
+        childrenNotLabelsWithoutEmptyString.length > 0
+      ) {
+        if (cypher1 !== "") {
+          cypher =
             cypher +
             " and " +
             dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
-          }
-          else {
-            cypher =
+        } else {
+          cypher =
             cypher +
             dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
-          }
-          
         }
+      }
 
       cypher =
         cypher +
@@ -3322,5 +3321,72 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(error, 500);
       }
     }
-  } 
+  }
+
+  async findChildrensByLabelsAndFiltersWithNotLabelsOneLevel(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    root_exculuded_labels: Array<string> = [],
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    children_exculuded_labels: Array<string> = [],
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const parentExcludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_exculuded_labels);
+      const childrenExcludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_exculuded_labels);
+
+      let cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[:PARENT_OF]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters);
+
+      if (
+        (parentExcludedLabelsLabelsWithoutEmptyString &&
+          parentExcludedLabelsLabelsWithoutEmptyString.length > 0) ||
+        (childrenExcludedLabelsLabelsWithoutEmptyString &&
+          childrenExcludedLabelsLabelsWithoutEmptyString.length > 0)
+      ) {
+        cypher =
+          cypher +
+          " where " +
+          dynamicNotLabelAdder(
+            "n",
+            parentExcludedLabelsLabelsWithoutEmptyString
+          ) +
+          dynamicNotLabelAdder(
+            "m",
+            childrenExcludedLabelsLabelsWithoutEmptyString
+          ) +
+          ` RETURN n as parent,m as children`;
+      } else {
+        cypher = cypher + ` RETURN n as parent,m as children`;
+      }
+      ` RETURN n as parent,m as children`;
+
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
+      return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
