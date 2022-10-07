@@ -39,9 +39,6 @@ import {
   deleteParentRelationError,
   delete_children_relation_error,
   delete__get_parent_by_id_error,
-  find_by_id_and_labels_with_active_child_nodes__must_entered_error,
-  find_by_id_and_labels_with_active_child_nodes__not_found_error,
-  find_by_id_and_labels_with_active_child_node__not_found_error,
   find_by_id__must_entered_error,
   find_by_realm__not_found_error,
   find_by_realm_with_tree_structure__not_entered_error,
@@ -74,6 +71,7 @@ import {
   required_fields_must_entered,
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
+import { queryObjectType } from "./dtos/dtos";
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
   private readonly driver: Driver;
@@ -692,14 +690,14 @@ export class Neo4jService implements OnApplicationShutdown {
                   "children"
                 ] =
                   node["root"]["children"][i]["children"][j]["children"][k][
-                    "parent_of"
+                  "parent_of"
                   ];
                 delete node["root"]["children"][i]["children"][j]["children"][
                   k
                 ]["parent_of"];
                 if (
                   node["root"]["children"][i]["children"][j]["children"][k][
-                    "children"
+                  "children"
                   ]
                 ) {
                   for (
@@ -714,14 +712,14 @@ export class Neo4jService implements OnApplicationShutdown {
                       "children"
                     ][l]["children"] =
                       node["root"]["children"][i]["children"][j]["children"][k][
-                        "children"
+                      "children"
                       ][l]["parent_of"];
                     delete node["root"]["children"][i]["children"][j][
                       "children"
                     ][k]["children"][l]["parent_of"];
                     if (
                       node["root"]["children"][i]["children"][j]["children"][k][
-                        "children"
+                      "children"
                       ][l]["children"]
                     ) {
                       for (
@@ -736,14 +734,14 @@ export class Neo4jService implements OnApplicationShutdown {
                           k
                         ]["children"][l]["children"][m]["children"] =
                           node["root"]["children"][i]["children"][j][
-                            "children"
+                          "children"
                           ][k]["children"][l]["children"][m]["parent_of"];
                         delete node["root"]["children"][i]["children"][j][
                           "children"
                         ][k]["children"][l]["children"][m]["parent_of"];
                         if (
                           node["root"]["children"][i]["children"][j][
-                            "children"
+                          "children"
                           ][k]["children"][l]["children"][m]["children"]
                         ) {
                           for (
@@ -761,9 +759,9 @@ export class Neo4jService implements OnApplicationShutdown {
                               "children"
                             ] =
                               node["root"]["children"][i]["children"][j][
-                                "children"
+                              "children"
                               ][k]["children"][l]["children"][m]["children"][n][
-                                "parent_of"
+                              "parent_of"
                               ];
                             delete node["root"]["children"][i]["children"][j][
                               "children"
@@ -772,9 +770,9 @@ export class Neo4jService implements OnApplicationShutdown {
                             ];
                             if (
                               node["root"]["children"][i]["children"][j][
-                                "children"
+                              "children"
                               ][k]["children"][l]["children"][m]["children"][n][
-                                "children"
+                              "children"
                               ]
                             ) {
                               for (
@@ -793,9 +791,9 @@ export class Neo4jService implements OnApplicationShutdown {
                                   n
                                 ]["children"][o]["children"] =
                                   node["root"]["children"][i]["children"][j][
-                                    "children"
+                                  "children"
                                   ][k]["children"][l]["children"][m][
-                                    "children"
+                                  "children"
                                   ][n]["children"][o]["parent_of"];
                                 delete node["root"]["children"][i]["children"][
                                   j
@@ -804,9 +802,9 @@ export class Neo4jService implements OnApplicationShutdown {
                                 ][n]["children"][o]["parent_of"];
                                 if (
                                   node["root"]["children"][i]["children"][j][
-                                    "children"
+                                  "children"
                                   ][k]["children"][l]["children"][m][
-                                    "children"
+                                  "children"
                                   ][n]["children"][o]["children"]
                                 ) {
                                   for (
@@ -827,11 +825,11 @@ export class Neo4jService implements OnApplicationShutdown {
                                       "children"
                                     ] =
                                       node["root"]["children"][i]["children"][
-                                        j
+                                      j
                                       ]["children"][k]["children"][l][
-                                        "children"
+                                      "children"
                                       ][m]["children"][n]["children"][o][
-                                        "children"
+                                      "children"
                                       ][p]["parent_of"];
                                     delete node["root"]["children"][i][
                                       "children"
@@ -3378,6 +3376,64 @@ export class Neo4jService implements OnApplicationShutdown {
 
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+  
+  async findChildrensByIdAndFiltersWithPagination(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    queryObject: queryObjectType,
+    databaseOrTransaction?: string
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const childrenLabelsWithoutEmptyString =
+        children_labels
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
+      if (!rootNode || rootNode.length == 0) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode.identity.low;
+      const parameters = { rootId, ...children_filters, ...queryObject };
+      parameters.skip = this.int(+queryObject.skip) as unknown as number
+      parameters.limit = this.int(+queryObject.limit) as unknown as number
+
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n)-[:${relation_name}*]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId  RETURN n as parent,m as children `;
+      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        cypher = cypher + `ORDER BY m.` + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
+      } else {
+        cypher = cypher + `ORDER BY ${queryObject.orderBy} SKIP $skip LIMIT $limit `
+      }
+      console.log(cypher)
+
+      children_filters["rootId"] = rootId;
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
     } catch (error) {
       if (error.response?.code) {
         throw new HttpException(
