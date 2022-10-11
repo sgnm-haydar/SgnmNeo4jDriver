@@ -3445,4 +3445,69 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+
+  async findChildrensAndParentOfChildrenByRIdAndFilter(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name1: string,
+    parentof_children_labels: Array<string> = [],
+    parentof_children_filters: object = {},
+    relation_name2: string,
+    queryObject: queryObjectType,
+    databaseOrTransaction?: string
+  ) {
+    try {
+      if (!relation_name1 || !relation_name2) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const childrenLabelsWithoutEmptyString =
+        children_labels
+      const parentofChildrenLabelsWithoutEmptyString =
+        parentof_children_labels  
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
+      if (!rootNode || rootNode.length == 0) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode.identity.low;
+      const parameters = { rootId, ...children_filters, ...parentof_children_filters,  ...queryObject };
+      parameters.skip = this.int(+queryObject.skip) as unknown as number
+      parameters.limit = this.int(+queryObject.limit) as unknown as number
+
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n)-[:${relation_name1}*]->(m` + 
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) + 
+        dynamicFilterPropertiesAdder(children_filters) + `<-[:${relation_name2}*]-(k`+ 
+        dynamicLabelAdder(parentofChildrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(parentof_children_filters) + 
+        `  WHERE  id(n) = $rootId  RETURN n as parent,m as children, k as parentofchildren, count(m) as total `;
+      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        cypher = cypher + `ORDER BY k.` + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
+      } else {
+        cypher = cypher + `ORDER BY ${queryObject.orderBy} SKIP $skip LIMIT $limit `
+      }
+      console.log(cypher)
+
+      children_filters["rootId"] = rootId;
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
 }
