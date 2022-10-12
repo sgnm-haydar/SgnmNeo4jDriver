@@ -273,3 +273,28 @@ export function filterArrayForEmptyString(array: string[]) {
 
   return arrayWithoutEmptyString;
 }
+
+export function dynamicOrderByColumnAdder(
+  queryNodeName: string,
+  orderByColumnArray: Array<string>
+) {
+  let uniqueorderByColumnArray = [...new Set(orderByColumnArray)];
+  let optionalLabels = "ORDER BY";
+  const uniqueorderByColumnArrayWithoutEmptyString = uniqueorderByColumnArray.filter((item) => {
+    if (item.trim() !== "") {
+      return item;
+    }
+  });
+
+  if (uniqueorderByColumnArrayWithoutEmptyString && uniqueorderByColumnArrayWithoutEmptyString.length > 0) {
+    uniqueorderByColumnArrayWithoutEmptyString.map((item, index) => {
+      if (index === 0) {
+        optionalLabels = optionalLabels + ` ${queryNodeName}.${item} `;
+      } else {
+        optionalLabels = optionalLabels + `, ${queryNodeName}:${item} `;
+      }
+    });
+  }
+  return optionalLabels;
+}
+

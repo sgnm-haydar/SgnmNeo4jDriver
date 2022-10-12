@@ -23,6 +23,7 @@ import {
   dynamicFilterPropertiesAdderAndAddParameterKey,
   dynamicLabelAdder,
   dynamicNotLabelAdder,
+  dynamicOrderByColumnAdder,
   dynamicOrLabelAdder,
   dynamicUpdatePropertyAdder,
   dynamicUpdatePropertyAdderAndAddParameterKey,
@@ -3426,11 +3427,11 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId  RETURN n as parent,m as children `;
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-        cypher = cypher + `ORDER BY m.` + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
+        cypher = cypher + dynamicOrderByColumnAdder("m", queryObject.orderByColumn) + ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
       } else {
         cypher = cypher + `ORDER BY ${queryObject.orderBy} SKIP $skip LIMIT $limit `
       }
-      console.log(cypher)
+
 
       children_filters["rootId"] = rootId;
       response = await this.write(cypher, parameters, databaseOrTransaction);
@@ -3448,7 +3449,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async findChildrensAndParentOfChildrenByRIdAndFilter(
+  async findChildrensAndParentOfChildrenByIdAndFilter(
     root_id: number,
     root_filters: object = {},
     children_labels: Array<string> = [],
@@ -3495,7 +3496,6 @@ export class Neo4jService implements OnApplicationShutdown {
       } else {
         cypher = cypher + `ORDER BY ${queryObject.orderBy} SKIP $skip LIMIT $limit `
       }
-      console.log(cypher)
 
       children_filters["rootId"] = rootId;
       response = await this.write(cypher, parameters, databaseOrTransaction);
@@ -3553,7 +3553,7 @@ export class Neo4jService implements OnApplicationShutdown {
           childrenExcludedLabelsLabelsWithoutEmptyString
         ) + `and (any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-        cypher = cypher + `ORDER BY m.` + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
+        cypher = cypher  + dynamicOrderByColumnAdder("m", queryObject.orderByColumn) + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
       } else {
         cypher = cypher + `ORDER BY ${queryObject.orderBy} SKIP $skip LIMIT $limit `
       }
