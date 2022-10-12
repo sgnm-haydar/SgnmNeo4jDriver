@@ -1369,6 +1369,8 @@ export class Neo4jService implements OnApplicationShutdown {
       databaseOrTransaction
     );
 
+    delete filter_properties["id"]
+
     if (node.records.length === 0) {
       throw new HttpException(node_not_found, 404);
     } else {
@@ -3387,7 +3389,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  
+
   async findChildrensByIdAndFiltersWithPagination(
     root_id: number,
     root_filters: object = {},
@@ -3465,7 +3467,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         children_labels
       const parentofChildrenLabelsWithoutEmptyString =
-        parentof_children_labels  
+        parentof_children_labels
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
       if (!rootNode || rootNode.length == 0) {
         throw new HttpException(
@@ -3474,7 +3476,7 @@ export class Neo4jService implements OnApplicationShutdown {
         );
       }
       const rootId = rootNode.identity.low;
-      const parameters = { rootId, ...children_filters, ...parentof_children_filters,  ...queryObject };
+      const parameters = { rootId, ...children_filters, ...parentof_children_filters, ...queryObject };
       parameters.skip = this.int(+queryObject.skip) as unknown as number
       parameters.limit = this.int(+queryObject.limit) as unknown as number
 
@@ -3482,11 +3484,11 @@ export class Neo4jService implements OnApplicationShutdown {
       let response;
 
       cypher =
-        `MATCH p=(n)-[:${relation_name1}*]->(m` + 
-        dynamicLabelAdder(childrenLabelsWithoutEmptyString) + 
-        dynamicFilterPropertiesAdder(children_filters) + `<-[:${relation_name2}*]-(k`+ 
+        `MATCH p=(n)-[:${relation_name1}*]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) + `<-[:${relation_name2}*]-(k` +
         dynamicLabelAdder(parentofChildrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(parentof_children_filters) + 
+        dynamicFilterPropertiesAdder(parentof_children_filters) +
         `  WHERE  id(n) = $rootId  RETURN n as parent,m as children, k as parentofchildren, count(m) as total `;
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
         cypher = cypher + `ORDER BY k.` + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
@@ -3498,6 +3500,116 @@ export class Neo4jService implements OnApplicationShutdown {
       children_filters["rootId"] = rootId;
       response = await this.write(cypher, parameters, databaseOrTransaction);
 
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+  async findChildrensByIdAndFiltersWithPaginationAndSearcString(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    queryObject: queryObjectType,
+    searchString: string,
+    databaseOrTransaction?: string
+  ) {
+    try {
+
+      const childrenLabelsWithoutEmptyString =
+        children_labels
+      const childrenExcludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_exculuded_labels);
+
+
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
+
+      const rootId = rootNode.identity.low;
+      const parameters = { rootId, ...children_filters, ...queryObject };
+
+      parameters['searchString'] = searchString
+      parameters.skip = this.int(+queryObject.skip) as unknown as number
+      parameters.limit = this.int(+queryObject.limit) as unknown as number
+
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n)-[:${relation_name}*]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId and ` +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        ) + `and (any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
+      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        cypher = cypher + `ORDER BY m.` + `${queryObject.orderByColumn} ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
+      } else {
+        cypher = cypher + `ORDER BY ${queryObject.orderBy} SKIP $skip LIMIT $limit `
+      }
+
+      response = await this.read(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+  async findChildrensByIdAndFiltersWithoutPaginationAndSearcString(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    search_string: string,
+    databaseOrTransaction?: string
+  ) {
+    try {
+
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels)
+      const childrenExcludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_exculuded_labels);
+      const rootNode = await this.findByIdAndFilters(root_id, root_filters);
+
+      const rootId = rootNode.identity.low;
+
+      const parameters = { rootId, ...children_filters };
+      parameters['searchString'] = search_string
+      let cypher;
+      let response;
+
+
+      cypher =
+        `MATCH p=(n)-[:${relation_name}*]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId and ` +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        ) + `and (any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
+
+      response = await this.read(cypher, parameters, databaseOrTransaction);
       return response["records"];
     } catch (error) {
       if (error.response?.code) {
