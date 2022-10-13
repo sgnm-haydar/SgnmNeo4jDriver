@@ -15,7 +15,8 @@ This repository provides [Neo4j](https://www.neo4j.com) integration for [Nest](h
 
 (as default u can use `read()` and `write()` method for your own cyper query)
 This package convenient for tree structure and normal cyper usage .
-For parent relation default we use PARENT_OF relation but u can change it with functions
+For parent relation default we use PARENT_OF relation but u can change it with functions.
+For pagination and search string from node properties there is already  functions implemented
 
 ## Installation
 
@@ -102,7 +103,7 @@ export class AppController {
   update(@Param("id") id: string, @Body() updateDto: UpdateDto) {
     return await this.neo4jService.updateByIdAndFilter(
       id,
-      { isActive = true },
+      { isActive : true },
       [],
       updateDto
     );
@@ -230,5 +231,58 @@ copySubGrapFromOneNodeToAnotherById(
     target_root_id: number,
     relation_name: string,
     databaseOrTransaction?: string | Transaction
+  )
+findChildrensByIdAndFiltersWithPagination(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_name: string,
+    queryObject: queryObjectType,
+    databaseOrTransaction?: string
+  ) {
+findChildrensByIdAndFiltersWithPaginationAndSearcString(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    queryObject: queryObjectType,
+    searchString: string,
+    databaseOrTransaction?: string
+  ) 
+findChildrensByIdAndFiltersWithoutPaginationAndSearcString(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    search_string: string,
+    databaseOrTransaction?: string
+  ) {
+findChildrensByIdAndFiltersWithPaginationAndSearcStringBySpecificColumn(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    queryObject: queryObjectType,
+    searchColumn: string,
+    searchString: string,
+    databaseOrTransaction?: string
+  )
+findChildrensByIdAndFiltersWithoutPaginationAndSearcStringBySpecificColumn(
+    root_id: number,
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    searchColumn: string,
+    search_string: string,
+    databaseOrTransaction?: string
   )
 ```
