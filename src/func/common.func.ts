@@ -276,10 +276,16 @@ export function filterArrayForEmptyString(array: string[]) {
 
 export function dynamicOrderByColumnAdder(
   queryNodeName: string,
-  orderByColumnArray: Array<string>
+  orderByColumnArray: string[]
 ) {
-  let uniqueorderByColumnArray = [...new Set(orderByColumnArray)];
+  let orderByArray: string[] = []
+  if (typeof orderByColumnArray === 'string') {
+    orderByArray.push(orderByColumnArray)
+  } else {
+    orderByArray = orderByColumnArray
+  }
   let optionalLabels = "ORDER BY";
+  let uniqueorderByColumnArray = [...new Set(orderByArray)];
   const uniqueorderByColumnArrayWithoutEmptyString = uniqueorderByColumnArray.filter((item) => {
     if (item.trim() !== "") {
       return item;
@@ -291,7 +297,7 @@ export function dynamicOrderByColumnAdder(
       if (index === 0) {
         optionalLabels = optionalLabels + ` ${queryNodeName}.${item} `;
       } else {
-        optionalLabels = optionalLabels + `, ${queryNodeName}:${item} `;
+        optionalLabels = optionalLabels + `, ${queryNodeName}.${item} `;
       }
     });
   }
