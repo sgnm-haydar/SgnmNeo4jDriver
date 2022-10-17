@@ -73,6 +73,7 @@ import {
 } from "./constant/custom.error.object";
 import { RelationDirection } from "./constant/relation.direction.enum";
 import { queryObjectType } from "./dtos/dtos";
+import { SearchType } from "./constant/pagination.enum";
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
   private readonly driver: Driver;
@@ -3521,6 +3522,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     queryObject: queryObjectType,
     searchString: string,
+    search_type:SearchType=SearchType.CONTAINS,
     databaseOrTransaction?: string
   ) {
     try {
@@ -3551,9 +3553,9 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher = cypher + dynamicNotLabelAdder(
           "m",
           childrenExcludedLabelsLabelsWithoutEmptyString
-        ) + ` and (any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
+        ) + ` and (any(prop in keys(m) where m[prop] ${search_type}  toLower($searchString))) ` + `RETURN n as parent,m as children `;
       } else {
-        cypher = cypher + `(any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
+        cypher = cypher + `(any(prop in keys(m) where m[prop] ${search_type}  toLower($searchString))) ` + `RETURN n as parent,m as children `;
       }
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
         cypher = cypher + dynamicOrderByColumnAdder("m", queryObject.orderByColumn) + ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
@@ -3585,6 +3587,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_exculuded_labels: string[],
     relation_name: string,
     search_string: string,
+    search_type:SearchType=SearchType.CONTAINS,
     databaseOrTransaction?: string
   ) {
     try {
@@ -3612,9 +3615,9 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher = cypher + dynamicNotLabelAdder(
           "m",
           childrenExcludedLabelsLabelsWithoutEmptyString
-        ) + ` and (any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
+        ) + ` and (any(prop in keys(m) where m[prop] ${search_type}  toLower($searchString))) ` + `RETURN n as parent,m as children `;
       } else {
-        cypher = cypher + `(any(prop in keys(m) where m[prop] CONTAINS $searchString)) ` + `RETURN n as parent,m as children `;
+        cypher = cypher + `(any(prop in keys(m) where m[prop] ${search_type}  toLower($searchString))) ` + `RETURN n as parent,m as children `;
       }
 
 
@@ -3643,6 +3646,7 @@ export class Neo4jService implements OnApplicationShutdown {
     queryObject: queryObjectType,
     searchColumn: string,
     searchString: string,
+    search_type:SearchType=SearchType.CONTAINS,
     databaseOrTransaction?: string
   ) {
     try {
@@ -3673,9 +3677,9 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher = cypher + dynamicNotLabelAdder(
           "m",
           childrenExcludedLabelsLabelsWithoutEmptyString
-        ) + ` and m.${queryObject.orderByColumn} CONTAINS $searchString ` + `RETURN n as parent,m as children `;
+        ) + ` and toLower(m.${queryObject.orderByColumn}) ${search_type}  toLower($searchString) ` + `RETURN n as parent,m as children `;
       } else {
-        cypher = cypher + ` m.${searchColumn} CONTAINS $searchString ` + `RETURN n as parent,m as children `;
+        cypher = cypher + ` toLower(m.${searchColumn}) ${search_type}  toLower($searchString) ` + `RETURN n as parent,m as children `;
       }
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
         cypher = cypher + dynamicOrderByColumnAdder("m", queryObject.orderByColumn) + ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `
@@ -3705,8 +3709,9 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     children_exculuded_labels: string[],
     relation_name: string,
-    searchColumn: string,
+    search_column: string,
     search_string: string,
+    search_type:SearchType=SearchType.CONTAINS,
     databaseOrTransaction?: string
   ) {
     try {
@@ -3720,6 +3725,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const rootId = rootNode.identity.low;
 
       const parameters = { rootId, ...children_filters };
+      
       parameters['searchString'] = search_string
       let cypher;
       let response;
@@ -3734,9 +3740,9 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher = cypher + dynamicNotLabelAdder(
           "m",
           childrenExcludedLabelsLabelsWithoutEmptyString
-        ) + ` and m.${searchColumn} CONTAINS $searchString ` + `RETURN n as parent,m as children `;
+        ) + ` and toLower(m.${search_column}) ${search_type} toLower($searchString) ` + `RETURN n as parent,m as children `;
       } else {
-        cypher = cypher + ` m.${searchColumn} CONTAINS $searchString ` + `RETURN n as parent,m as children `;
+        cypher = cypher + ` toLower(m.${search_column}) ${search_type} toLower($searchString) ` + `RETURN n as parent,m as children `;
       }
 
 
