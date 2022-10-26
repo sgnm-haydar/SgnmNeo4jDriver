@@ -6,3 +6,9 @@ export type PaginationDto = {
   order_by: string[];
   ascending: AscendingEnum;
 };
+
+export type otherNodesObjProps = {
+  labels: string[];
+  filters: object;
+  relationName: string;
+};
