@@ -3855,7 +3855,9 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(mainNodeLabels) +
         dynamicFilterPropertiesAdder(mainNodeFilters);
       const cyperNodeNameArr = ["n"];
-      let parameters = { ...mainNodeFilters };
+      let parameters = { ...mainNodeFilters, ...queryObject };
+      parameters.skip = this.int(+queryObject.skip) as unknown as number;
+      parameters.limit = this.int(+queryObject.limit) as unknown as number;
       otherNodesProps.forEach((nodes, index) => {
         if (nodes.labels.includes("Virtual")) {
           nodes.filters["referenceKey"] = nodes.filters["key"];
@@ -3892,16 +3894,18 @@ export class Neo4jService implements OnApplicationShutdown {
           ) {
             cypher =
               cypher +
-              dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+              dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
               ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
           } else {
-            cypher = cypher + `SKIP $skip LIMIT $limit `;
+            cypher = cypher + ` SKIP $skip LIMIT $limit `;
           }
         }
       });
 
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
-    } catch (error) {}
+    } catch (error) {
+      throw new HttpException(error, 500);
+    }
   }
 }
