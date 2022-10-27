@@ -295,9 +295,9 @@ export function dynamicOrderByColumnAdder(
   if (uniqueorderByColumnArrayWithoutEmptyString && uniqueorderByColumnArrayWithoutEmptyString.length > 0) {
     uniqueorderByColumnArrayWithoutEmptyString.map((item, index) => {
       if (index === 0) {
-        optionalLabels = optionalLabels + ` ${queryNodeName}.${item} `;
+        optionalLabels = optionalLabels + ` toLower(${queryNodeName}.${item}) `;
       } else {
-        optionalLabels = optionalLabels + `, ${queryNodeName}.${item} `;
+        optionalLabels = optionalLabels + `, toLower(${queryNodeName}.${item}) `;
       }
     });
   }

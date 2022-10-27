@@ -3452,7 +3452,6 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const now = Date.now();
       const childrenLabelsWithoutEmptyString = children_labels;
       const rootNode = await this.findByIdAndFilters(root_id, root_filters);
       if (!rootNode || rootNode.length == 0) {
@@ -3486,8 +3485,6 @@ export class Neo4jService implements OnApplicationShutdown {
       children_filters["rootId"] = rootId;
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
-      const responseTime = `${Date.now() - now} ms`;
-      console.log(responseTime);
       return response["records"];
     } catch (error) {
       if (error.response?.code) {
