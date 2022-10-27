@@ -3905,4 +3905,46 @@ export class Neo4jService implements OnApplicationShutdown {
       throw new HttpException(error, 500);
     }
   }
+  async findTotalCountsOfMainNodesRelationsWithFilters(
+    mainNodeLabels: string[],
+    mainNodeFilters: object,
+    otherNodesProps: otherNodesObjProps[],
+    databaseOrTransaction?
+  ) {
+    try {
+      let cypher =
+        `MATCH (n` +
+        dynamicLabelAdder(mainNodeLabels) +
+        dynamicFilterPropertiesAdder(mainNodeFilters);
+
+      let parameters = { ...mainNodeFilters };
+      otherNodesProps.forEach((nodes, index) => {
+        if (nodes.labels.includes("Virtual")) {
+          nodes.filters["referenceKey"] = nodes.filters["key"];
+          delete nodes.filters["key"];
+        }
+        const cyperNodeName = "n" + index;
+        cypher =
+          cypher +
+          ` match (${cyperNodeName}` +
+          dynamicLabelAdder(nodes.labels) +
+          dynamicFilterPropertiesAdderAndAddParameterKey(
+            nodes.filters,
+            cyperNodeName
+          ) +
+          ` match (n)-[:${nodes.relationName}]-(${cyperNodeName})`;
+        const children_filters = changeObjectKeyName(
+          nodes.filters,
+          cyperNodeName
+        );
+        parameters = { ...parameters, ...children_filters };
+        cypher = cypher + " return count(n) as count";
+      });
+
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
+      return result["records"];
+    } catch (error) {
+      throw new HttpException(error, 500);
+    }
+  }
 }
