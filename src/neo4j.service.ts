@@ -75,6 +75,12 @@ import { RelationDirection } from "./constant/relation.direction.enum";
 import { queryObjectType } from "./dtos/dtos";
 import { SearchType } from "./constant/pagination.enum";
 import { otherNodesObjProps } from "./constant/pagination.object.type";
+import { ExportExcelDto, ExportExcelDtoForSystem, ExportExcelDtoForType } from "./dtos/export-import.dtos";
+import { HeaderInterface, MainHeaderInterface, UserInformationInterface } from "./interfaces/header.interface";
+import { CustomClassificationError } from "./constant/import-export.error.enum";
+import { building_already_exist_object, floor_already_exist_object, space_already_exist_object, space_has_already_relation_object, there_are_no_contacts_object, there_are_no_jointSpaces_object, there_are_no_spaces_object, there_are_no_system_or_component_or_both_object, there_are_no_type_or_component_or_type_id_is_wrong_object, there_are_no_zones_object } from "./constant/import-export.error.object";
+const exceljs = require('exceljs');
+const { v4: uuidv4 } = require('uuid');
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
   private readonly driver: Driver;
@@ -3947,4 +3953,1237 @@ export class Neo4jService implements OnApplicationShutdown {
       throw new HttpException(error, 500);
     }
   }
+
+
+//// EXCEL IMPORT-EXPORT ////
+
+///// ASSET
+
+async getTypesExcel(res,body:ExportExcelDtoForType,header:UserInformationInterface){
+  try {
+    let data=[];
+    const {typeKeys}= body;
+    const {username,language,realm}=header;
+    for(let key of typeKeys){
+      let abc =await this.getTypesByRealmAndByLanguage(realm,key,language,username);
+    
+    if(abc instanceof Error ){
+      //throw new HttpException(there_are_no_spaces_object(),404);
+    }else {
+      data = [...data,...abc]
+    }}
+  
+    let workbook = new exceljs.Workbook();
+    let worksheet = workbook.addWorksheet("Types");
+  
+     worksheet.columns = [
+      { header: "Type Name", key: "typeName", width: 50 },
+      { header: "Model Name", key: "modelName", width: 50 },
+      { header: "Description", key: "description", width: 50 },
+      { header: "Warranty Duration Parts", key: "warrantyDurationParts", width: 50 },
+      { header: "Warranty Duration Labor", key: "warrantyDurationLabor", width: 50 },
+      { header: "Omni Category", key: "omniCategory", width: 50 },
+      { header: "Asset Type", key: "assetType", width: 50 },
+      { header: "Type Category", key: "typeCategory", width: 50 },
+      { header: "Brand", key: "brand", width: 50 },
+      { header: "Duration Unit", key: "durationUnit", width: 50 },
+      { header: "Created At", key: "createdAt", width: 50 },
+    //   { header: "ExpectedLife", key: "expectedLife", width: 25 },
+  
+     ];
+  
+  
+  worksheet.addRows(data);
+  
+  
+  return workbook.xlsx.write(res).then(function () {
+  res.status(200).end();
+  });
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+  }
+  
+}
+
+async getTypesByRealmAndByLanguage(realm:string,typeKey:string,language:string,userName:string){
+  try {
+    let data:any
+    let jsonData=[]
+    let cypher =`WITH 'MATCH (c:Asset {realm:"${realm}"})-[:PARENT_OF]->(b:Types) MATCH path = (b)-[:PARENT_OF]->(m:Type {key:"${typeKey}"})-[:CLASSIFIED_BY|:ASSET_TYPE_BY|:DURATION_UNIT_BY|:TYPE_CLASSIFIED_BY|:BRAND_BY]->(z) where  z.language="${language}" and m.isDeleted=false  and not (m:Component) 
+    WITH collect(path) AS paths
+    CALL apoc.convert.toTree(paths)
+    YIELD value
+    RETURN value' AS query
+    CALL apoc.export.json.query(query,'/${userName}.json',{jsonFormat:'ARRAY_JSON'})
+    YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+    RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+    
+    await this.write(cypher);
+    
+    //call the file using below code
+    let cypher2=`CALL apoc.load.json("${userName}.json")`;
+    
+    let returnData =await this.read(cypher2)
+    data=await returnData.records[0]["_fields"][0];
+  
+  
+  
+        for (let index = 0; index < data.value.parent_of?.length; index++) {
+      
+          
+              let typeProperties = data.value.parent_of[index];
+             
+              jsonData.push({
+                typeName:typeProperties.name,
+                modelName:typeProperties.modelNumber,
+                description: typeProperties.description,
+                warrantyDurationParts: typeProperties.warrantyDurationParts,
+                warrantyDurationLabor: typeProperties.warrantyDurationLabor,
+                omniCategory:typeProperties.classified_by[0].name,
+                assetType:typeProperties.asset_type_by[0].name,
+                typeCategory:typeProperties.type_classified_by[0].name,
+                brand:typeProperties.brand_by[0].name,
+                durationUnit:typeProperties.duration_unit_by[0].name,
+                createdAt:typeProperties.createdAt,
+                })
+  
+        }
+  
+       return jsonData;
+  
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+  }
+     
+  
+}
+
+async getComponentsExcel(res,body:ExportExcelDtoForType,header:UserInformationInterface){
+  let data=[]
+  const {typeKeys}= body;
+  const {username,realm}=header;
+  try {
+
+    for(let key of typeKeys){
+      let abc =await this.getComponentsOfTypeWithTypekey(realm,key,username);
+    
+    if(abc instanceof Error ){
+      //throw new HttpException(there_are_no_spaces_object(),404);
+    }else {
+      data = [...data,...abc]
+    }}
+    
+    let workbook = new exceljs.Workbook();
+    let worksheet = workbook.addWorksheet("Components");
+
+
+    worksheet.columns = [
+      { header: "Type Name", key: "typeName", width: 50 },
+      { header: "Component Name", key: "componentName", width: 50 },
+      { header: "Space Name", key: "spaceName", width: 50 },
+      { header: "Description", key: "description", width: 50 },
+      { header: "Street", key: "street", width: 50 },
+      { header: "Serial No", key: "serialNo", width: 50 },
+      { header: "Warranty Duration Labor", key: "warrantyDurationLabor", width: 50 },
+      { header: "Warranty Duration Parts", key: "warrantyDurationParts", width: 50 },
+     
+
+     ];
+
+
+    worksheet.addRows(data);
+
+
+return workbook.xlsx.write(res).then(function () {
+    res.status(200).end();
+  });
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+  }
+}
+
+async getComponentsOfTypeWithTypekey(realm: string,typeKey:string,username:string){
+    try {
+      let data:any
+      let jsonData=[]
+      let cypher =`WITH 'MATCH (a:Asset {realm:"${realm}"})-[:PARENT_OF]->(b:Types) MATCH path = (b)-[:PARENT_OF]->(t:Type {key:"${typeKey}"})-[:PARENT_OF]->(c:Component) where  t.isDeleted=false and c.isDeleted=false
+      WITH collect(path) AS paths
+      CALL apoc.convert.toTree(paths)
+      YIELD value
+      RETURN value' AS query
+      CALL apoc.export.json.query(query,'/${username}.json',{jsonFormat:'ARRAY_JSON'})
+      YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+      RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+      
+      await this.write(cypher);
+      
+      //call the file using below code
+      let cypher2=`CALL apoc.load.json("${username}.json")`;
+      
+      let returnData =await this.read(cypher2)
+      data=await returnData.records[0]["_fields"][0];
+    
+      if (data.length==0) {
+        throw new HttpException(there_are_no_type_or_component_or_type_id_is_wrong_object,404)
+      } else {
+        for (let j = 0; j < data.value.parent_of?.length; j++) { // type
+          for (let i = 0; i < data.value.parent_of[j].parent_of?.length; i++) { // components
+        
+            let componentProperties = data.value.parent_of[j].parent_of[i];
+                  
+            jsonData.push({
+              typeName:data.value.parent_of[j].name,
+              componentName:componentProperties.name,
+              spaceName: componentProperties.spaceName,
+              description:componentProperties.description,
+              serialNo:componentProperties.serialNo,
+              warrantyDurationLabor:componentProperties.warrantyDurationLabor.low,
+              warrantyDurationParts:componentProperties.warrantyDurationParts.low
+              })
+          }
+        }
+      
+       return jsonData;
+      
+      
+      }
+      
+    
+    } catch (error) {
+      if(error.response?.code){
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      }else {
+        //default_error()
+        throw new HttpException(
+          {code: CustomClassificationError.DEFAULT_ERROR },
+          error.status
+        );
+      }
+    }
+    
+}
+
+async getSystemsExcel(res,body:ExportExcelDtoForSystem,header:UserInformationInterface){
+  let data=[];
+  const {systemKeys}= body;
+  const {username,realm}=header;
+try {
+  for(let key of systemKeys){
+    let abc =await this.getSystemsByKey(realm,key,username);
+  
+  if(abc instanceof Error ){
+    throw new HttpException(there_are_no_spaces_object,404);
+  }else {
+    data = [...data,...abc]
+  }}
+
+  let workbook = new exceljs.Workbook();
+  let worksheet = workbook.addWorksheet("Systems");
+
+
+  worksheet.columns = [
+    { header: "System Name", key: "systemName", width: 50 },
+    { header: "System Description", key: "systemDescription", width: 50},
+    { header: "Component Name", key: "componentName", width: 50 },
+    { header: "Space Name", key: "spaceName", width: 50 },
+    { header: "Description", key: "description", width: 50 },
+    { header: "Serial No", key: "serialNo", width: 50 },
+    { header: "Warranty Duration Labor", key: "warrantyDurationLabor", width: 50 },
+    { header: "Warranty Duration Parts", key: "warrantyDurationParts", width: 50 },
+   ];
+
+
+worksheet.addRows(data);
+return workbook.xlsx.write(res).then(function () {
+res.status(200).end();
+});
+} catch (error) {
+  if(error.response?.code){
+    throw new HttpException(
+      { message: error.response?.message, code: error.response?.code },
+      error.status
+    );
+  }else {
+    //default_error()
+    throw new HttpException(
+      {code: CustomClassificationError.DEFAULT_ERROR },
+      error.status
+    );
+  }
+}
+ 
+}
+
+async getSystemsByKey(realm: string, systemKey:string,username:string){
+  try {
+    let data:any
+    let jsonData=[]
+    let cypher =`WITH 'MATCH (a:Asset {realm:"${realm}"})-[:PARENT_OF]->(b:Systems) MATCH path = (b)-[:PARENT_OF]->(s:System {key:"${systemKey}"})-[:SYSTEM_OF]->(c:Component) where  s.isDeleted=false and c.isDeleted=false
+    WITH collect(path) AS paths
+    CALL apoc.convert.toTree(paths)
+    YIELD value
+    RETURN value' AS query
+    CALL apoc.export.json.query(query,'/${username}.json',{jsonFormat:'ARRAY_JSON'})
+    YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+    RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+    
+    await this.write(cypher);
+    
+    //call the file using below code
+    let cypher2=`CALL apoc.load.json("${username}.json")`;
+    
+    let returnData =await this.read(cypher2)
+    data=await returnData.records[0]["_fields"][0];
+  
+if (data.length==0) {
+  throw new HttpException(there_are_no_system_or_component_or_both_object,404);
+} else {
+  for (let j = 0; j < data.value.parent_of?.length; j++) { // system
+    for (let c = 0; c < data.value.parent_of[j].system_of?.length; c++) { // components
+     
+      let componentProperties = data.value.parent_of[j].system_of[c];
+            
+      jsonData.push({
+        systemName:data.value.parent_of[j].name,
+        systemDescription:data.value.parent_of[j].description,
+        componentName:componentProperties.name,
+        spaceName: componentProperties.spaceName,
+        description:componentProperties.description,
+        serialNo:componentProperties.serialNumber,
+        warrantyDurationLabor:componentProperties.warrantyDurationLabor.low,
+        warrantyDurationParts:componentProperties.warrantyDurationParts.low,
+        })
+    }
+  }
+
+return jsonData;
+}
+
+    
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+  }
+}
+
+
+///// FACILITY
+
+async getSpacesByBuilding(realm:string,username:string,buildingKey:string,language:string){
+  try {
+    let data:any
+    let jsonData=[]
+    let buildingType=[]
+    let cypher =`WITH 'MATCH (c:FacilityStructure {realm:"${realm}"})-[:PARENT_OF]->(b {key:"${buildingKey}",isDeleted:false}) MATCH path = (b)-[:PARENT_OF*]->(m)-[:CLASSIFIED_BY|:CREATED_BY]->(z) where  (z.language="${language}" or not exists(z.language)) and m.isDeleted=false  and not (m:JointSpaces OR m:JointSpace OR m:Zones or m:Zone) 
+    WITH collect(path) AS paths
+    CALL apoc.convert.toTree(paths)
+    YIELD value
+    RETURN value' AS query
+    CALL apoc.export.json.query(query,'/${username}.json',{jsonFormat:'ARRAY_JSON'})
+    YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+    RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+    
+    await this.write(cypher);
+    
+    //call the file using below code
+    let cypher2=`CALL apoc.load.json("${username}.json")`
+    
+    let returnData =await this.read(cypher2)
+    data=await returnData.records[0]["_fields"][0];
+    
+    console.log(data.value.parent_of[0]?.nodeType)   
+    console.log(typeof data.value.parent_of[0].parent_of)                                                                                           
+    if(data.value.parent_of==undefined || (data.value.parent_of[0]?.nodeType=="Floor" && typeof data.value.parent_of[0].parent_of=="undefined") ||(data.value.parent_of[0]?.nodeType=="Block" && (typeof data.value.parent_of[0].parent_of=="undefined" ||typeof data.value.parent_of[0].parent_of[0].parent_of=="undefined"))){
+      throw new HttpException(there_are_no_spaces_object,404);
+      
+    }
+    else {
+      if(data.value.parent_of[0]?.parent_of[0]?.parent_of==undefined){
+        for (let index = 0; index < data.value.parent_of?.length; index++) {
+      
+          for (let i = 0; i < data.value.parent_of[index].parent_of?.length; i++) {
+           buildingType.push({i:data.value.nodeType,
+             2:data.value.parent_of[index].nodeType,
+             3:data.value.parent_of[index].parent_of[i].nodeType})
+           
+          }}
+      }else{
+        for (let index = 0; index < data.value.parent_of?.length; index++) {
+          for (let i = 0; i < data.value.parent_of[index].parent_of?.length; i++) {
+         
+           for (let a = 0; a < data.value.parent_of[index].parent_of[i].parent_of?.length; a++) {
+           
+             buildingType.push({1:data.value.nodeType,
+               2:data.value.parent_of[index].nodeType,
+               3:data.value.parent_of[index].parent_of[i].nodeType,
+                 4:data.value.parent_of[index].parent_of[i].parent_of[a].nodeType})
+             
+           }
+           
+         }}
+      }
+      
+      let typeList=await Object.values(buildingType[0]);
+      console.log(typeList);
+      
+       if(!typeList.includes("Block")){
+        for (let index = 0; index < data.value.parent_of?.length; index++) {
+      
+          for (let i = 0; i < data.value.parent_of[index].parent_of?.length; i++) {
+            let spaceProperties = data.value.parent_of[index].parent_of[i];
+              jsonData.push({BuildingName:data.value.name,
+                BlockName:"-",
+                FloorName:data.value.parent_of[index].name,
+                SpaceName:spaceProperties.name,
+                Code:spaceProperties.code ? spaceProperties.code : " ",
+                ArchitecturalName:spaceProperties.architecturalName,
+                ArchitecturalCode:spaceProperties.architecturalCode  ? spaceProperties.architecturalCode : " ",
+                Category:spaceProperties.classified_by[0].name,
+                GrossArea:spaceProperties.grossArea,
+                NetArea:spaceProperties.netArea,
+                Usage:spaceProperties.usage ? spaceProperties.usage : " ",
+                Tag:spaceProperties.tag.toString(),
+                RoomTag:spaceProperties.roomTag.toString(),
+                Status:spaceProperties.status? spaceProperties.status: " ",
+                OperatorName:spaceProperties.operatorName ? spaceProperties.operatorName : " ", 
+                OperatorCode:spaceProperties.operatorCode ? spaceProperties.operatorCode : " ", 
+                Description:spaceProperties.description,
+                UsableHeight:spaceProperties.usableHeight,
+                ExternalSystem:spaceProperties.externalSystem,
+                ExternalObject:spaceProperties.externalObject,
+                ExternalIdentifier:spaceProperties.externalIdentifier,
+                CreatedOn:spaceProperties.createdOn,
+                CreatedBy:spaceProperties.created_by[0].email
+                })
+          }
+        }
+      
+      
+       } else {
+        for (let index = 0; index < data.value.parent_of?.length; index++) {
+      
+          for (let i = 0; i < data.value.parent_of[index]?.parent_of?.length; i++) {
+            
+            for (let a = 0; a < data.value.parent_of[index]?.parent_of[i]?.parent_of?.length; a++) {
+              let spaceProperties = data.value.parent_of[index]?.parent_of[i]?.parent_of[a];
+              
+              jsonData.push({BuildingName:data.value.name,
+                BlockName:data.value.parent_of[index].name,
+                FloorName:data.value.parent_of[index].parent_of[i].name,
+                SpaceName:data.value.parent_of[index].parent_of[i].parent_of[a].name,
+                Code:spaceProperties.code ? spaceProperties.code: " ",
+                ArchitecturalName:spaceProperties.architecturalName,
+                ArchitecturalCode:spaceProperties.architecturalCode  ? spaceProperties.architecturalCode: " ",
+                Category:spaceProperties.classified_by[0].name,
+                GrossArea:spaceProperties.grossArea,
+                NetArea:spaceProperties.netArea,
+                Usage:spaceProperties.usage ? spaceProperties.usage : " ",
+                Tag:spaceProperties.tag.toString(),
+                RoomTag:spaceProperties.roomTag.toString(),
+                Status:spaceProperties.status? spaceProperties.status: " ",
+                OperatorName:spaceProperties.operatorName ? spaceProperties.operatorName : " ", 
+                OperatorCode:spaceProperties.operatorCode ? spaceProperties.operatorCode : " ", 
+                Description:spaceProperties.description,
+                UsableHeight:spaceProperties.usableHeight,
+                ExternalSystem:spaceProperties.externalSystem,
+                ExternalObject:spaceProperties.externalObject,
+                ExternalIdentifier:spaceProperties.externalIdentifier,
+                CreatedOn:spaceProperties.createdOn,
+                CreatedBy:spaceProperties.created_by[0].email
+                })
+              
+            }
+            
+          }
+        }
+      }
+      return jsonData;
+    }
+    
+   
+    
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+
+   }
+
+  
+}
+  
+async getJointSpacesByBuilding(realm:string,username:string,buildingKey:string,language:string ){
+  try {
+    let data:any
+    let jsonData=[]
+    let cypher =`WITH 'MATCH (c:FacilityStructure {realm:"${realm}"})-[:PARENT_OF]->(b {key:"${buildingKey}",isDeleted:false}) MATCH path = (b)-[:PARENT_OF*]->(m)-[:CLASSIFIED_BY|:CREATED_BY]->(z) where  (z.language="${language}" or not exists(z.language)) and m.isDeleted=false  and not (m:Space OR m:Zone OR m:Zones OR m:Floor OR m:Block)
+    WITH collect(path) AS paths
+    CALL apoc.convert.toTree(paths)
+    YIELD value
+    RETURN value' AS query
+    CALL apoc.export.json.query(query,'/${username}.json',{jsonFormat:'ARRAY_JSON'})
+    YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+    RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+    
+    await this.write(cypher);
+    
+    //call the file using below code
+    let cypher2=`CALL apoc.load.json("${username}.json")`;
+    let returnData =await this.read(cypher2)
+    data=await returnData.records[0]["_fields"][0]
+    
+    if(Object.keys(data?.value).length==0 ){
+      throw new HttpException(there_are_no_jointSpaces_object,404)
+    }
+   
+    for (let index = 0; index < data.value.parent_of?.length; index++) {
+      
+      for (let i = 0; i < data.value.parent_of[index].parent_of?.length; i++) {
+        let jointSpaceProperties=data.value.parent_of[index].parent_of[i]
+        jsonData.push({BuildingName:data.value.name,
+          JointSpaceName:jointSpaceProperties.name,
+          Category:jointSpaceProperties.classified_by[0].name,
+          CreatedBy:jointSpaceProperties.created_by[0].name,
+          SpaceNames:jointSpaceProperties.jointSpaceTitle,
+          Description:jointSpaceProperties.description,
+          Tags:jointSpaceProperties.tag.toString(),
+          RoomTags:jointSpaceProperties.roomTag.toString(),
+          Status:jointSpaceProperties.status ? jointSpaceProperties.status : " ",
+          Usage :jointSpaceProperties.usage ? jointSpaceProperties.usage : " ",
+          UsableHeight:jointSpaceProperties.usableHeight ? jointSpaceProperties.usableHeight : " ",
+          GrossArea:jointSpaceProperties.grossArea ? jointSpaceProperties.grossArea : " ",
+          NetArea:jointSpaceProperties.netArea ? jointSpaceProperties.netArea : " ",
+
+        })
+      }
+    }
+  
+
+
+  return jsonData;
+  
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+   }
+   
+    
+}
+
+async getZonesByBuilding(realm:string,username:string,buildingKey:string,language:string ){
+      try {
+        let data:any
+        let jsonData=[]
+        let cypher =`WITH 'MATCH (c:FacilityStructure {realm:"${realm}"})-[:PARENT_OF]->(b {key:"${buildingKey}",isDeleted:false}) MATCH path = (b)-[:PARENT_OF*]->(m)-[:CREATED_BY|:CLASSIFIED_BY]->(z) where (z.language="${language}" or not exists(z.language)) and m.isDeleted=false  and not (m:Space OR m:JointSpaces OR m:JointSpace OR m:Floor OR m:Block)
+        WITH collect(path) AS paths
+        CALL apoc.convert.toTree(paths)
+        YIELD value
+        RETURN value' AS query
+        CALL apoc.export.json.query(query,'/${username}.json',{jsonFormat:'ARRAY_JSON'})
+        YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+        RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+        
+        await this.write(cypher);
+        
+        //call the file using below code
+        let cypher2=`CALL apoc.load.json("${username}.json")`
+        
+        let returnData =await this.read(cypher2)
+        data=await returnData.records[0]["_fields"][0]
+  
+        if(Object.keys(data?.value).length==0 ){
+          throw new HttpException(there_are_no_zones_object,404)
+        }else {
+          console.log(data.value.parent_of[0].parent_of[0].nodeType);
+          console.log(data.value.parent_of[0].parent_of.length)
+             
+              for (let index = 0; index < data.value.parent_of?.length; index++) {
+            
+                for (let i = 0; i < data.value.parent_of[index].parent_of?.length; i++) {
+                  
+                  jsonData.push({BuildingName:data.value.name,
+                    ZoneName:data.value.parent_of[index].parent_of[i].name,
+                    Category:data.value.parent_of[index].parent_of[i].classified_by[0].name,
+                    CreatedBy:data.value.parent_of[index].parent_of[i].created_by[0].email,
+                    SpaceNames:data.value.parent_of[index].parent_of[i].spaceNames.toString(),
+                    Description:data.value.parent_of[index].parent_of[i].description,
+                    Tags:data.value.parent_of[index].parent_of[i].tag.toString()
+                  
+                  })
+                   
+                }
+              }
+            
+      
+             return jsonData;
+        }
+  
+      } catch (error) {
+        if(error.response?.code){
+          throw new HttpException(
+            { message: error.response?.message, code: error.response?.code },
+            error.status
+          );
+        }else {
+          //default_error()
+          throw new HttpException(
+            {code: CustomClassificationError.DEFAULT_ERROR },
+            error.status
+          );
+        }
+    
+       }
+         
+          
+}
+
+async getSpacesAnExcelFile(res, body:ExportExcelDto,header:UserInformationInterface){
+  let {buildingKeys}=body;
+  let {realm,username,language}= header
+  try {
+    let data = [];
+
+        for(let item of buildingKeys){
+          let abc =await this.getSpacesByBuilding(realm,username,item,language);
+        if(abc instanceof Error ){
+          throw new HttpException(there_are_no_spaces_object,404);
+        }else {
+          data = [...data,...abc]
+        }
+        }
+        let workbook = new exceljs.Workbook();
+        let worksheet = workbook.addWorksheet("Spaces");
+      
+      
+        // worksheet.columns = [
+        //   { header: "System Name", key: "systemName", width: 50 },
+        //   { header: "System Description", key: "systemDescription", width: 50},
+        //   { header: "Component Name", key: "componentName", width: 50 },
+        //   { header: "Space Name", key: "spaceName", width: 50 },
+        //   { header: "Description", key: "description", width: 50 },
+        //   { header: "Serial No", key: "serialNo", width: 50 },
+        //   { header: "Warranty Duration Labor", key: "warrantyDurationLabor", width: 50 },
+        //   { header: "Warranty Duration Parts", key: "warrantyDurationParts", width: 50 },
+        //  ];
+      
+      
+      worksheet.addRows(data);
+      return workbook.xlsx.write(res).then(function () {
+      res.status(200).end();
+      });
+          
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+    // if(error.response?.code===10010){
+    //   there_are_no_spaces()
+    // }else {
+    //   default_error()
+    // }
+
+   }
+         
+
+}
+
+
+async getZonesAnExcelFile(res, body:ExportExcelDto,header:UserInformationInterface){
+  let {buildingKeys}=body;
+  let {realm,username,language}= header;
+  try {
+    let data = []
+        
+    for(let item of buildingKeys){
+      
+      
+      let abc =await (this.getZonesByBuilding(realm,username,item,language))
+      if(abc instanceof Error ){
+        throw new HttpException(there_are_no_zones_object,404);
+      }else {
+        data = [...data,...abc]
+      }
+      
+    }
+
+    let workbook = new exceljs.Workbook();
+    let worksheet = workbook.addWorksheet("Zones");
+  
+  
+    // worksheet.columns = [
+    //   { header: "System Name", key: "systemName", width: 50 },
+    //   { header: "System Description", key: "systemDescription", width: 50},
+    //   { header: "Component Name", key: "componentName", width: 50 },
+    //   { header: "Space Name", key: "spaceName", width: 50 },
+    //   { header: "Description", key: "description", width: 50 },
+    //   { header: "Serial No", key: "serialNo", width: 50 },
+    //   { header: "Warranty Duration Labor", key: "warrantyDurationLabor", width: 50 },
+    //   { header: "Warranty Duration Parts", key: "warrantyDurationParts", width: 50 },
+    //  ];
+  
+  
+  worksheet.addRows(data);
+  return workbook.xlsx.write(res).then(function () {
+  res.status(200).end();
+  });
+
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+    // if(error.response?.code===10012){
+    //   there_are_no_zones()
+    // }else {
+    //   default_error()
+    // }
+
+   }
+       
+      
+    
+}
+
+async getJointSpacesAnExcelFile(res, body:ExportExcelDto,header:UserInformationInterface){
+  let {buildingKeys}=body;
+  let {realm,username,language}= header;
+  try {
+    let data = []
+    for(let item of buildingKeys){
+
+      let abc =await (this.getJointSpacesByBuilding(realm,username,item,language))
+      if(abc instanceof Error ){
+        throw new HttpException(there_are_no_jointSpaces_object,404);
+      }else{
+        data = [...data,...abc]
+      }
+      
+    }
+  
+    let workbook = new exceljs.Workbook();
+    let worksheet = workbook.addWorksheet("JointSpaces");
+  
+  
+    // worksheet.columns = [
+    //   { header: "System Name", key: "systemName", width: 50 },
+    //   { header: "System Description", key: "systemDescription", width: 50},
+    //   { header: "Component Name", key: "componentName", width: 50 },
+    //   { header: "Space Name", key: "spaceName", width: 50 },
+    //   { header: "Description", key: "description", width: 50 },
+    //   { header: "Serial No", key: "serialNo", width: 50 },
+    //   { header: "Warranty Duration Labor", key: "warrantyDurationLabor", width: 50 },
+    //   { header: "Warranty Duration Parts", key: "warrantyDurationParts", width: 50 },
+    //  ];
+  
+  
+  worksheet.addRows(data);
+  return workbook.xlsx.write(res).then(function () {
+  res.status(200).end();
+  });
+
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+    // if(error.response?.code===10011){
+    //   there_are_no_jointSpaces()
+    // }else {
+    //   default_error()
+    // }
+
+   }
+       
+
+}
+
+
+
+async getContactByRealmAndByLanguage(res, header:UserInformationInterface){
+  const {language,username,realm}= header;
+
+  try {
+
+    let data:any
+    let jsonData=[]
+    let cypher =`CALL apoc.export.json.query("match (b:Contacts {realm:'${realm}'})-[:PARENT_OF]->(m:Contact)-[:CLASSIFIED_BY]->(c) where m.isDeleted=false and c.language='${language}' return m,c.name as classificationName limit 100000",'/${username}.json',{jsonFormat:'ARRAY_JSON'})
+    YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data
+    RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data`
+    
+    await this.write(cypher);
+    
+    //call the file using below code
+    let cypher2=`CALL apoc.load.json("${username}.json")`;
+    
+    let returnData =await this.read(cypher2)
+    data= returnData.records;
+    
+  if (data.length==0) {
+    throw new HttpException(there_are_no_contacts_object,404)
+  }else{
+    for (let index = 0; index < data.length; index++) {
+      jsonData.push({...data[index]['_fields'][0].m.properties,...{classificationName:data[index]['_fields'][0]['classificationName']}});
+    
+    }
+    
+          let workbook = new exceljs.Workbook();
+          let worksheet = workbook.addWorksheet("Contacts");
+    
+           worksheet.columns = [
+            { header: "Email", key: "email", width: 50 },
+            { header: "Name",key: "givenName", width:50},
+            { header: "Last Name",key: "familyName", width:50},
+            { header: "Phone", key: "phone", width: 50 },
+            { header: "Company", key: "company", width: 50 },
+            { header: "Department", key: "department", width: 50 },
+            { header: "Organization Code", key: "organizationCode", width: 50 },
+            { header: "State Region", key: "stateRegion", width: 50 },
+            { header: "Town", key: "town", width: 50 },
+            { header: "Postal Box", key: "postalBox", width: 50 },
+            { header: "Postal Code", key: "postalCode", width: 50 },
+            { header: "Category", key: "classificationName", width: 70 },
+           ];
+    
+    
+    worksheet.addRows(jsonData);
+    
+    return workbook.xlsx.write(res).then(function () {
+        res.status(200).end();
+      });
+  }
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+  }
+     
+  
+}
+
+async addBuildingWithCobie(file: Express.Multer.File,header:MainHeaderInterface){
+  try {
+   const {realm}= header;
+   let email:string;
+   
+   let data=[]
+
+   let buffer = new Uint8Array(file.buffer);
+   const workbook = new exceljs.Workbook();
+ 
+ 
+ await workbook.xlsx.load(buffer).then(function async(book) {
+     const firstSheet =  book.getWorksheet(3);
+     firstSheet.eachRow({ includeEmpty: false }, function(row) {
+       data.push(row.values);
+     });
+
+
+  })
+ 
+  let checkBuilding = await this.findChildrensByLabelsAndFilters(['FacilityStructure'],{realm},[`Building`],{name:data[1][1],isDeleted:false});
+  if(checkBuilding.length==0){
+   let categoryCode = await data[1][4].split(": ");
+      let {createdCypher,createdRelationCypher}=await this.createCypherForClassification(realm,"OmniClass11",categoryCode[0],"b","cc","c","CLASSIFIED_BY");
+
+      if(typeof data[1][2]=='object'){
+        email=await data[1][2].text;
+      }else {
+        email= await data[1][2];
+      }
+  
+  //CYPHER QUERY FOR BUILDING 
+
+  let cypher=`MATCH (r:FacilityStructure {realm:"${realm}"}) ${createdCypher} \
+  MATCH (cnt:Contacts {realm:"${realm}"})-[:PARENT_OF]->(p:Contact {email:"${email}",isDeleted:false} ) \
+  MERGE (b:Building {name:"${data[1][1]}",createdOn:"${data[1][3]}",projectName:"${data[1][5]}",siteName:"${data[1][6]}",areaMeasurement:"${data[1][11]}",externalSystem:"${data[1][12]}",externalObject:"${data[1][13]}", \
+  externalIdentifier:"${data[1][14]}",externalSiteObject:"${data[1][15]}",externalSiteIdentifier:"${data[1][16]}",externalFacilityObject:"${data[1][17]}",externalFacilityIdentifier:"${data[1][18]}", \
+  description:"${data[1][19]}",projectDescription:"${data[1][20]}",siteDescription:"${data[1][21]}",phase:"${data[1][22]}",address:"",status:"${data[1][23]}",code:"${data[1][24]}",owner:"",operator:"",contractor:"",handoverDate:"",operationStartDate:"",warrantyExpireDate:"",tag:[],canDisplay:true,key:"${this.keyGenerate()}",canDelete:true,isActive:true,isDeleted:false, \
+  nodeType:"Building"}) MERGE (js:JointSpaces {key:"${this.keyGenerate()}",canDelete:false,canDisplay:false,isActive:true,isDeleted:false,name:"Joint Space"})\ 
+  MERGE (zs:Zones {key:"${this.keyGenerate()}",canDelete:false,canDisplay:false,isActive:true,isDeleted:false,name:"Zones"})\ 
+  MERGE (b)-[:PARENT_OF]->(zs) MERGE (b)-[:PARENT_OF]->(js)  MERGE (r)-[:PARENT_OF]->(b) ${createdRelationCypher} MERGE (b)-[:CREATED_BY]->(p) ;`
+  
+ await this.write(cypher)
+
+  }else {
+   throw new HttpException(building_already_exist_object,400)
+  }
+  
+  } catch (error) {
+    if(error.response?.code){
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    }else {
+      //default_error()
+      throw new HttpException(
+        {code: CustomClassificationError.DEFAULT_ERROR },
+        error.status
+      );
+    }
+  //  if(error.response?.code===10003){
+  //    building_already_exist()
+  //  }else {
+  //    default_error()
+  //  }
+  }
+   
+ }
+
+async addFloorsToBuilding(file: Express.Multer.File, header:MainHeaderInterface, buildingKey: string)
+{
+ let data=[]
+ try {
+   let email:string;
+   const {realm}=header;
+ 
+  
+   
+ 
+   let buffer = new Uint8Array(file.buffer);
+   const workbook = new exceljs.Workbook();
+ 
+ 
+ await workbook.xlsx.load(buffer).then(function async(book) {
+     const firstSheet =  book.getWorksheet(4);
+     firstSheet.eachRow({ includeEmpty: false }, function(row) {
+       data.push(row.values);
+     });
+  })
+ 
+ 
+    for (let i = 1; i < data.length; i++) {
+     let checkFloor = await this.findChildrensByLabelsAndFilters(['Building'],{key:buildingKey,isDeleted:false},[`Floor`],{name:data[i][1],isDeleted:false});
+
+     if(checkFloor.length==0){
+       let {createdCypher,createdRelationCypher}=await this.createCypherForClassification(realm,"FacilityFloorTypes",data[i][4],"f","cc","c","CLASSIFIED_BY");
+ 
+       if(typeof data[i][2]=='object'){
+         email=await data[i][2].text;
+       }else {
+         email= await data[i][2];
+       }
+   
+       let cypher=`MATCH (a:FacilityStructure {realm:"${realm}"})-[:PARENT_OF]->(b:Building {key:"${buildingKey}",isDeleted:false}) \
+                   ${createdCypher} \
+                   MATCH (cont:Contacts {realm:"${realm}"})-[:PARENT_OF]->(p:Contact {email:"${email}",isDeleted:false}) \
+                   MERGE (f:Floor {code:"",name:"${data[i][1]}",isDeleted:false,isActive:true,nodeType:"Floor",description:"${data[i][8]}",tag:[],canDelete:true,canDisplay:true,key:"${this.keyGenerate()}",createdOn:"${data[i][3]}",elevation:"${data[i][9]}",height:"${data[i][10]}",externalSystem:"",externalObject:"",externalIdentifier:""}) \
+                   MERGE (b)-[:PARENT_OF]->(f)\
+                   ${createdRelationCypher} \
+                   MERGE (f)-[:CREATED_BY]->(p)`;
+   
+    await this.write(cypher);
+
+     }else {
+       throw new HttpException(floor_already_exist_object,400)
+     }
+
+   }
+ } catch (error) {
+  if(error.response?.code){
+    throw new HttpException(
+      { message: error.response?.message, code: error.response?.code },
+      error.status
+    );
+  }else {
+    //default_error()
+    throw new HttpException(
+      {code: CustomClassificationError.DEFAULT_ERROR },
+      error.status
+    );
+  }
+  //  if(error.response?.code===10004){
+  //    floor_already_exist(error.response?.name)
+  //  }else {
+  //    default_error()
+  //  }
+  }
+
+
+}
+
+async addSpacesToBuilding(file: Express.Multer.File, header:MainHeaderInterface, buildingKey: string)
+{
+ try {
+   let email:string;
+   const {realm}= header;
+
+     let data=[]
+     let buffer = new Uint8Array(file.buffer);
+     const workbook = new exceljs.Workbook();
+   
+   
+   await workbook.xlsx.load(buffer).then(function async(book) {
+       const firstSheet =  book.getWorksheet(5);
+       firstSheet.eachRow({ includeEmpty: false }, function(row) {
+         data.push(row.values);
+       });
+ 
+       
+    })
+    
+   for (let i = 1; i < data.length; i++) {
+     let checkSpaces = await this.findChildrensByLabelsAndFilters(['Building'],{key:buildingKey},[`Space`],{locationCode:data[i][5],isDeleted:false});
+     if(checkSpaces.length == 0) {
+
+       const [code, ...rest] = await data[i][8].split(new RegExp(/:\s{1}/g));
+
+       let {createdCypher,createdRelationCypher} =await this.createCypherForClassification(realm,'OmniClass13',code,"s","cc","c","CLASSIFIED_BY")
+       if(typeof data[i][6]=='object'){
+         email=await data[i][6].text;
+       }else {
+         email= await data[i][6];
+       }
+       let cypher=`MATCH (a:FacilityStructure {realm:"${realm}"})-[:PARENT_OF]->(b:Building {key:"${buildingKey}",isDeleted:false}) \
+        MATCH (cont:Contacts {realm:"${realm}"})-[:PARENT_OF]->(p:Contact {email:"${email}",isDeleted:false}) \
+        ${createdCypher} \
+        MATCH (b)-[:PARENT_OF]->(f:Floor {name:"${data[i][9]}",isDeleted:false}) \
+        MERGE (s:Space {operatorCode:"",operatorName:"",name:"${data[i][1]}",architecturalCode:"${data[i][4]}",architecturalName:"${data[i][2]}",locationCode:"${data[i][5]}",createdOn:"${data[i][7]}",description:"${data[i][10]}",key:"${this.keyGenerate()}",externalSystem:"${data[i][11]}",externalObject:"${data[i][12]}",externalIdentifier:"${data[i][13]}", \ 
+        tag:[],roomTag:["${data[i][14]}"],usableHeight:"${data[i][15]}",grossArea:"${data[i][16]}",netArea:"${data[i][17]}",images:"",documents:"", \
+        canDisplay:true,isDeleted:false,isActive:true,nodeType:"Space",isBlocked:false,canDelete:true}) \
+        MERGE (f)-[:PARENT_OF]->(s) MERGE (s)-[:CREATED_BY]->(p) ${createdRelationCypher};`
+       await this.write(cypher);
+
+     }else{
+       throw new HttpException(space_already_exist_object,400) 
+     }
+
+  
+   
+    }
+ } catch (error) {
+  if(error.response?.code){
+    throw new HttpException(
+      { message: error.response?.message, code: error.response?.code },
+      error.status
+    );
+  }else {
+    //default_error()
+    throw new HttpException(
+      {code: CustomClassificationError.DEFAULT_ERROR },
+      error.status
+    );
+  }
+  //  if(error.response?.code===10005){
+  //    space_already_exist(error.response?.name)
+  //  }else {
+  //    default_error()
+  //  }
+  }
+
+  
+
+}
+
+async addZonesToBuilding(file: Express.Multer.File,header:MainHeaderInterface, buildingKey: string){
+
+ try {
+   let email:string;
+   const {realm}= header;
+   let data=[]
+   let buffer = new Uint8Array(file.buffer);
+   const workbook = new exceljs.Workbook();
+ 
+ 
+ await workbook.xlsx.load(buffer).then(function async(book) {
+     const firstSheet =  book.getWorksheet(6);
+     firstSheet.eachRow({ includeEmpty: false }, function(row) {
+       data.push(row.values);
+     });
+  })
+ 
+ 
+  for (let i = 1; i <data.length; i++) {
+ let cypher =`MATCH (n:Building {key:"${buildingKey}",isDeleted:false})-[:PARENT_OF*]->(s:Space {locationCode:"${data[i][5]}",isDeleted:false}) \ 
+  MATCH (s)-[:MERGEDZN]->(z:Zone {name:"${data[i][1]}",isDeleted:false}) return z`;
+  let returnData = await this.read(cypher);
+  
+
+   if(returnData.records.length==0){
+ let {createdCypher,createdRelationCypher}=await this.createCypherForClassification(realm,"FacilityZoneTypes",data[i][4],"zz","cc","c","CLASSIFIED_BY");
+ 
+     if(typeof data[i][2]=='object'){
+       email=await data[i][2].text;
+     }else {
+       email= await data[i][2];
+     }
+ 
+   let cypher =`MATCH (b:Building {key:"${buildingKey}"})-[:PARENT_OF]->(z:Zones {name:"Zones"})\
+   MATCH (c:Space {locationCode:"${data[i][5]}"})\
+   MATCH (cnt:Contacts {realm:"${realm}"})-[:PARENT_OF]->(p:Contact {email:"${email}"})\
+   ${createdCypher} \
+   ${await this.getZoneFromDb(buildingKey,data[i])} \
+   MERGE (z)-[:PARENT_OF]->(zz)  \
+   MERGE (c)-[:MERGEDZN]->(zz)  \
+   ${createdRelationCypher} \
+   MERGE (zz)-[:CREATED_BY]->(p);`
+
+    await this.write(cypher)
+   }else {
+     throw new HttpException(space_has_already_relation_object,400)
+    }
+
+   
+ }
+ 
+ } catch (error) {
+  if(error.response?.code){
+    throw new HttpException(
+      { message: error.response?.message, code: error.response?.code },
+      error.status
+    );
+  }else {
+    //default_error()
+    throw new HttpException(
+      {code: CustomClassificationError.DEFAULT_ERROR },
+      error.status
+    );
+  }
+  //  if(error.response?.code===10006){
+  //    zone_already_exist(error.response?.name)
+  //  }else if(error.response?.code===10009){
+  //    space_has_already_relation()
+  //  }
+  //  else {
+  //    default_error()
+  //  }
+  }
+
+}
+
+
+
+
+/// excel common functions
+async createCypherForClassification(realm:string,classificationLabel:string,categoryCode:string,nodeName:string,classificationParentPlaceholder:string,classificationChildrenPlaceholder:string,relationName:string){
+    let createCypherArray=[];
+    let createRelationCypher=[];
+    let cypher= `MATCH (a:Language_Config {realm:"${realm}"})-[:PARENT_OF]->(z) return z`;
+    let value = await this.read(cypher);
+    let datasLenght= value.records;  
+  
+    for (let index = 0; index < datasLenght.length; index++) {
+     let createdCypher=` MATCH (${classificationParentPlaceholder}${index}:${classificationLabel}_${datasLenght[index]["_fields"][0].properties.name} {realm:"${realm}"})-[:PARENT_OF*]->(${classificationChildrenPlaceholder}${index} {code:"${categoryCode}",language:"${datasLenght[index]["_fields"][0].properties.name}"})`;
+     let createdRelationCypher=`MERGE (${nodeName})-[:${relationName}]->(${classificationChildrenPlaceholder}${index})`;
+     createCypherArray.push(createdCypher);
+     createRelationCypher.push(createdRelationCypher);
+    }
+  
+  return {createdCypher:createCypherArray.join(" "),createdRelationCypher:createRelationCypher.join(" ")}
+}
+
+async getZoneFromDb(buildingKey:string,data:string[]){
+
+
+  let cypher =`MATCH (b:Building {key:"${buildingKey}"})-[:PARENT_OF]->(zz:Zones {name:"Zones"})-[:PARENT_OF]->(z:Zone {name:"${data[1]}",isDeleted:false}) return z`;
+  let returnData = await this.read(cypher);
+  
+  
+  if(returnData.records?.length==1){
+    return `Match (zz:Zone {key:"${returnData.records[0]["_fields"][0].properties.key}",isDeleted:false}) SET zz.spaceNames = zz.spaceNames + "${data[5]}"`;
+  }else{
+    return `MERGE (zz:Zone {name:"${data[1]}",createdOn:"${data[3]}",externalSystem:"${data[6]}", externalObject:"${data[7]}", externalIdentifier:"${data[8]}", description:"${data[9]}", tag:[],\
+    nodeKeys:[], nodeType:"Zone",images:[],documents:[],spaceNames:["${data[5]}"], key:"${this.keyGenerate()}", canDisplay:true, isActive:true, isDeleted:false, canDelete:true})\
+    MERGE (z)-[:PARENT_OF]->(zz)`; 
+  }
+}
+
+keyGenerate(){
+  return uuidv4()
+}
 }
