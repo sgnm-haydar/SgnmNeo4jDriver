@@ -3938,9 +3938,9 @@ export class Neo4jService implements OnApplicationShutdown {
           cyperNodeName
         );
         parameters = { ...parameters, ...children_filters };
-        cypher = cypher + " return count(n) as count";
+        
       });
-
+      cypher = cypher + " return count(n) as count";
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
     } catch (error) {
