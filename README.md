@@ -115,7 +115,7 @@ export class AppModule {}
 ## LazyLoading Functions implemented for general search,by specific column,oerdering etc... 
 
 For the big data required lazyLoading functions already implemented.Required params listed 
-
+```ts
 type queryObjectType = {
   skip: number;
   limit: number;
@@ -222,41 +222,8 @@ findChildrensByIdAndFiltersBySearcStringBySpecificColumnTotalCount(
     search_type: SearchType = SearchType.CONTAINS,
     databaseOrTransaction?: string
   )
-```ts
-import { Neo4jService } from "sgnm-neo4j";
-
-@Controller()
-export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    private readonly neo4jService: Neo4jService
-  ) {}
-
-  @Get()
-  async getHello(): Promise<any> {
-    const res = await this.neo4jService.read(
-      `MATCH (n) RETURN count(n) AS count`
-    );
-
-    return `There are ${res.records[0].get("count")} nodes in the database`;
-  }
-
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() updateDto: UpdateDto) {
-    return await this.neo4jService.updateByIdAndFilter(
-      id,
-      { isActive: true },
-      [],
-      updateDto
-    );
-  }
-}
-```
-```
-
-
-
-
+  ```
+  
 ```ts
 getConfig(): Neo4jConfig;
 getReadSession(database?: string): Session;
