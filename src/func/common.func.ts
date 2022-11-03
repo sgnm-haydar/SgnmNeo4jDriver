@@ -1,6 +1,7 @@
 import { HttpException } from "@nestjs/common";
 import { int } from "neo4j-driver";
 import { undefined_value_recieved } from "../constant/custom.error.object";
+import { FilterPropertiesType } from "../constant/filter.properties.type.enum";
 
 //transfer dto(object come from client) properties to specific node entity object
 export function assignDtoPropToEntity(entity, dto) {
@@ -147,15 +148,21 @@ export function dynamicOrLabelAdder(
   return optionalLabels;
 }
 
-export function dynamicFilterPropertiesAdder(filterProperties) {
-  if (!filterProperties || Object.keys(filterProperties).length === 0) {
+export function dynamicFilterPropertiesAdder(
+  filterProperties,
+  filterPropertiesType: FilterPropertiesType = FilterPropertiesType.NODE
+) {
+  if (
+    (!filterProperties || Object.keys(filterProperties).length === 0) &&
+    filterPropertiesType === FilterPropertiesType.NODE
+  ) {
     return ")";
   }
   let dynamicQueryParameter = "";
 
   Object.entries(filterProperties).forEach((element, index) => {
     if (element[1] === null || element[1] === undefined) {
-      throw new HttpException(undefined_value_recieved, 400);
+      throw new HttpException("undefined_value_recieved", 400);
     }
     if (index === 0) {
       dynamicQueryParameter += ` { ${element[0]}` + `: $` + `${element[0]}`;
@@ -163,7 +170,11 @@ export function dynamicFilterPropertiesAdder(filterProperties) {
       dynamicQueryParameter += `,${element[0]}` + `: $` + `${element[0]}`;
     }
     if (Object.keys(filterProperties).length === index + 1) {
-      dynamicQueryParameter += ` })`;
+      if (filterPropertiesType === FilterPropertiesType.NODE) {
+        dynamicQueryParameter += ` })`;
+      } else {
+        dynamicQueryParameter += ` }`;
+      }
     }
   });
   return dynamicQueryParameter;
@@ -234,16 +245,20 @@ export function dynamicUpdatePropertyAdderAndAddParameterKey(
 
 export function dynamicFilterPropertiesAdderAndAddParameterKey(
   filterProperties,
-  parameterKey: string = "1"
+  filterPropertiesType: FilterPropertiesType = FilterPropertiesType.NODE,
+  parameterKey = "1"
 ) {
-  if (!filterProperties || Object.keys(filterProperties).length === 0) {
+  if (
+    (!filterProperties || Object.keys(filterProperties).length === 0) &&
+    filterPropertiesType === FilterPropertiesType.NODE
+  ) {
     return ")";
   }
   let dynamicQueryParameter = "";
 
   Object.entries(filterProperties).forEach((element, index) => {
     if (element[1] === null || element[1] === undefined) {
-      throw new HttpException(undefined_value_recieved, 400);
+      throw new HttpException("undefined_value_recieved", 400);
     }
     if (index === 0) {
       dynamicQueryParameter +=
@@ -253,7 +268,11 @@ export function dynamicFilterPropertiesAdderAndAddParameterKey(
         `,${element[0]}` + `: $` + `${element[0]}` + parameterKey;
     }
     if (Object.keys(filterProperties).length === index + 1) {
-      dynamicQueryParameter += ` })`;
+      if (filterPropertiesType === FilterPropertiesType.NODE) {
+        dynamicQueryParameter += ` })`;
+      } else {
+        dynamicQueryParameter += ` }`;
+      }
     }
   });
   return dynamicQueryParameter;
@@ -278,29 +297,33 @@ export function dynamicOrderByColumnAdder(
   queryNodeName: string,
   orderByColumnArray: string[]
 ) {
-  let orderByArray: string[] = []
-  if (typeof orderByColumnArray === 'string') {
-    orderByArray.push(orderByColumnArray)
+  let orderByArray: string[] = [];
+  if (typeof orderByColumnArray === "string") {
+    orderByArray.push(orderByColumnArray);
   } else {
-    orderByArray = orderByColumnArray
+    orderByArray = orderByColumnArray;
   }
   let optionalLabels = "ORDER BY";
   let uniqueorderByColumnArray = [...new Set(orderByArray)];
-  const uniqueorderByColumnArrayWithoutEmptyString = uniqueorderByColumnArray.filter((item) => {
-    if (item.trim() !== "") {
-      return item;
-    }
-  });
+  const uniqueorderByColumnArrayWithoutEmptyString =
+    uniqueorderByColumnArray.filter((item) => {
+      if (item.trim() !== "") {
+        return item;
+      }
+    });
 
-  if (uniqueorderByColumnArrayWithoutEmptyString && uniqueorderByColumnArrayWithoutEmptyString.length > 0) {
+  if (
+    uniqueorderByColumnArrayWithoutEmptyString &&
+    uniqueorderByColumnArrayWithoutEmptyString.length > 0
+  ) {
     uniqueorderByColumnArrayWithoutEmptyString.map((item, index) => {
       if (index === 0) {
         optionalLabels = optionalLabels + ` toLower(${queryNodeName}.${item}) `;
       } else {
-        optionalLabels = optionalLabels + `, toLower(${queryNodeName}.${item}) `;
+        optionalLabels =
+          optionalLabels + `, toLower(${queryNodeName}.${item}) `;
       }
     });
   }
   return optionalLabels;
 }
-
