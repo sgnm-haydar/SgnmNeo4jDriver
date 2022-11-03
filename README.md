@@ -112,9 +112,9 @@ export class AppController {
 export class AppModule {}
 ```
 
-## LazyLoading Functions implemented for general search,by specific column,oerdering etc... 
+## LazyLoading Functions implemented for general search,by specific column,ordering etc... 
 
-For the big data required lazyLoading functions already implemented.Required params listed 
+For the big data, required lazyLoading functions already implemented.Required params listed 
 ```ts
 type queryObjectType = {
   skip: number;
@@ -223,7 +223,7 @@ findChildrensByIdAndFiltersBySearcStringBySpecificColumnTotalCount(
     databaseOrTransaction?: string
   )
   ```
-  
+
 ```ts
 getConfig(): Neo4jConfig;
 getReadSession(database?: string): Session;
