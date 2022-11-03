@@ -223,7 +223,9 @@ findChildrensByIdAndFiltersBySearcStringBySpecificColumnTotalCount(
     databaseOrTransaction?: string
   )
   ```
+## There is list of some of functions in service 
 
+For the details,you can check  git repository
 ```ts
 getConfig(): Neo4jConfig;
 getReadSession(database?: string): Session;
