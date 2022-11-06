@@ -1829,7 +1829,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let cyper;
 
       cyper =
-        `MATCH (n) where id(n)= $first_node_id MATCH (m) where id(m)= $second_node_id MERGE (n)-[r:PARENT_OF]-> (m) return n as parent,m as children,r as relation`;
+        `MATCH (n) where id(n)= $first_node_id MATCH (m) where id(m)= $second_node_id MERGE (n)<-[r:PARENT_OF {isDeleted:false}]- (m) return n as parent,m as children,r as relation`;
       const parameters = {
         first_node_id,
         second_node_id,
