@@ -1795,7 +1795,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const res = await this.write(cyper, parameters, databaseOrTransaction);
 
       if (!res) {
-        throw new HttpException(null, 400);
+        throw new HttpException('null', 400);
       }
       return res;
     } catch (error) {
@@ -1837,7 +1837,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const res = await this.write(cyper, parameters, databaseOrTransaction);
 
       if (!res) {
-        throw new HttpException(null, 400);
+        throw new HttpException('null', 400);
       }
       return res;
     } catch (error) {
@@ -2049,7 +2049,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "" = "",
-    databaseOrTransaction?: string | Transaction
+    databaseOrTransaction?: string |Transaction
   ) {
     try {
       if (!relation_name) {
@@ -2085,14 +2085,14 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        ) +
-        "where ";
+        ) 
+       
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
       ) {
         cypher =
-          cypher +
+          cypher + " where "+
           dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
       }
       if (
@@ -2111,19 +2111,19 @@ export class Neo4jService implements OnApplicationShutdown {
               childrenExcludedLabelsLabelsWithoutEmptyString
             );
         } else {
-        }
-        cypher =
-          cypher +
+          cypher =
+          cypher + " where "+
           dynamicNotLabelAdder(
             "m",
             childrenExcludedLabelsLabelsWithoutEmptyString
           );
+        }
+       
       }
       cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
       return response["records"];
