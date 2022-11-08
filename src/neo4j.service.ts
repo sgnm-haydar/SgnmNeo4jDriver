@@ -1950,7 +1950,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async findChildrensByRootIdAndNotLabels(
+  async findChildrensByIdAndNotLabels(
     root_id: number,
     root_labels: string[] = [""],
     root_filters: object = {},
