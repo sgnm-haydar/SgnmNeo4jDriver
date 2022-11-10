@@ -3041,4 +3041,56 @@ export class Neo4jService implements OnApplicationShutdown {
       throw new HttpException(error, 500);
     }
   }
+  async getNodeRelationsArray(
+    root_labels: Array<string> = [""],
+    root_filters: object = {},
+    child_labels: Array<string> = [""],
+    children_filters: object = {},
+    children_excluded_labels: Array<string> = [""],
+    relation_direction: RelationDirection = RelationDirection.RIGHT,) {
+    const rootLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(child_labels);
+    const childExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_excluded_labels);
+    let query =
+      `MATCH (n` +
+      dynamicLabelAdder(rootLabelsLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters);
+    if (relation_direction == RelationDirection.RIGHT) {
+      query = query + `-[r]->(m `;
+    }
+    else {
+      query = query + `<-[r]-(m `;
+    }
+    query = query +
+      dynamicLabelAdder(child_labels) +
+      dynamicFilterPropertiesAdderAndAddParameterKey(children_filters);
+
+
+    if (
+      childExcludedLabelsLabelsWithoutEmptyString &&
+      childExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      query =
+        query +
+        ` where ` +
+        dynamicNotLabelAdder("n", childExcludedLabelsLabelsWithoutEmptyString);
+    };
+
+    query = query + ` WITH type(r) as type, startNode(r) as startNode, endNode(r) as endNode
+    WITH  type, labels(startNode) as startLabel, labels(endNode) as endLabel, COUNT(*) as rCount
+    ORDER BY  startLabel, endLabel
+    RETURN collect({count: rCount, relationName: type, node: {source: startLabel, target: endLabel}}) as relationships`;
+    children_filters = changeObjectKeyName(children_filters);
+    const parameters = { ...root_filters, ...children_filters };
+    console.log(query)
+    console.log(parameters)
+    const node = await this.read(
+      query,
+      parameters
+    );
+    return node.records;
+   }  
 }
