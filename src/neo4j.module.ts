@@ -43,14 +43,7 @@ export class Neo4jModule {
         {
           provide: NEO4J_DRIVER,
           inject: [NEO4J_OPTIONS],
-          useFactory: async (config: Neo4jConfig) => {
-            try {
-              createDriver(config);
-            } catch (error) {
-              console.log(error);
-              throw new HttpException(error, 500);
-            }
-          },
+          useFactory: async (config: Neo4jConfig) => createDriver(config),
         },
         Neo4jService,
       ],
