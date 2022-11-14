@@ -1705,18 +1705,15 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
         `-[r:${relation_name}*1..${relation_depth}` +
-        dynamicFilterPropertiesAdder(
-          relation_filters,
-          FilterPropertiesType.RELATION
-        ) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(relation_filters,FilterPropertiesType.RELATION,'2') +
         ` ]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` RETURN n as parent,m as children,r as relation`;
 
       children_filters = changeObjectKeyName(children_filters);
-      const parameters = { ...root_filters, ...children_filters };
-
+      relation_filters = changeObjectKeyName(relation_filters,'2');
+      const parameters = { ...root_filters, ...children_filters,...relation_filters};
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
     } catch (error) {
