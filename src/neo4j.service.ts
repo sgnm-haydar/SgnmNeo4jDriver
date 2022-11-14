@@ -2493,7 +2493,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      parameters = { ...parameters, ...children_filters, ...relation_filters };
+      parameters = { ...parameters, ...children_filters, ...relation_filters, ...root_filters };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
       return response["records"];
