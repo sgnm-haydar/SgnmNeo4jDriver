@@ -771,7 +771,7 @@ export class Neo4jService implements OnApplicationShutdown {
     parent_filters: object = {},
     relation_name: string,
     relation_filters,
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -1148,7 +1148,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     update_labels: Array<string> = [],
     update_properties: object = {},
     databaseOrTransaction?: string | Transaction
@@ -1568,7 +1568,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -1632,7 +1632,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -1691,7 +1691,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -1957,7 +1957,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_excluded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -2045,7 +2045,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_excluded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string |Transaction
   ) {
     try {
@@ -2143,7 +2143,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_labels: Array<string> = [],
     children_filters: object = {},
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -2415,7 +2415,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_exculuded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     databaseOrTransaction?: string
   ) {
@@ -2593,7 +2593,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchString: string,
     databaseOrTransaction?: string
@@ -2684,7 +2684,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     search_string: string,
     databaseOrTransaction?: string
   ) {
@@ -2763,7 +2763,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchColumn: string,
     searchString: string,
@@ -2856,7 +2856,7 @@ export class Neo4jService implements OnApplicationShutdown {
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     search_column: string,
     search_string: string,
     search_type: SearchType = SearchType.CONTAINS,

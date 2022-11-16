@@ -144,7 +144,7 @@ findChildrensByIdAndFiltersWithPagination(
     children_exculuded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     databaseOrTransaction?: string
   ) ;
@@ -157,7 +157,7 @@ findChildrensByIdAndFiltersTotalCount(
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   )
 
@@ -170,7 +170,7 @@ findChildrensByIdAndFiltersWithPaginationAndSearcString(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchString: string,
     databaseOrTransaction?: string
@@ -185,7 +185,7 @@ findChildrensByIdAndFiltersAndSearchStringsTotalCount(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     search_string: string,
     databaseOrTransaction?: string
   )
@@ -199,7 +199,7 @@ findChildrensByIdAndFiltersWithPaginationAndSearcStringBySpecificColumn(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchColumn: string,
     searchString: string,
@@ -216,7 +216,7 @@ findChildrensByIdAndFiltersBySearcStringBySpecificColumnTotalCount(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     search_column: string,
     search_string: string,
     search_type: SearchType = SearchType.CONTAINS,
@@ -267,7 +267,7 @@ getParentByIdAndFilters(
     parent_filters: object = {},
     relation_name: string,
     relation_filters,
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   );
 addRelationByLabelsAndFiltersAndRelationName(
@@ -307,7 +307,7 @@ updateNodeChildrensByIdAndFilter(
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     update_labels: Array<string> = [],
     update_properties: object = {},
     databaseOrTransaction?: string | Transaction
@@ -346,7 +346,7 @@ findChildrensByIdAndFilters(
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   );
 findChildrensByIdAndFiltersTotalCount(
@@ -357,7 +357,7 @@ findChildrensByIdAndFiltersTotalCount(
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   );
 findChildrensByLabelsAndFilters(
@@ -367,7 +367,7 @@ findChildrensByLabelsAndFilters(
     children_filters: object = {},
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   );
 updateRelationByIdWithRelationNameAndFilters(
@@ -393,7 +393,7 @@ findChildrensByRootIdAndNotLabels(
     children_excluded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   );
 findChildrensByLabelAndNotLabels(
@@ -405,7 +405,7 @@ findChildrensByLabelAndNotLabels(
     children_excluded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     databaseOrTransaction?: string | Transaction
   );
 findChildrensByIdAndFiltersWithPagination(
@@ -418,7 +418,7 @@ findChildrensByIdAndFiltersWithPagination(
     children_exculuded_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     databaseOrTransaction?: string
   );
@@ -444,7 +444,7 @@ findChildrensByIdAndFiltersWithPaginationAndSearcString(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchString: string,
     databaseOrTransaction?: string
@@ -458,7 +458,7 @@ findChildrensByIdAndFiltersAndSearchStringsTotalCount(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     search_string: string,
     databaseOrTransaction?: string
   );
@@ -471,7 +471,7 @@ findChildrensByIdAndFiltersWithPaginationAndSearcStringBySpecificColumn(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchColumn: string,
     searchString: string,
@@ -487,7 +487,7 @@ findChildrensByIdAndFiltersBySearcStringBySpecificColumnTotalCount(
     children_exculuded_labels: string[],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | "" = "",
+    relation_depth: number | "",
     search_column: string,
     search_string: string,
     search_type: SearchType = SearchType.CONTAINS,
