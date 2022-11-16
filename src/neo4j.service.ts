@@ -2478,7 +2478,7 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-      cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+      cypher = cypher + ` RETURN n as parent,m as children, r as relation `;
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
         cypher =
           cypher +
