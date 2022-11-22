@@ -1903,7 +1903,7 @@ export class Neo4jService implements OnApplicationShutdown {
               FilterPropertiesType.RELATION
             ) +
             `]->(m) ` +
-           'set'+
+           'set '+
             dynamicUpdatePropertyAdderAndAddParameterKey(
               "r",
               relation_update_properties,
