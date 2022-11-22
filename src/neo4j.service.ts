@@ -1865,7 +1865,8 @@ export class Neo4jService implements OnApplicationShutdown {
       let cyper;
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-          cyper =
+          if(Object.keys(relation_update_properties).length==0){
+            cyper =
             `MATCH (n` +
             dynamicLabelAdder(first_node_labels) +
             dynamicFilterPropertiesAdder(first_node_filters) +
@@ -1882,16 +1883,53 @@ export class Neo4jService implements OnApplicationShutdown {
               FilterPropertiesType.RELATION
             ) +
             `]->(m) ` +
-            `set ` +
+            ` return n as parent,m as children,r as relation`;
+          }
+          else{
+            cyper =
+            `MATCH (n` +
+            dynamicLabelAdder(first_node_labels) +
+            dynamicFilterPropertiesAdder(first_node_filters) +
+            ` where id(n)= $first_node_id MATCH (m` +
+            dynamicLabelAdder(second_node_labels) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              second_node_filters,
+              FilterPropertiesType.NODE,
+              "3"
+            ) +
+            `  where id(m)= $second_node_id MERGE (n)-[r:${relation_name}` +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              relation_properties,
+              FilterPropertiesType.RELATION
+            ) +
+            `]->(m) ` +
+           'set'+
             dynamicUpdatePropertyAdderAndAddParameterKey(
               "r",
               relation_update_properties,
               "2"
             ) +
             ` return n as parent,m as children,r as relation`;
+      
+          }
           break;
         case RelationDirection.LEFT:
-          cyper =
+          if(Object.keys(relation_update_properties).length==0){
+            cyper =
+            `MATCH (m` +
+            dynamicLabelAdder(first_node_labels) +
+            `) where id(m)= $first_node_id MATCH (n` +
+            dynamicLabelAdder(second_node_labels) +
+            `) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}` +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              relation_properties,
+              FilterPropertiesType.RELATION
+            ) +
+            `]- (n) ` +
+            `return n as parent,m as children,r as relation`;
+          }
+          else{
+            cyper =
             `MATCH (m` +
             dynamicLabelAdder(first_node_labels) +
             `) where id(m)= $first_node_id MATCH (n` +
@@ -1909,6 +1947,8 @@ export class Neo4jService implements OnApplicationShutdown {
               "2"
             ) +
             `return n as parent,m as children,r as relation`;
+          }
+          
 
           break;
         default:
