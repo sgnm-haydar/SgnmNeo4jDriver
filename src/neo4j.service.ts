@@ -141,14 +141,14 @@ export class Neo4jService implements OnApplicationShutdown {
                   "children"
                 ] =
                   node["root"]["children"][i]["children"][j]["children"][k][
-                  "parent_of"
+                    "parent_of"
                   ];
                 delete node["root"]["children"][i]["children"][j]["children"][
                   k
                 ]["parent_of"];
                 if (
                   node["root"]["children"][i]["children"][j]["children"][k][
-                  "children"
+                    "children"
                   ]
                 ) {
                   for (
@@ -163,14 +163,14 @@ export class Neo4jService implements OnApplicationShutdown {
                       "children"
                     ][l]["children"] =
                       node["root"]["children"][i]["children"][j]["children"][k][
-                      "children"
+                        "children"
                       ][l]["parent_of"];
                     delete node["root"]["children"][i]["children"][j][
                       "children"
                     ][k]["children"][l]["parent_of"];
                     if (
                       node["root"]["children"][i]["children"][j]["children"][k][
-                      "children"
+                        "children"
                       ][l]["children"]
                     ) {
                       for (
@@ -185,14 +185,14 @@ export class Neo4jService implements OnApplicationShutdown {
                           k
                         ]["children"][l]["children"][m]["children"] =
                           node["root"]["children"][i]["children"][j][
-                          "children"
+                            "children"
                           ][k]["children"][l]["children"][m]["parent_of"];
                         delete node["root"]["children"][i]["children"][j][
                           "children"
                         ][k]["children"][l]["children"][m]["parent_of"];
                         if (
                           node["root"]["children"][i]["children"][j][
-                          "children"
+                            "children"
                           ][k]["children"][l]["children"][m]["children"]
                         ) {
                           for (
@@ -210,9 +210,9 @@ export class Neo4jService implements OnApplicationShutdown {
                               "children"
                             ] =
                               node["root"]["children"][i]["children"][j][
-                              "children"
+                                "children"
                               ][k]["children"][l]["children"][m]["children"][n][
-                              "parent_of"
+                                "parent_of"
                               ];
                             delete node["root"]["children"][i]["children"][j][
                               "children"
@@ -221,9 +221,9 @@ export class Neo4jService implements OnApplicationShutdown {
                             ];
                             if (
                               node["root"]["children"][i]["children"][j][
-                              "children"
+                                "children"
                               ][k]["children"][l]["children"][m]["children"][n][
-                              "children"
+                                "children"
                               ]
                             ) {
                               for (
@@ -242,9 +242,9 @@ export class Neo4jService implements OnApplicationShutdown {
                                   n
                                 ]["children"][o]["children"] =
                                   node["root"]["children"][i]["children"][j][
-                                  "children"
+                                    "children"
                                   ][k]["children"][l]["children"][m][
-                                  "children"
+                                    "children"
                                   ][n]["children"][o]["parent_of"];
                                 delete node["root"]["children"][i]["children"][
                                   j
@@ -253,9 +253,9 @@ export class Neo4jService implements OnApplicationShutdown {
                                 ][n]["children"][o]["parent_of"];
                                 if (
                                   node["root"]["children"][i]["children"][j][
-                                  "children"
+                                    "children"
                                   ][k]["children"][l]["children"][m][
-                                  "children"
+                                    "children"
                                   ][n]["children"][o]["children"]
                                 ) {
                                   for (
@@ -276,11 +276,11 @@ export class Neo4jService implements OnApplicationShutdown {
                                       "children"
                                     ] =
                                       node["root"]["children"][i]["children"][
-                                      j
+                                        j
                                       ]["children"][k]["children"][l][
-                                      "children"
+                                        "children"
                                       ][m]["children"][n]["children"][o][
-                                      "children"
+                                        "children"
                                       ][p]["parent_of"];
                                     delete node["root"]["children"][i][
                                       "children"
@@ -1490,10 +1490,10 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.RIGHT:
           res = await this.write(
             `MATCH (n` +
-            dynamicLabelAdder(first_node_labels) +
-            `) where id(n)= $first_node_id MATCH (m` +
-            dynamicLabelAdder(second_node_labels) +
-            ` ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(n)= $first_node_id MATCH (m` +
+              dynamicLabelAdder(second_node_labels) +
+              ` ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
             parameters,
             databaseOrTransaction
           );
@@ -1501,10 +1501,10 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.LEFT:
           res = await this.write(
             `MATCH (m` +
-            dynamicLabelAdder(first_node_labels) +
-            `) where id(m)= $first_node_id MATCH (n` +
-            dynamicLabelAdder(second_node_labels) +
-            `) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(m)= $first_node_id MATCH (n` +
+              dynamicLabelAdder(second_node_labels) +
+              `) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
             parameters,
             databaseOrTransaction
           );
@@ -1705,15 +1705,23 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
         `-[r:${relation_name}*1..${relation_depth}` +
-        dynamicFilterPropertiesAdderAndAddParameterKey(relation_filters,FilterPropertiesType.RELATION,'2') +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
         ` ]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` RETURN n as parent,m as children,r as relation`;
 
       children_filters = changeObjectKeyName(children_filters);
-      relation_filters = changeObjectKeyName(relation_filters,'2');
-      const parameters = { ...root_filters, ...children_filters,...relation_filters};
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      const parameters = {
+        ...root_filters,
+        ...children_filters,
+        ...relation_filters,
+      };
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
     } catch (error) {
@@ -1792,7 +1800,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const res = await this.write(cyper, parameters, databaseOrTransaction);
 
       if (!res) {
-        throw new HttpException('null', 400);
+        throw new HttpException("null", 400);
       }
       return res;
     } catch (error) {
@@ -1812,21 +1820,12 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      const firstNode = await this.findByIdAndFilters(
-        first_node_id,
-        [],
-        {}
-      );
-      const secondNode = await this.findByIdAndFilters(
-        second_node_id,
-        [],
-        {}
-      );
+      const firstNode = await this.findByIdAndFilters(first_node_id, [], {});
+      const secondNode = await this.findByIdAndFilters(second_node_id, [], {});
 
       let cyper;
 
-      cyper =
-        `MATCH (n) where id(n)= $first_node_id MATCH (m) where id(m)= $second_node_id MERGE (n)<-[r:PARENT_OF {isDeleted:false}]- (m) return n as parent,m as children,r as relation`;
+      cyper = `MATCH (n) where id(n)= $first_node_id MATCH (m) where id(m)= $second_node_id MERGE (n)<-[r:PARENT_OF {isDeleted:false}]- (m) return n as parent,m as children,r as relation`;
       const parameters = {
         first_node_id,
         second_node_id,
@@ -1834,7 +1833,7 @@ export class Neo4jService implements OnApplicationShutdown {
       const res = await this.write(cyper, parameters, databaseOrTransaction);
 
       if (!res) {
-        throw new HttpException('null', 400);
+        throw new HttpException("null", 400);
       }
       return res;
     } catch (error) {
@@ -1865,90 +1864,86 @@ export class Neo4jService implements OnApplicationShutdown {
       let cyper;
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-          if(Object.keys(relation_update_properties).length==0){
+          if (Object.keys(relation_update_properties).length == 0) {
             cyper =
-            `MATCH (n` +
-            dynamicLabelAdder(first_node_labels) +
-            dynamicFilterPropertiesAdder(first_node_filters) +
-            ` where id(n)= $first_node_id MATCH (m` +
-            dynamicLabelAdder(second_node_labels) +
-            dynamicFilterPropertiesAdderAndAddParameterKey(
-              second_node_filters,
-              FilterPropertiesType.NODE,
-              "3"
-            ) +
-            `  where id(m)= $second_node_id MERGE (n)-[r:${relation_name}` +
-            dynamicFilterPropertiesAdderAndAddParameterKey(
-              relation_properties,
-              FilterPropertiesType.RELATION
-            ) +
-            `]->(m) ` +
-            ` return n as parent,m as children,r as relation`;
-          }
-          else{
+              `MATCH (n` +
+              dynamicLabelAdder(first_node_labels) +
+              dynamicFilterPropertiesAdder(first_node_filters) +
+              ` where id(n)= $first_node_id MATCH (m` +
+              dynamicLabelAdder(second_node_labels) +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                second_node_filters,
+                FilterPropertiesType.NODE,
+                "3"
+              ) +
+              `  where id(m)= $second_node_id MERGE (n)-[r:${relation_name}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]->(m) ` +
+              ` return n as parent,m as children,r as relation`;
+          } else {
             cyper =
-            `MATCH (n` +
-            dynamicLabelAdder(first_node_labels) +
-            dynamicFilterPropertiesAdder(first_node_filters) +
-            ` where id(n)= $first_node_id MATCH (m` +
-            dynamicLabelAdder(second_node_labels) +
-            dynamicFilterPropertiesAdderAndAddParameterKey(
-              second_node_filters,
-              FilterPropertiesType.NODE,
-              "3"
-            ) +
-            `  where id(m)= $second_node_id MERGE (n)-[r:${relation_name}` +
-            dynamicFilterPropertiesAdderAndAddParameterKey(
-              relation_properties,
-              FilterPropertiesType.RELATION
-            ) +
-            `]->(m) ` +
-           'set '+
-            dynamicUpdatePropertyAdderAndAddParameterKey(
-              "r",
-              relation_update_properties,
-              "2"
-            ) +
-            ` return n as parent,m as children,r as relation`;
-      
+              `MATCH (n` +
+              dynamicLabelAdder(first_node_labels) +
+              dynamicFilterPropertiesAdder(first_node_filters) +
+              ` where id(n)= $first_node_id MATCH (m` +
+              dynamicLabelAdder(second_node_labels) +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                second_node_filters,
+                FilterPropertiesType.NODE,
+                "3"
+              ) +
+              `  where id(m)= $second_node_id MERGE (n)-[r:${relation_name}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]->(m) ` +
+              "set " +
+              dynamicUpdatePropertyAdderAndAddParameterKey(
+                "r",
+                relation_update_properties,
+                "2"
+              ) +
+              ` return n as parent,m as children,r as relation`;
           }
           break;
         case RelationDirection.LEFT:
-          if(Object.keys(relation_update_properties).length==0){
+          if (Object.keys(relation_update_properties).length == 0) {
             cyper =
-            `MATCH (m` +
-            dynamicLabelAdder(first_node_labels) +
-            `) where id(m)= $first_node_id MATCH (n` +
-            dynamicLabelAdder(second_node_labels) +
-            `) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}` +
-            dynamicFilterPropertiesAdderAndAddParameterKey(
-              relation_properties,
-              FilterPropertiesType.RELATION
-            ) +
-            `]- (n) ` +
-            `return n as parent,m as children,r as relation`;
-          }
-          else{
+              `MATCH (m` +
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(m)= $first_node_id MATCH (n` +
+              dynamicLabelAdder(second_node_labels) +
+              `) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]- (n) ` +
+              `return n as parent,m as children,r as relation`;
+          } else {
             cyper =
-            `MATCH (m` +
-            dynamicLabelAdder(first_node_labels) +
-            `) where id(m)= $first_node_id MATCH (n` +
-            dynamicLabelAdder(second_node_labels) +
-            `) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}` +
-            dynamicFilterPropertiesAdderAndAddParameterKey(
-              relation_properties,
-              FilterPropertiesType.RELATION
-            ) +
-            `]- (n) ` +
-            `set ` +
-            dynamicUpdatePropertyAdderAndAddParameterKey(
-              "r",
-              relation_update_properties,
-              "2"
-            ) +
-            `return n as parent,m as children,r as relation`;
+              `MATCH (m` +
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(m)= $first_node_id MATCH (n` +
+              dynamicLabelAdder(second_node_labels) +
+              `) where id(n)= $second_node_id MERGE (m)<-[:${relation_name}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]- (n) ` +
+              `set ` +
+              dynamicUpdatePropertyAdderAndAddParameterKey(
+                "r",
+                relation_update_properties,
+                "2"
+              ) +
+              `return n as parent,m as children,r as relation`;
           }
-          
 
           break;
         default:
@@ -2086,7 +2081,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
-    databaseOrTransaction?: string |Transaction
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!relation_name) {
@@ -2122,14 +2117,15 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        ) 
-       
+        );
+
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
       ) {
         cypher =
-          cypher + " where "+
+          cypher +
+          " where " +
           dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
       }
       if (
@@ -2149,13 +2145,13 @@ export class Neo4jService implements OnApplicationShutdown {
             );
         } else {
           cypher =
-          cypher + " where "+
-          dynamicNotLabelAdder(
-            "m",
-            childrenExcludedLabelsLabelsWithoutEmptyString
-          );
+            cypher +
+            " where " +
+            dynamicNotLabelAdder(
+              "m",
+              childrenExcludedLabelsLabelsWithoutEmptyString
+            );
         }
-       
       }
       cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
       relation_filters = changeObjectKeyName(relation_filters, "2");
@@ -2530,7 +2526,12 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      parameters = { ...parameters, ...children_filters, ...relation_filters, ...root_filters };
+      parameters = {
+        ...parameters,
+        ...children_filters,
+        ...relation_filters,
+        ...root_filters,
+      };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
       return response["records"];
@@ -3335,7 +3336,8 @@ export class Neo4jService implements OnApplicationShutdown {
     child_labels: Array<string> = [""],
     children_filters: object = {},
     children_excluded_labels: Array<string> = [""],
-    relation_direction: RelationDirection = RelationDirection.RIGHT,) {
+    relation_direction: RelationDirection = RelationDirection.RIGHT
+  ) {
     const rootLabelsLabelsWithoutEmptyString =
       filterArrayForEmptyString(root_labels);
     const childLabelsLabelsWithoutEmptyString =
@@ -3348,14 +3350,13 @@ export class Neo4jService implements OnApplicationShutdown {
       dynamicFilterPropertiesAdder(root_filters);
     if (relation_direction == RelationDirection.RIGHT) {
       query = query + `-[r]->(m `;
-    }
-    else {
+    } else {
       query = query + `<-[r]-(m `;
     }
-    query = query +
+    query =
+      query +
       dynamicLabelAdder(child_labels) +
       dynamicFilterPropertiesAdderAndAddParameterKey(children_filters);
-
 
     if (
       childExcludedLabelsLabelsWithoutEmptyString &&
@@ -3365,31 +3366,107 @@ export class Neo4jService implements OnApplicationShutdown {
         query +
         ` where ` +
         dynamicNotLabelAdder("n", childExcludedLabelsLabelsWithoutEmptyString);
-    };
+    }
 
-    query = query + ` WITH type(r) as type, startNode(r) as startNode, endNode(r) as endNode
+    query =
+      query +
+      ` WITH type(r) as type, startNode(r) as startNode, endNode(r) as endNode
     WITH  type, labels(startNode) as startLabel, labels(endNode) as endLabel, COUNT(*) as rCount
     ORDER BY  startLabel, endLabel
     RETURN collect({count: rCount, relationName: type, node: {source: startLabel, target: endLabel}}) as relationships`;
     children_filters = changeObjectKeyName(children_filters);
     const parameters = { ...root_filters, ...children_filters };
-    console.log(query)
-    console.log(parameters)
-    const node = await this.read(
-      query,
-      parameters
-    );
+    console.log(query);
+    console.log(parameters);
+    const node = await this.read(query, parameters);
     return node.records;
-   }  
+  }
 
-  async relationArray(data:string[]){
-    let cypher:string=""
+  async relationArray(data: string[]) {
+    let cypher: string = "";
     for (let index = 0; index < data.length; index++) {
-      
-      cypher+=`${data[index]}|`
+      cypher += `${data[index]}|`;
     }
-    let result = cypher.substring(0,cypher.length-1);
+    let result = cypher.substring(0, cypher.length - 1);
     return result;
-    
+  }
+  async getParentByIdAndFiltersWithExcludedLabels(
+    id: number,
+    node_labels: string[] = [""],
+    node_filters: object = {},
+    parent_labels: string[] = [""],
+    parent_filters: object = {},
+    parent_excluded_labels: string[] = [""],
+    relation_name: string,
+    relation_filters,
+    relation_depth?: number | "",
+    databaseOrTransaction?: string
+  ) {
+    try {
+      const nodeLabelsWithoutEmptyString =
+        filterArrayForEmptyString(node_labels);
+      const parentLabelsWithoutEmptyString =
+        filterArrayForEmptyString(parent_labels);
+      const parentExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+        parent_excluded_labels
+      );
+      const node = await this.findByIdAndFilters(
+        +id,
+        node_labels,
+        node_filters
+      );
+
+      let query =
+        "MATCH (n" +
+        dynamicLabelAdder(nodeLabelsWithoutEmptyString) +
+        ") where id(n)= $id match(m" +
+        dynamicLabelAdder(parentLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(parent_filters) +
+        "match (m)-" +
+        `[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION
+        ) +
+        `]->(n)`;
+      if (
+        parentExcludedLabelsWithoutEmptyString &&
+        parentExcludedLabelsWithoutEmptyString.length > 0
+      ) {
+        query =
+          query +
+          " where " +
+          dynamicNotLabelAdder("m", parentExcludedLabelsWithoutEmptyString) +
+          ` return m as parent,n as children`;
+      } else {
+        query = query + ` return m as parent,n as children`;
+      }
+
+      relation_filters = changeObjectKeyName(relation_filters);
+      const parameters = { id, ...parent_filters, ...relation_filters };
+      console.log(query);
+
+      const res = await this.read(
+        query,
+        parameters,
+        databaseOrTransaction
+      );
+      if (!res["records"][0].length) {
+        throw new HttpException(parent_of_child_not_found, 404);
+      }
+      return res["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          "library_server_error",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
   }
 }
