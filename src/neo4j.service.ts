@@ -2584,7 +2584,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `-[r:${this.relationArray(relation_names)}*1..${relation_depth}` +
+        `-[r:${await this.relationArray(relation_names)}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
