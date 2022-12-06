@@ -2095,7 +2095,140 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async updateRelationByIdWithRelationNameAndFiltersAndRelationArray(
+    first_node_id: number,
+    first_node_labels: string[] = [""],
+    first_node_filters: object = {},
+    second_node_id: number,
+    second_node_labels: string[] = [""],
+    second_node_filters: object = {},
+    relation_names: string[],
+    relation_properties: object = {},
+    relation_update_properties: object = {},
+    relation_direction: RelationDirection = RelationDirection.RIGHT,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      let cyper;
+      switch (relation_direction) {
+        case RelationDirection.RIGHT:
+          if (Object.keys(relation_update_properties).length == 0) {
+            cyper =
+              `MATCH (n` +
+              dynamicLabelAdder(first_node_labels) +
+              dynamicFilterPropertiesAdder(first_node_filters) +
+              ` where id(n)= $first_node_id MATCH (m` +
+              dynamicLabelAdder(second_node_labels) +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                second_node_filters,
+                FilterPropertiesType.NODE,
+                "3"
+              ) +
+              `  where id(m)= $second_node_id MERGE (n)-[r:${await this.relationArray(relation_names)}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]->(m) ` +
+              ` return n as parent,m as children,r as relation`;
+          } else {
+            cyper =
+              `MATCH (n` +
+              dynamicLabelAdder(first_node_labels) +
+              dynamicFilterPropertiesAdder(first_node_filters) +
+              ` where id(n)= $first_node_id MATCH (m` +
+              dynamicLabelAdder(second_node_labels) +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                second_node_filters,
+                FilterPropertiesType.NODE,
+                "3"
+              ) +
+              `  where id(m)= $second_node_id MERGE (n)-[r:${await this.relationArray(relation_names)}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]->(m) ` +
+              "set " +
+              dynamicUpdatePropertyAdderAndAddParameterKey(
+                "r",
+                relation_update_properties,
+                "2"
+              ) +
+              ` return n as parent,m as children,r as relation`;
+          }
+          break;
+        case RelationDirection.LEFT:
+          if (Object.keys(relation_update_properties).length == 0) {
+            cyper =
+              `MATCH (m` +
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(m)= $first_node_id MATCH (n` +
+              dynamicLabelAdder(second_node_labels) +
+              `) where id(n)= $second_node_id MERGE (m)<-[:${await this.relationArray(relation_names)}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]- (n) ` +
+              `return n as parent,m as children,r as relation`;
+          } else {
+            cyper =
+              `MATCH (m` +
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(m)= $first_node_id MATCH (n` +
+              dynamicLabelAdder(second_node_labels) +
+              `) where id(n)= $second_node_id MERGE (m)<-[:${await this.relationArray(relation_names)}` +
+              dynamicFilterPropertiesAdderAndAddParameterKey(
+                relation_properties,
+                FilterPropertiesType.RELATION
+              ) +
+              `]- (n) ` +
+              `set ` +
+              dynamicUpdatePropertyAdderAndAddParameterKey(
+                "r",
+                relation_update_properties,
+                "2"
+              ) +
+              `return n as parent,m as children,r as relation`;
+          }
 
+          break;
+        default:
+          throw new HttpException(invalid_direction_error, 400);
+      }
+      relation_properties = changeObjectKeyName(relation_properties);
+      second_node_filters = changeObjectKeyName(second_node_filters, "3");
+      relation_update_properties = changeObjectKeyName(
+        relation_update_properties,
+        "2"
+      );
+      const parameters = {
+        first_node_id,
+        second_node_id,
+        ...relation_properties,
+        ...relation_update_properties,
+        ...second_node_filters,
+        ...first_node_filters,
+      };
+
+      const res = await this.write(cyper, parameters, databaseOrTransaction);
+
+      if (!res) {
+        throw new HttpException("something goes wrong", 400);
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
   async findChildrensByIdAndNotLabels(
     root_id: number,
     root_labels: string[] = [""],
