@@ -675,13 +675,13 @@ export class Neo4jService implements OnApplicationShutdown {
         rootLabelsWithoutEmptyString,
         root_filters
       );
-      if (!rootNode || rootNode.length == 0) {
+      if (!rootNode) {
         throw new HttpException(
           find_with_children_by_realm_as_tree__find_by_realm_error,
           404
         );
       }
-      const rootId = rootNode[0]["_fields"][0].identity.low;
+      const rootId = rootNode.identity.low;
       const cypher =
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
@@ -742,7 +742,7 @@ export class Neo4jService implements OnApplicationShutdown {
           root_filters
         );
 
-        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        const rootNodeObject = { root: tree };
         return rootNodeObject;
       } else {
         const rootNodeObject = { root: tree };
