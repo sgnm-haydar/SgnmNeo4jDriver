@@ -3973,4 +3973,125 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async findChildrensByParentIdAndOrChildrenLabelsAsTree(
+    root_id: number,
+    root_labels: string[] = [""],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      
+        let orChidrenLabelcondition = "";
+      if (childrenLabelsWithoutEmptyString.length > 0) {
+        orChidrenLabelcondition = ' and (m:'+childrenLabelsWithoutEmptyString[0];
+        
+        childrenLabelsWithoutEmptyString.forEach((item)=> {
+          if (item != childrenLabelsWithoutEmptyString[0]) {
+            orChidrenLabelcondition = orChidrenLabelcondition + ' or m:'+item
+          }
+        });
+        orChidrenLabelcondition =  orChidrenLabelcondition + ') ';
+      }
+ 
+
+      const rootNode = await this.findByIdAndFilters(
+        root_id,
+        rootLabelsWithoutEmptyString,
+        root_filters
+      );
+      if (!rootNode) {
+        throw new HttpException(
+          find_with_children_by_realm_as_tree__find_by_realm_error,
+          404
+        );
+      }
+      const rootId = rootNode.identity.low;
+      const cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        `)-[:PARENT_OF*]->(m ` +
+        dynamicFilterPropertiesAdder(children_filters) +
+        `  WHERE  id(n) = $rootId ` +
+         orChidrenLabelcondition +
+        ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
+
+      children_filters["rootId"] = rootId;
+      const result = await this.read(
+        cypher,
+        children_filters,
+        databaseOrTransaction
+      );
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
+
+  async findChildrensByParentIdAndOrChildrenLabelsWithTreeStructure(
+    root_id: number,
+    root_labels: string[] = [""],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      let tree = await this.findChildrensByParentIdAndOrChildrenLabelsAsTree(
+        root_id,
+        root_labels,
+        root_filters,
+        childrenLabelsWithoutEmptyString,
+        children_filters
+      );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByIdAndFilters(
+          root_id,
+          root_labels,
+          root_filters
+        );
+
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
+        return rootNodeObject;
+      }
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          library_server_error,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
+
 }
