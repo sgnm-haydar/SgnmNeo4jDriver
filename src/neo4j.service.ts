@@ -4073,6 +4073,7 @@ export class Neo4jService implements OnApplicationShutdown {
           root_filters
         );
         tree.properties['_type'] = root_labels[0]; 
+        tree._id = tree.identity;
         const rootNodeObject = { root: tree.properties };
         return rootNodeObject;
       } else {
