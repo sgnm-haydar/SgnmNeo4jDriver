@@ -318,10 +318,10 @@ export function dynamicOrderByColumnAdder(
   ) {
     uniqueorderByColumnArrayWithoutEmptyString.map((item, index) => {
       if (index === 0) {
-        optionalLabels = optionalLabels + ` toLower(${queryNodeName}.${item}) `;
+        optionalLabels = optionalLabels + ` toString(${queryNodeName}.${item}) `;
       } else {
         optionalLabels =
-          optionalLabels + `, toLower(${queryNodeName}.${item}) `;
+          optionalLabels + `, toString(${queryNodeName}.${item}) `;
       }
     });
   }
