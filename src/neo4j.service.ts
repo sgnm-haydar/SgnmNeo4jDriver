@@ -3955,7 +3955,7 @@ export class Neo4jService implements OnApplicationShutdown {
         parameters,
         databaseOrTransaction
       );
-      if (!res["records"][0].length) {
+      if (!res || !res["records"] || !res["records"][0].length) {
         throw new HttpException(parent_of_child_not_found, 404);
       }
       return res["records"];
