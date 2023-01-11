@@ -3926,7 +3926,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ") where id(n)= $id match(m" +
         dynamicLabelAdder(parentLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(parent_filters) +
-        "match (m)-" +
+        " match (m)-" +
         `[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
@@ -3955,7 +3955,7 @@ export class Neo4jService implements OnApplicationShutdown {
         parameters,
         databaseOrTransaction
       );
-      if (!res || !res["records"] || !res["records"][0].length) {
+      if (!res || !res["records"] || res["records"].length==0) {
         return [];
         //throw new HttpException(parent_of_child_not_found, 404);
       }
