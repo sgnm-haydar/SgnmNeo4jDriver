@@ -11,4 +11,5 @@ export type otherNodesObjProps = {
   labels: string[];
   filters: object;
   relationName: string;
+  id: string;
 };

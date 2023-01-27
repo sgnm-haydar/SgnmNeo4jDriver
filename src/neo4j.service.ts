@@ -3743,8 +3743,8 @@ export class Neo4jService implements OnApplicationShutdown {
       parameters.limit = this.int(+queryObject.limit) as unknown as number;
       otherNodesProps.forEach((nodes, index) => {
         if (nodes.labels.includes("Virtual")) {
-          nodes.filters["referenceKey"] = nodes.filters["key"];
-          delete nodes.filters["key"];
+          nodes.filters["referenceId"] = nodes.filters["id"];
+          delete nodes.filters["id"];
         }
         const cyperNodeName = "n" + index;
         cypher =
@@ -3807,8 +3807,8 @@ export class Neo4jService implements OnApplicationShutdown {
       let parameters = { ...mainNodeFilters };
       otherNodesProps.forEach((nodes, index) => {
         if (nodes.labels.includes("Virtual")) {
-          nodes.filters["referenceKey"] = nodes.filters["key"];
-          delete nodes.filters["key"];
+          nodes.filters["referenceId"] = nodes.filters["id"];
+          delete nodes.filters["id"];
         }
         const cyperNodeName = "n" + index;
         cypher =
