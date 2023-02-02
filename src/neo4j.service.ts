@@ -4395,4 +4395,38 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async delete(
+    id: number,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const firstNode = await this.findByIdAndFilters(id, [], {});
+      
+      let cyper;
+  
+      cyper = `MATCH (n) where id(n)= $id detach delete n`;
+      const parameters = {
+        id
+      };
+      const res = await this.write(cyper, parameters, databaseOrTransaction);
+  
+      if (!res) {
+        throw new HttpException("null", 400);
+      }
+      return res;
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
 }
+
+
+
