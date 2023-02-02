@@ -2185,7 +2185,9 @@ export class Neo4jService implements OnApplicationShutdown {
                 FilterPropertiesType.NODE,
                 "3"
               ) +
-              `  where id(m)= $second_node_id MERGE (n)-[r:${await this.relationArray(relation_names)}` +
+              `  where id(m)= $second_node_id MERGE (n)-[r:${await this.relationArray(
+                relation_names
+              )}` +
               dynamicFilterPropertiesAdderAndAddParameterKey(
                 relation_properties,
                 FilterPropertiesType.RELATION
@@ -2204,7 +2206,9 @@ export class Neo4jService implements OnApplicationShutdown {
                 FilterPropertiesType.NODE,
                 "3"
               ) +
-              `  where id(m)= $second_node_id MERGE (n)-[r:${await this.relationArray(relation_names)}` +
+              `  where id(m)= $second_node_id MERGE (n)-[r:${await this.relationArray(
+                relation_names
+              )}` +
               dynamicFilterPropertiesAdderAndAddParameterKey(
                 relation_properties,
                 FilterPropertiesType.RELATION
@@ -2226,7 +2230,9 @@ export class Neo4jService implements OnApplicationShutdown {
               dynamicLabelAdder(first_node_labels) +
               `) where id(m)= $first_node_id MATCH (n` +
               dynamicLabelAdder(second_node_labels) +
-              `) where id(n)= $second_node_id MERGE (m)<-[:${await this.relationArray(relation_names)}` +
+              `) where id(n)= $second_node_id MERGE (m)<-[:${await this.relationArray(
+                relation_names
+              )}` +
               dynamicFilterPropertiesAdderAndAddParameterKey(
                 relation_properties,
                 FilterPropertiesType.RELATION
@@ -2239,7 +2245,9 @@ export class Neo4jService implements OnApplicationShutdown {
               dynamicLabelAdder(first_node_labels) +
               `) where id(m)= $first_node_id MATCH (n` +
               dynamicLabelAdder(second_node_labels) +
-              `) where id(n)= $second_node_id MERGE (m)<-[:${await this.relationArray(relation_names)}` +
+              `) where id(n)= $second_node_id MERGE (m)<-[:${await this.relationArray(
+                relation_names
+              )}` +
               dynamicFilterPropertiesAdderAndAddParameterKey(
                 relation_properties,
                 FilterPropertiesType.RELATION
@@ -3726,6 +3734,8 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
   async findMainNodesRelationsWithFilters(
+    rootLabels: string[],
+    rootFilters: object,
     mainNodeLabels: string[],
     mainNodeFilters: object,
     otherNodesProps: otherNodesObjProps[],
@@ -3734,9 +3744,17 @@ export class Neo4jService implements OnApplicationShutdown {
   ) {
     try {
       let cypher =
-        `MATCH (n` +
+        `MATCH(m` +
+        dynamicLabelAdder(rootLabels) +
+        dynamicFilterPropertiesAdder(rootFilters) +
+        ` MATCH (n` +
         dynamicLabelAdder(mainNodeLabels) +
-        dynamicFilterPropertiesAdder(mainNodeFilters);
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          mainNodeFilters,
+          FilterPropertiesType.NODE,
+          "n"
+        ) +
+        "match(n)<-[*]-(m)";
       const cyperNodeNameArr = ["n"];
       let parameters = { ...mainNodeFilters, ...queryObject };
       parameters.skip = this.int(+queryObject.skip) as unknown as number;
@@ -3785,6 +3803,9 @@ export class Neo4jService implements OnApplicationShutdown {
           }
         }
       });
+      const main_node_filters = changeObjectKeyName(mainNodeFilters, "n");
+
+      parameters = { ...parameters, ...main_node_filters, ...rootFilters };
 
       const result = await this.read(cypher, parameters, databaseOrTransaction);
       return result["records"];
@@ -3793,43 +3814,46 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
   async findTotalCountsOfMainNodesRelationsWithFilters(
+    rootLabels: string[],
+    rootFilters: object,
     mainNodeLabels: string[],
     mainNodeFilters: object,
     otherNodesProps: otherNodesObjProps[],
-    databaseOrTransaction?
+    databaseOrTransaction?,
   ) {
     try {
       let cypher =
+        `MATCH(m` +
+        dynamicLabelAdder(rootLabels) +
+        dynamicFilterPropertiesAdder(rootFilters) +
         `MATCH (n` +
         dynamicLabelAdder(mainNodeLabels) +
-        dynamicFilterPropertiesAdder(mainNodeFilters);
+        dynamicFilterPropertiesAdderAndAddParameterKey(mainNodeFilters, FilterPropertiesType.NODE, 'n') +
+        'match(n)<-[*]-(m)';
 
       let parameters = { ...mainNodeFilters };
       otherNodesProps.forEach((nodes, index) => {
-        if (nodes.labels.includes("Virtual")) {
-          nodes.filters["referenceId"] = nodes.filters["id"];
-          delete nodes.filters["id"];
+        if (nodes.labels.includes('Virtual')) {
+          nodes.filters['referenceId'] = nodes.filters['id'];
+          delete nodes.filters['id'];
         }
-        const cyperNodeName = "n" + index;
+        const cyperNodeName = 'n' + index;
         cypher =
           cypher +
           ` match (${cyperNodeName}` +
           dynamicLabelAdder(nodes.labels) +
-          dynamicFilterPropertiesAdderAndAddParameterKey(
-            nodes.filters,
-            FilterPropertiesType.NODE,
-            cyperNodeName
-          ) +
+          dynamicFilterPropertiesAdderAndAddParameterKey(nodes.filters, FilterPropertiesType.NODE, cyperNodeName) +
           ` match (n)-[:${nodes.relationName}]-(${cyperNodeName})`;
-        const children_filters = changeObjectKeyName(
-          nodes.filters,
-          cyperNodeName
-        );
+        const children_filters = changeObjectKeyName(nodes.filters, cyperNodeName);
         parameters = { ...parameters, ...children_filters };
       });
-      cypher = cypher + " return count(n) as count";
+      cypher = cypher + ' return count(n) as count';
+
+      const main_node_filters = changeObjectKeyName(mainNodeFilters, 'n');
+
+      parameters = { ...parameters, ...main_node_filters, ...rootFilters };
       const result = await this.read(cypher, parameters, databaseOrTransaction);
-      return result["records"];
+      return result['records'];
     } catch (error) {
       throw new HttpException(error, 500);
     }
@@ -3950,12 +3974,8 @@ export class Neo4jService implements OnApplicationShutdown {
       const parameters = { id, ...parent_filters, ...relation_filters };
       console.log(query);
 
-      const res = await this.read(
-        query,
-        parameters,
-        databaseOrTransaction
-      );
-      if (!res || !res["records"] || res["records"].length==0) {
+      const res = await this.read(query, parameters, databaseOrTransaction);
+      if (!res || !res["records"] || res["records"].length == 0) {
         return [];
         //throw new HttpException(parent_of_child_not_found, 404);
       }
@@ -3987,19 +4007,19 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(root_labels);
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
-      
-        let orChidrenLabelcondition = "";
+
+      let orChidrenLabelcondition = "";
       if (childrenLabelsWithoutEmptyString.length > 0) {
-        orChidrenLabelcondition = ' and (m:'+childrenLabelsWithoutEmptyString[0];
-        
-        childrenLabelsWithoutEmptyString.forEach((item)=> {
+        orChidrenLabelcondition =
+          " and (m:" + childrenLabelsWithoutEmptyString[0];
+
+        childrenLabelsWithoutEmptyString.forEach((item) => {
           if (item != childrenLabelsWithoutEmptyString[0]) {
-            orChidrenLabelcondition = orChidrenLabelcondition + ' or m:'+item
+            orChidrenLabelcondition = orChidrenLabelcondition + " or m:" + item;
           }
         });
-        orChidrenLabelcondition =  orChidrenLabelcondition + ') ';
+        orChidrenLabelcondition = orChidrenLabelcondition + ") ";
       }
- 
 
       const rootNode = await this.findByIdAndFilters(
         root_id,
@@ -4019,7 +4039,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `)-[:PARENT_OF*]->(m ` +
         dynamicFilterPropertiesAdder(children_filters) +
         `  WHERE  id(n) = $rootId ` +
-         orChidrenLabelcondition +
+        orChidrenLabelcondition +
         ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
       children_filters["rootId"] = rootId;
@@ -4073,7 +4093,7 @@ export class Neo4jService implements OnApplicationShutdown {
           root_labels,
           root_filters
         );
-        tree.properties['_type'] = root_labels[0]; 
+        tree.properties["_type"] = root_labels[0];
         tree.properties._id = tree.identity;
         const rootNodeObject = { root: tree.properties };
         return rootNodeObject;
@@ -4152,25 +4172,27 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
           ` and (any(prop in keys(m) where m[prop]=~ $searchString)) `;
-        } else {
-          cypher =
-            cypher +
-            `(any(prop in keys(m) where m[prop]=~ $searchString)) `
-           
-        }
-          let orChidrenLabelcondition = "";
-          if (childrenLabelsWithoutEmptyString.length > 0) {
-            orChidrenLabelcondition = ' and (m:'+childrenLabelsWithoutEmptyString[0];
-            
-            childrenLabelsWithoutEmptyString.forEach((item)=> {
-              if (item != childrenLabelsWithoutEmptyString[0]) {
-                orChidrenLabelcondition = orChidrenLabelcondition + ' or m:'+item
-              }
-            });
-            orChidrenLabelcondition =  orChidrenLabelcondition + ') ';
+      } else {
+        cypher =
+          cypher + `(any(prop in keys(m) where m[prop]=~ $searchString)) `;
+      }
+      let orChidrenLabelcondition = "";
+      if (childrenLabelsWithoutEmptyString.length > 0) {
+        orChidrenLabelcondition =
+          " and (m:" + childrenLabelsWithoutEmptyString[0];
+
+        childrenLabelsWithoutEmptyString.forEach((item) => {
+          if (item != childrenLabelsWithoutEmptyString[0]) {
+            orChidrenLabelcondition = orChidrenLabelcondition + " or m:" + item;
           }
-          cypher =  cypher + orChidrenLabelcondition + ` RETURN n as parent,m as children,r as relation `;
-     
+        });
+        orChidrenLabelcondition = orChidrenLabelcondition + ") ";
+      }
+      cypher =
+        cypher +
+        orChidrenLabelcondition +
+        ` RETURN n as parent,m as children,r as relation `;
+
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
         cypher =
           cypher +
@@ -4199,184 +4221,178 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
- /////////////////////////////////////////////////////////////////////////////////////////////////////////
- 
- async findChildrensByLabelsAndNotLabelsAndOrChildrenLabelsAsTree(
-  root_labels: Array<string> = [],
-  root_not_labels: Array<string> = [],
-  root_filters: object = {},
-  children_labels: Array<string> = [],
-  children_not_labels: Array<string> = [],
-  children_filters: object = {},
-  databaseOrTransaction?: string | Transaction
-) {
-  try {
-    const rootLabelsWithoutEmptyString =
-      filterArrayForEmptyString(root_labels);
-    const rootNotLabelsWithoutEmptyString =
-      filterArrayForEmptyString(root_not_labels);
-    const childrenLabelsWithoutEmptyString =
-      filterArrayForEmptyString(children_labels);
-    const childrenNotLabelsWithoutEmptyString =
-      filterArrayForEmptyString(children_not_labels);
+  async findChildrensByLabelsAndNotLabelsAndOrChildrenLabelsAsTree(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const rootNotLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_not_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const childrenNotLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_not_labels);
 
-    let cypher =
-      `MATCH p=(n ` +
-      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
-      dynamicFilterPropertiesAdder(root_filters) +
-      ` -[:PARENT_OF*]->(m ` +
-      //dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-      dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
-      "where ";
+      let cypher =
+        `MATCH p=(n ` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        ` -[:PARENT_OF*]->(m ` +
+        //dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        "where ";
 
-    let cypher1 = "";
-    if (
-      rootNotLabelsWithoutEmptyString &&
-      rootNotLabelsWithoutEmptyString.length > 0
-    ) {
-      cypher1 = dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
-      cypher = cypher + cypher1;
-    }
-    if (
-      childrenNotLabelsWithoutEmptyString &&
-      childrenNotLabelsWithoutEmptyString.length > 0
-    ) {
-      if (cypher1 !== "") {
-        cypher =
-          cypher +
-          " and " +
-          dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
-      } else {
-        cypher =
-          cypher +
-          dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
+      let cypher1 = "";
+      if (
+        rootNotLabelsWithoutEmptyString &&
+        rootNotLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher1 = dynamicNotLabelAdder("n", rootNotLabelsWithoutEmptyString);
+        cypher = cypher + cypher1;
       }
-    }
-    
+      if (
+        childrenNotLabelsWithoutEmptyString &&
+        childrenNotLabelsWithoutEmptyString.length > 0
+      ) {
+        if (cypher1 !== "") {
+          cypher =
+            cypher +
+            " and " +
+            dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
+        } else {
+          cypher =
+            cypher +
+            dynamicNotLabelAdder("m", childrenNotLabelsWithoutEmptyString);
+        }
+      }
 
-    if (
-      childrenLabelsWithoutEmptyString &&
-      childrenLabelsWithoutEmptyString.length > 0
-    ) {
-
-      let childrenOrLabelsCondition = " (m:"+childrenLabelsWithoutEmptyString[0];
-        childrenLabelsWithoutEmptyString.forEach((item)=> {
+      if (
+        childrenLabelsWithoutEmptyString &&
+        childrenLabelsWithoutEmptyString.length > 0
+      ) {
+        let childrenOrLabelsCondition =
+          " (m:" + childrenLabelsWithoutEmptyString[0];
+        childrenLabelsWithoutEmptyString.forEach((item) => {
           if (item != childrenLabelsWithoutEmptyString[0]) {
-            childrenOrLabelsCondition = childrenOrLabelsCondition + " or m:"+item;
+            childrenOrLabelsCondition =
+              childrenOrLabelsCondition + " or m:" + item;
           }
         });
         childrenOrLabelsCondition = childrenOrLabelsCondition + ")";
-       
-      if (cypher1 !== "") {
-        cypher =
-        cypher + " and "+childrenOrLabelsCondition;
-      } else {
-        cypher = 
-        cypher + childrenOrLabelsCondition;
+
+        if (cypher1 !== "") {
+          cypher = cypher + " and " + childrenOrLabelsCondition;
+        } else {
+          cypher = cypher + childrenOrLabelsCondition;
+        }
       }
-    }
 
+      cypher =
+        cypher +
+        ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
 
-    cypher =
-      cypher +
-      ` WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value`;
-
-    Object.keys(root_filters).forEach((element_root) => {
-      let i = 0;
-      Object.keys(children_filters).forEach((element_child) => {
-        if (element_root === element_child) {
-          i = 1;
+      Object.keys(root_filters).forEach((element_root) => {
+        let i = 0;
+        Object.keys(children_filters).forEach((element_child) => {
+          if (element_root === element_child) {
+            i = 1;
+          }
+        });
+        if (i == 0) {
+          children_filters[element_root] = root_filters[element_root];
         }
       });
-      if (i == 0) {
-        children_filters[element_root] = root_filters[element_root];
+      children_filters = changeObjectKeyName(children_filters);
+      const parameters = { ...root_filters, ...children_filters };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
+      return result["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
       }
-    });
-    children_filters = changeObjectKeyName(children_filters);
-    const parameters = { ...root_filters, ...children_filters };
-    const result = await this.read(cypher, parameters, databaseOrTransaction);
-    return result["records"][0]["_fields"][0];
-  } catch (error) {
-    if (error.response?.code) {
-      throw new HttpException(
-        { message: error.response?.message, code: error.response?.code },
-        error.status
-      );
-    } else {
-      throw new HttpException(error, 500);
     }
   }
-}
 
-async findByLabelAndNotLabelAndOrChildrenLabelsAndFiltersWithTreeStructure(
-  root_labels: Array<string> = [],
-  root_not_labels: Array<string> = [],
-  root_filters: object = {},
-  children_labels: Array<string> = [],
-  children_not_labels: Array<string> = [],
-  children_filters: object = {},
-  databaseOrTransaction?: string | Transaction
-) {
-  try {
-    const rootlabelsWithoutEmptyString =
-      filterArrayForEmptyString(root_labels);
-    const childrenlabelsWithoutEmptyString =
-      filterArrayForEmptyString(children_labels);
+  async findByLabelAndNotLabelAndOrChildrenLabelsAndFiltersWithTreeStructure(
+    root_labels: Array<string> = [],
+    root_not_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_not_labels: Array<string> = [],
+    children_filters: object = {},
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootlabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenlabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
-    const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
-      if (item.trim() !== "") {
-        return item;
-      }
-    });
-    const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
-      (item) => {
+      const rootNotLabelsWithoutEmptyString = root_not_labels.filter((item) => {
         if (item.trim() !== "") {
           return item;
         }
-      }
-    );
+      });
+      const childrenNotLabelsWithoutEmptyString = children_not_labels.filter(
+        (item) => {
+          if (item.trim() !== "") {
+            return item;
+          }
+        }
+      );
 
-    let tree = await this.findChildrensByLabelsAndNotLabelsAndOrChildrenLabelsAsTree(
-      rootlabelsWithoutEmptyString,
-      rootNotLabelsWithoutEmptyString,
-      root_filters,
-      childrenlabelsWithoutEmptyString,
-      childrenNotLabelsWithoutEmptyString,
-      children_filters
-    );
-    if (!tree) {
-      throw new HttpException(
-        tree_structure_not_found_by_realm_name_error,
-        404
-      );
-    } else if (Object.keys(tree).length === 0) {
-      tree = await this.findByLabelAndFilters(
-        rootlabelsWithoutEmptyString,
-        root_filters
-      );
-      if (!tree.length) {
-        const rootNodeObject = { root: {} };
+      let tree =
+        await this.findChildrensByLabelsAndNotLabelsAndOrChildrenLabelsAsTree(
+          rootlabelsWithoutEmptyString,
+          rootNotLabelsWithoutEmptyString,
+          root_filters,
+          childrenlabelsWithoutEmptyString,
+          childrenNotLabelsWithoutEmptyString,
+          children_filters
+        );
+      if (!tree) {
+        throw new HttpException(
+          tree_structure_not_found_by_realm_name_error,
+          404
+        );
+      } else if (Object.keys(tree).length === 0) {
+        tree = await this.findByLabelAndFilters(
+          rootlabelsWithoutEmptyString,
+          root_filters
+        );
+        if (!tree.length) {
+          const rootNodeObject = { root: {} };
+          return rootNodeObject;
+        }
+        const rootNodeObject = { root: tree[0]["_fields"][0] };
+        return rootNodeObject;
+      } else {
+        const rootNodeObject = { root: tree };
         return rootNodeObject;
       }
-      const rootNodeObject = { root: tree[0]["_fields"][0] };
-      return rootNodeObject;
-    } else {
-      const rootNodeObject = { root: tree };
-      return rootNodeObject;
-    }
-  } catch (error) {
-    if (error.response?.code) {
-      throw new HttpException(
-        { message: error.response?.message, code: error.response?.code },
-        error.status
-      );
-    } else {
-      throw new HttpException(error, 500);
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
     }
   }
-}
-
-
-
 }
