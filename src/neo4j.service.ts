@@ -4453,7 +4453,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let idCondition = " (id(n) = "+ root_ids[0];
       root_ids.forEach((item) => {
         if (item != root_ids[0]) {
-          idCondition = idCondition + 'or id(n)='+item;
+          idCondition = idCondition + ' or id(n)='+item;
         }
 
       });
