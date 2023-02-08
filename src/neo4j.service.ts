@@ -4527,6 +4527,91 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   } 
+
+  async getParentByIdsAndFiltersWithExcludedLabels(
+    ids: number[],
+    node_labels: string[] = [""],
+    node_filters: object = {},
+    parent_labels: string[] = [""],
+    parent_filters: object = {},
+    parent_excluded_labels: string[] = [""],
+    relation_name: string,
+    relation_filters,
+    relation_depth?: number | "",
+    databaseOrTransaction?: string
+  ) {
+    try {
+      const nodeLabelsWithoutEmptyString =
+        filterArrayForEmptyString(node_labels);
+      const parentLabelsWithoutEmptyString =
+        filterArrayForEmptyString(parent_labels);
+      const parentExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+        parent_excluded_labels
+      );
+      // const node = await this.findByIdAndFilters(
+      //   +id,
+      //   node_labels,
+      //   node_filters
+      // );
+      let idCondition = " (id(n) = "+ ids[0];
+      ids.forEach((item) => {
+        if (item != ids[0]) {
+          idCondition = idCondition + ' or id(n)='+item;
+        }
+
+      });
+      idCondition = idCondition + ') ';  
+      let query =
+        `MATCH (n` +
+        dynamicLabelAdder(nodeLabelsWithoutEmptyString) +
+        `) where ${idCondition} match(m` +
+        dynamicLabelAdder(parentLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(parent_filters) +
+        ` match (m)-` +
+        `[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION
+        ) +
+        `]->(n)`;
+      if (
+        parentExcludedLabelsWithoutEmptyString &&
+        parentExcludedLabelsWithoutEmptyString.length > 0
+      ) {
+        query =
+          query +
+          " where " +
+          dynamicNotLabelAdder("m", parentExcludedLabelsWithoutEmptyString) +
+          ` return m as parent,n as children`;
+      } else {
+        query = query + ` return m as parent,n as children`;
+      }
+
+      relation_filters = changeObjectKeyName(relation_filters);
+      const parameters = { ...parent_filters, ...relation_filters };
+      console.log(query);
+
+      const res = await this.read(query, parameters, databaseOrTransaction);
+      if (!res || !res["records"] || res["records"].length == 0) {
+        return [];
+        //throw new HttpException(parent_of_child_not_found, 404);
+      }
+      return res["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response.message, code: error.response.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(
+          "library_server_error",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  }
+
 }
 
 
