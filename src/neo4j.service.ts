@@ -4560,19 +4560,18 @@ export class Neo4jService implements OnApplicationShutdown {
       });
       idLabelCondition = idLabelCondition + ') ';  
       let query =
-        `MATCH (n` +
-        `) where ${idLabelCondition} and ` +
-        dynamicFilterPropertiesAdder(node_filters) +
-        ` match(m` +
-        dynamicLabelAdder(parentLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdder(parent_filters) +
-        ` match (m)-` +
-        `[r:${relation_name}*1..${relation_depth}` +
-        dynamicFilterPropertiesAdderAndAddParameterKey(
-          relation_filters,
-          FilterPropertiesType.RELATION
-        ) +
-        `]->(n)`;
+      `MATCH (n ` + dynamicFilterPropertiesAdder(node_filters) +
+      ` where ${idLabelCondition} ` +
+      ` match(m` +
+      dynamicLabelAdder(parentLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(parent_filters) +
+      ` match (m)-` +
+      `[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKey(
+        relation_filters,
+        FilterPropertiesType.RELATION
+      ) +
+      `]->(n)`;
       if (
         parentExcludedLabelsWithoutEmptyString &&
         parentExcludedLabelsWithoutEmptyString.length > 0
@@ -4587,8 +4586,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
 
       relation_filters = changeObjectKeyName(relation_filters);
-      const parameters = { ...parent_filters, ...relation_filters };
-      console.log(query);
+      const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
+      //console.log(query);
 
       const res = await this.read(query, parameters, databaseOrTransaction);
       if (!res || !res["records"] || res["records"].length == 0) {
