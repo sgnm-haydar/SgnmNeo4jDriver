@@ -4530,7 +4530,6 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async getParentByIdsLabelsAndFiltersWithExcludedLabels(
     idsLabels: object[],
-    node_labels: string[] = [""],
     node_filters: object = {},
     parent_labels: string[] = [""],
     parent_filters: object = {},
@@ -4541,8 +4540,7 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string
   ) {
     try {
-      const nodeLabelsWithoutEmptyString =
-        filterArrayForEmptyString(node_labels);
+
       const parentLabelsWithoutEmptyString =
         filterArrayForEmptyString(parent_labels);
       const parentExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
@@ -4553,18 +4551,19 @@ export class Neo4jService implements OnApplicationShutdown {
       //   node_labels,
       //   node_filters
       // );
-      let idLabelCondition = ` ((id(n) = ${idsLabels[0]['identifier']} n:${idsLabels[0]['label']}) `    ;
+      let idLabelCondition = ` ((id(n) = ${idsLabels[0]['identifier']} and  n:${idsLabels[0]['label']}) `    ;
       idsLabels.forEach((item) => {
         if (item['identifier'] !=idsLabels[0]['identifier']) {
-          idLabelCondition = idLabelCondition + ` or ((id(n) = ${item['identifier']} n:${item['label']}) `    ;
+          idLabelCondition = idLabelCondition + ` or (id(n) = ${item['identifier']} and n:${item['label']}) `    ;
         }
 
       });
       idLabelCondition = idLabelCondition + ') ';  
       let query =
         `MATCH (n` +
-        dynamicLabelAdder(nodeLabelsWithoutEmptyString) +
-        `) where ${idLabelCondition} match(m` +
+        `) where ${idLabelCondition} and ` +
+        dynamicFilterPropertiesAdder(node_filters) +
+        ` match(m` +
         dynamicLabelAdder(parentLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(parent_filters) +
         ` match (m)-` +
