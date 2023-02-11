@@ -4610,6 +4610,107 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  async findChildrensByIdAndNotLabelsAndChildrenIdsAndLabels(
+    root_id: number,
+    root_labels: string[] = [""],
+    root_filters: object = {},
+    root_exculuded_labels: string[] = [""],
+    idsLabels: object[] ,
+    children_filters: object = {},
+    children_excluded_labels: string[] = [""],
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+        root_exculuded_labels
+      );
+      const childrenExcludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_excluded_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+
+      let parameters = { root_id, ...root_filters };
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[r:${relation_name}*1..${relation_depth} ` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        `]->(m` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+        `  WHERE  id(n) = $root_id `;
+      if (
+        rootExcludedLabelsWithoutEmptyString &&
+        rootExcludedLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          " and " +
+          dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
+      }
+      if (
+        childrenExcludedLabelsLabelsWithoutEmptyString &&
+        childrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          " and " +
+          dynamicNotLabelAdder(
+            "m",
+            childrenExcludedLabelsLabelsWithoutEmptyString
+          );
+      }
+
+     
+
+      let idLabelCondition = ` and ((id(m) = ${idsLabels[0]['identifier']} and  m:${idsLabels[0]['label']}) `    ;
+      idsLabels.forEach((item) => {
+        if (item['identifier'] !=idsLabels[0]['identifier']) {
+          idLabelCondition = idLabelCondition + ` or (id(m) = ${item['identifier']} and m:${item['label']}) `    ;
+        }
+
+      });
+      idLabelCondition = idLabelCondition + ') ';  
+      cypher = cypher + idLabelCondition;
+
+
+      cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      children_filters = changeObjectKeyName(children_filters, "3");
+      parameters = { ...parameters, ...children_filters, ...relation_filters };
+
+      response = await this.read(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
 }
 
 
