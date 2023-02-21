@@ -3101,12 +3101,12 @@ export class Neo4jService implements OnApplicationShutdown {
             "m",
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
-          ` and (any(prop in keys(m) (m[prop]=~ $searchString and prop <> 'key'))) ` +
+          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) ` +
           `RETURN n as parent,m as children,r as relation `;
       } else {
         cypher =
           cypher +
-          `(any(prop in keys(m) (m[prop]=~ $searchString and prop <> 'key'))) ` +
+          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) ` +
           `RETURN n as parent,m as children,r as relation `;
       }
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
