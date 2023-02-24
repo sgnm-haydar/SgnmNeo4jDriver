@@ -4925,6 +4925,72 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+
+  async findChildOfParentByParentIdAndChildIdWithFilters(
+    root_id: number,
+    root_labels: string[] = [],
+    root_filters: object = {},
+    child_id: number,
+    child_labels: string[] = [],
+    child_filters: object = {},
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(child_labels);
+
+      let parameters = { root_id,child_id, ...root_filters };
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        ` ]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          child_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+        `  WHERE  id(n) = $root_id and id(m)=$child_id RETURN n as parent,m as children, r as relation`;
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      child_filters = changeObjectKeyName(child_filters, "3");
+      parameters = { ...parameters, ...child_filters, ...relation_filters };
+
+      console.log(cypher);
+      console.log(parameters);
+
+      response = await this.read(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
 }
 
 
