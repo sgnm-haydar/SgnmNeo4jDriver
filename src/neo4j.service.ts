@@ -4711,49 +4711,49 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-  async getParentByIdsLabelsAndFiltersWithExcludedLabelsAndParentIds(
-    idsLabels: object[],
-    node_filters: object = {},
-    parent_labels: string[] = [""],
-    parent_filters: object = {},
-    parent_excluded_labels: string[] = [""],
-    parentIds: string[] = [""],
-    relation_name: string,
-    relation_filters,
-    relation_depth?: number | "",
-    databaseOrTransaction?: string
-  ) {
-    try {
+  // async getParentByIdsLabelsAndFiltersWithExcludedLabelsAndParentIds(
+  //   idsLabels: object[],
+  //   node_filters: object = {},
+  //   parent_labels: string[] = [""],
+  //   parent_filters: object = {},
+  //   parent_excluded_labels: string[] = [""],
+  //   parentIds: string[] = [""],
+  //   relation_name: string,
+  //   relation_filters,
+  //   relation_depth?: number | "",
+  //   databaseOrTransaction?: string
+  // ) {
+  //   try {
 
-      const parentLabelsWithoutEmptyString =
-        filterArrayForEmptyString(parent_labels);
-      const parentExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
-        parent_excluded_labels
-      );
-      // const node = await this.findByIdAndFilters(
-      //   +id,
-      //   node_labels,
-      //   node_filters
-      // );
-      let idLabelCondition = ` ((id(n) = ${idsLabels[0]['identifier']} and  n:${idsLabels[0]['label']}) `    ;
-      idsLabels.forEach((item) => {
-        if (item['identifier'] !=idsLabels[0]['identifier']) {
-          idLabelCondition = idLabelCondition + ` or (id(n) = ${item['identifier']} and n:${item['label']}) `    ;
-        }
-      });
-      idLabelCondition = idLabelCondition + ') ';   
+  //     const parentLabelsWithoutEmptyString =
+  //       filterArrayForEmptyString(parent_labels);
+  //     const parentExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+  //       parent_excluded_labels
+  //     );
+  //     // const node = await this.findByIdAndFilters(
+  //     //   +id,
+  //     //   node_labels,
+  //     //   node_filters
+  //     // );
+  //     let idLabelCondition = ` ((id(n) = ${idsLabels[0]['identifier']} and  n:${idsLabels[0]['label']}) `    ;
+  //     idsLabels.forEach((item) => {
+  //       if (item['identifier'] !=idsLabels[0]['identifier']) {
+  //         idLabelCondition = idLabelCondition + ` or (id(n) = ${item['identifier']} and n:${item['label']}) `    ;
+  //       }
+  //     });
+  //     idLabelCondition = idLabelCondition + ') ';   
 
 
-      let parentIdsCondition = "";
-      if (parentIds.length > 0) {
-        parentIdsCondition = ` ((id(n) = ${parentIds[0]}) `    ;
-        parentIds.forEach((item) => {
-          if (item != parentIds[0]) {
-            parentIdsCondition = parentIdsCondition + ` or (id(n) = ${item} ) `    ;
-          }
-        });
-        parentIdsCondition = parentIdsCondition + ') ';  
-      }
+  //     let parentIdsCondition = "";
+  //     if (parentIds.length > 0) {
+  //       parentIdsCondition = ` ((id(n) = ${parentIds[0]}) `    ;
+  //       parentIds.forEach((item) => {
+  //         if (item != parentIds[0]) {
+  //           parentIdsCondition = parentIdsCondition + ` or (id(n) = ${item} ) `    ;
+  //         }
+  //       });
+  //       parentIdsCondition = parentIdsCondition + ') ';  
+  //     }
      
 
 
@@ -4761,61 +4761,61 @@ export class Neo4jService implements OnApplicationShutdown {
 
 
       
-      let query =
-      `MATCH (n ` + dynamicFilterPropertiesAdder(node_filters) +
-      ` where ${idLabelCondition} and ${parentIdsCondition} ` +
-      ` match(m` +
-      dynamicLabelAdder(parentLabelsWithoutEmptyString) +
-      dynamicFilterPropertiesAdder(parent_filters) +
-      ` match (m)-` +
-      `[r:${relation_name}*1..${relation_depth}` +
-      dynamicFilterPropertiesAdderAndAddParameterKey(
-        relation_filters,
-        FilterPropertiesType.RELATION
-      ) +
-      `]->(n)`;
+  //     let query =
+  //     `MATCH (n ` + dynamicFilterPropertiesAdder(node_filters) +
+  //     ` where ${idLabelCondition} and ${parentIdsCondition} ` +
+  //     ` match(m` +
+  //     dynamicLabelAdder(parentLabelsWithoutEmptyString) +
+  //     dynamicFilterPropertiesAdder(parent_filters) +
+  //     ` match (m)-` +
+  //     `[r:${relation_name}*1..${relation_depth}` +
+  //     dynamicFilterPropertiesAdderAndAddParameterKey(
+  //       relation_filters,
+  //       FilterPropertiesType.RELATION
+  //     ) +
+  //     `]->(n)`;
 
 
      
-      if (
-        parentExcludedLabelsWithoutEmptyString &&
-        parentExcludedLabelsWithoutEmptyString.length > 0
-      ) {
-        query =
-          query +
-          " where " +
-          dynamicNotLabelAdder("m", parentExcludedLabelsWithoutEmptyString) +
-          ` return m as parent,n as children`;
-      } else {
-        query = query + ` return m as parent,n as children`;
-      }
+  //     if (
+  //       parentExcludedLabelsWithoutEmptyString &&
+  //       parentExcludedLabelsWithoutEmptyString.length > 0
+  //     ) {
+  //       query =
+  //         query +
+  //         " where " +
+  //         dynamicNotLabelAdder("m", parentExcludedLabelsWithoutEmptyString) +
+  //         ` return m as parent,n as children`;
+  //     } else {
+  //       query = query + ` return m as parent,n as children`;
+  //     }
 
-      relation_filters = changeObjectKeyName(relation_filters);
-      const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
-      //console.log(query);
+  //     relation_filters = changeObjectKeyName(relation_filters);
+  //     const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
+  //     //console.log(query);
 
-      const res = await this.read(query, parameters, databaseOrTransaction);
-      if (!res || !res["records"] || res["records"].length == 0) {
-        return [];
-        //throw new HttpException(parent_of_child_not_found, 404);
-      }
-      return res["records"];
-    } catch (error) {
-      if (error.response?.code) {
-        throw new HttpException(
-          { message: error.response.message, code: error.response.code },
-          error.status
-        );
-      } else {
-        throw new HttpException(
-          "library_server_error",
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-      }
-    }
-  }
+  //     const res = await this.read(query, parameters, databaseOrTransaction);
+  //     if (!res || !res["records"] || res["records"].length == 0) {
+  //       return [];
+  //       //throw new HttpException(parent_of_child_not_found, 404);
+  //     }
+  //     return res["records"];
+  //   } catch (error) {
+  //     if (error.response?.code) {
+  //       throw new HttpException(
+  //         { message: error.response.message, code: error.response.code },
+  //         error.status
+  //       );
+  //     } else {
+  //       throw new HttpException(
+  //         "library_server_error",
+  //         HttpStatus.INTERNAL_SERVER_ERROR
+  //       );
+  //     }
+  //   }
+  // }
 
-  async findChildrensByIdAndNotLabelsNotChildrenIds(
+  async findChildrensByIdAndNotLabelsAndChildrenIds(
     root_id: number,
     root_labels: string[] = [""],
     root_filters: object = {},
@@ -4826,7 +4826,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
-    notChildrenIds,
+    childrenIds,
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -4843,8 +4843,8 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
 
-      const notChildrenIdsWithoutEmptyString =
-        filterArrayForEmptyString(notChildrenIds);
+      const childrenIdsWithoutEmptyString =
+        filterArrayForEmptyString(childrenIds);
 
       let parameters = { root_id, ...root_filters };
       let cypher;
@@ -4890,16 +4890,16 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
 
-      if (notChildrenIdsWithoutEmptyString.length > 0) {
-        let notChildrenIdsCondition = ` and (id(m) = ${notChildrenIdsWithoutEmptyString[0]} `;
-        notChildrenIdsWithoutEmptyString.forEach((item) => {
-          if (item !=notChildrenIdsWithoutEmptyString[0]) {
-            notChildrenIdsCondition = notChildrenIdsCondition + ` or id(m) = ${item}) `    ;
+      if (childrenIdsWithoutEmptyString.length > 0) {
+        let childrenIdsCondition = ` and (id(m) = ${childrenIdsWithoutEmptyString[0]} `;
+        childrenIdsWithoutEmptyString.forEach((item) => {
+          if (item !=childrenIdsWithoutEmptyString[0]) {
+            childrenIdsCondition = childrenIdsCondition + ` or id(m) = ${item} `    ;
           }
         });
-        notChildrenIdsCondition = notChildrenIdsCondition + ') ';  
+        childrenIdsCondition = childrenIdsCondition + ') ';  
         cypher =
-          cypher + notChildrenIdsCondition;
+          cypher + childrenIdsCondition;
       }
  
 
