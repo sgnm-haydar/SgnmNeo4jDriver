@@ -3101,12 +3101,12 @@ export class Neo4jService implements OnApplicationShutdown {
             "m",
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
-          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or (${searchString} IN m.tag)` +
+          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)` +
           `RETURN n as parent,m as children,r as relation `;
       } else {
         cypher =
           cypher +
-          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or (${searchString} IN m.tag) ` +
+          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag) ` +
           `RETURN n as parent,m as children,r as relation `;
       }
       if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
@@ -3280,12 +3280,12 @@ export class Neo4jService implements OnApplicationShutdown {
             "m",
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
-          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or (${search_string} IN m.tag)` +
+          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${search_string}' IN m.tag)` +
           `RETURN count(m) as count  `;
       } else {
         cypher =
           cypher +
-          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or (${search_string} IN m.tag)` +
+          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${search_string}' IN m.tag)` +
           `RETURN count(m) as count  `;
       }
 
