@@ -4991,6 +4991,168 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+
+  async sortByParentIdAndChildrenFiltersWithCreatedAtOrUpdatedAt(
+    root_id: number,
+    root_labels: string[] = [""],
+    root_filters: object = {},
+    children_labels: string[] = [],
+    children_filters: object = {},
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    sortProperty:'createdAt' | 'updatedAt' = 'createdAt',
+    afterThisDate:string,
+    beforeThisDate?:string,
+    orderBy: 'DESC' | 'ASC' = 'DESC',
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      let parameters = { root_id, ...root_filters };
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        ` ]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+
+
+        `  WHERE  id(n) = $root_id and ${await this.sortCondition(sortProperty,beforeThisDate,afterThisDate)}  RETURN n as parent,m as children, r as relation ORDER BY  m.${sortProperty}  ${orderBy}`
+      
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      children_filters = changeObjectKeyName(children_filters, "3");
+      parameters = { ...parameters, ...children_filters, ...relation_filters };
+
+
+      response = await this.read(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+
+  async sortByParentFiltersAndChildrenFiltersWithCreatedAtOrUpdatedAt(
+    root_labels: string[] = [],
+    root_filters: object = {},
+    children_labels: string[] = [],
+    children_filters: object = {},
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    sortProperty:'createdAt' | 'updatedAt' = 'createdAt',
+    afterThisDate:string,
+    beforeThisDate?:string,
+    orderBy: 'DESC' | 'ASC' = 'DESC',
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      const cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        ` ]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` WHERE ${await this.sortCondition(sortProperty,beforeThisDate,afterThisDate)}`+
+        ` RETURN n as parent,m as children,r as relation ORDER BY  m.${sortProperty}  ${orderBy}`;
+
+      children_filters = changeObjectKeyName(children_filters);
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      const parameters = {
+        ...root_filters,
+        ...children_filters,
+        ...relation_filters,
+      };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
+      return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+
+  async sortCondition(sortProperty:'createdAt' | 'updatedAt',
+    beforeThisDate?:string,
+    afterThisDate?:string){
+
+      if(sortProperty == 'createdAt'){
+
+        if(!beforeThisDate && afterThisDate){
+
+          return `'${afterThisDate}' < m.${sortProperty}`
+        }
+        else if(beforeThisDate && !afterThisDate){
+          return  `m.${sortProperty} < '${beforeThisDate}'`
+        }
+        else if(afterThisDate && beforeThisDate){
+          return `'${afterThisDate}' < m.${sortProperty} < '${beforeThisDate}'`
+        }
+        
+      }
+      else if(sortProperty == 'updatedAt'){
+        if(!beforeThisDate && afterThisDate){
+
+          return `'${afterThisDate}' < m.${sortProperty}`
+        }
+        else if(beforeThisDate && !afterThisDate){
+          return  `m.${sortProperty} < '${beforeThisDate}'`
+        }
+        else if(afterThisDate && beforeThisDate){
+          return `'${afterThisDate}' < m.${sortProperty} < '${beforeThisDate}'`
+        }
+
+      }
+  }
+
 }
 
 
