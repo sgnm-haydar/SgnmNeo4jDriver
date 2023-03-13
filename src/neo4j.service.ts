@@ -1606,8 +1606,8 @@ export class Neo4jService implements OnApplicationShutdown {
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
 
-      console.log(cypher);
-      console.log(parameters);
+       
+         
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -1669,8 +1669,8 @@ export class Neo4jService implements OnApplicationShutdown {
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
 
-      console.log(cypher);
-      console.log(parameters);
+     
+         
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -3904,8 +3904,8 @@ export class Neo4jService implements OnApplicationShutdown {
     RETURN collect({count: rCount, relationName: type, node: {source: startLabel, target: endLabel}}) as relationships`;
     children_filters = changeObjectKeyName(children_filters);
     const parameters = { ...root_filters, ...children_filters };
-    console.log(query);
-    console.log(parameters);
+      
+       
     const node = await this.read(query, parameters);
     return node.records;
   }
@@ -3972,7 +3972,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters);
       const parameters = { id, ...parent_filters, ...relation_filters };
-      console.log(query);
+        
 
       const res = await this.read(query, parameters, databaseOrTransaction);
       if (!res || !res["records"] || res["records"].length == 0) {
@@ -4587,7 +4587,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters);
       const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
-      //console.log(query);
+         
 
       const res = await this.read(query, parameters, databaseOrTransaction);
       if (!res || !res["records"] || res["records"].length == 0) {
@@ -4792,7 +4792,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
   //     relation_filters = changeObjectKeyName(relation_filters);
   //     const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
-  //     //console.log(query);
+    
 
   //     const res = await this.read(query, parameters, databaseOrTransaction);
   //     if (!res || !res["records"] || res["records"].length == 0) {
@@ -4973,8 +4973,8 @@ export class Neo4jService implements OnApplicationShutdown {
       child_filters = changeObjectKeyName(child_filters, "3");
       parameters = { ...parameters, ...child_filters, ...relation_filters };
 
-      console.log(cypher);
-      console.log(parameters);
+       
+         
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
