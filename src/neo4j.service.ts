@@ -6030,6 +6030,50 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
     
+    async findByIdAndFiltersWithoutError(
+      id: number,
+      labels: string[],
+      filter_properties: object = {},
+      excluded_labels: Array<string> = [],
+      databaseOrTransaction?: string | Transaction
+    ) {
+      const LabelsWithoutEmptyString = filterArrayForEmptyString(labels);
+      const excludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(excluded_labels);
+      let query =
+        "match (n" +
+        dynamicLabelAdder(LabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(filter_properties) +
+        ` where id(n)=${id} `;
+      if (
+        excludedLabelsLabelsWithoutEmptyString &&
+        excludedLabelsLabelsWithoutEmptyString.length > 0
+      ) {
+        query =
+          query +
+          " and " +
+          dynamicNotLabelAdder("n", excludedLabelsLabelsWithoutEmptyString) +
+          ` return n`;
+      } else {
+        query = query + ` return n`;
+      }
+  
+      filter_properties["id"] = id;
+      const node = await this.read(
+        query,
+        filter_properties,
+        databaseOrTransaction
+      );
+  
+      delete filter_properties["id"];
+  
+      if (node.records.length === 0) {
+        return [];
+      } else {
+        return node.records[0]["_fields"][0];
+      }
+    }
+    
 }
 
 
