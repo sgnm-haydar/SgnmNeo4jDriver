@@ -6074,6 +6074,127 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
     
+    // async findParentsOfChildrenByIdAndFiltersWithExclutedLabels(
+    //   root_filters: object = {},
+      
+    //   children_id:string,
+    //   children_labels: string[] = [],
+    //   children_filters: object = {},
+    //   relation_name: string,
+    //   excluted_relation_name:string,
+    //   relation_filters:object = {}
+    // ) {
+    //   try {
+    //     if (!relation_name) {
+    //       throw new HttpException(required_fields_must_entered, 404);
+    //     }
+    //     const parentsId=[]
+    
+       
+        
+    //     let parameters = { ...root_filters };
+    //   const childrenLabelsWithoutEmptyString =
+    //     filterArrayForEmptyString(children_labels);
+    
+    //     let cypher;
+    //     let response;
+    
+    //     cypher = `MATCH (n:${childrenLabelsWithoutEmptyString} ${ dynamicFilterPropertiesAdderAndAddParameterKey(
+    //       children_filters,
+    //       FilterPropertiesType.NODE,
+    //       "3"
+    //     )} WITH n, [(n)<-[:${relation_name} ${dynamicFilterPropertiesAdderAndAddParameterKey(
+    //       relation_filters,
+    //       FilterPropertiesType.RELATION,
+    //       "2"
+    //     )}]-(x ${dynamicFilterPropertiesAdder(root_filters)} | x] as parents where id(n)=${children_id} and NONE(rel in r Where type(rel)=${excluted_relation_name} ) RETURN  parents;`
+    
+    
+    //     relation_filters = changeObjectKeyName(relation_filters, "2");
+    //       children_filters = changeObjectKeyName(children_filters, "3");
+    //       parameters = { ...parameters, ...children_filters, ...relation_filters };
+    //     response = await this.read(cypher,parameters);
+    
+    //     const parents=response["records"][0]['_fields'][0]
+    
+    //      for (let index = 0; index < parents.length; index++) {
+         
+    //       if(parents[index]['labels']!='Root'){
+    //         let value=parents[index].identity.low.toString();
+    //         parentsId.push(value);
+    //       }
+      
+    //      }
+    
+    //      return parentsId;
+    //   } catch (error) {
+    //     if (error.response?.code) {
+    //       throw new HttpException(
+    //         { message: error.response?.message, code: error.response?.code },
+    //         error.status
+    //       );
+    //     } else {
+    //       throw new HttpException(error, 500);
+    //     }
+    //   }
+    //   }
+
+
+      async getWintegrationHistory(
+        root_id:string,
+        root_labels: string[] = [],
+        root_filters: object = {},
+        child_id:string,
+        children_labels: string[] = [],
+        children_filters: object = {},
+        excluted_relation_name:string,
+        relation_filters: object = {},
+        sortProperty:'createdAt' | 'updatedAt' = 'createdAt',
+        orderBy: 'DESC' | 'ASC' = 'DESC'
+      ) {
+        try {
+          const rootLabelsWithoutEmptyString =
+            filterArrayForEmptyString(root_labels);
+          const childrenLabelsWithoutEmptyString =
+            filterArrayForEmptyString(children_labels);
+    
+          const cypher =
+            `MATCH p=(n` +
+            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(children_filters) +
+            `<-[r` +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              relation_filters,
+              FilterPropertiesType.RELATION,
+              "2"
+            ) +
+            `]-(m` +
+            dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(root_filters) +
+            `WHERE ALL( rel in relationships(p) WHERE type(rel)<>"${excluted_relation_name}")`+
+            ` AND id(n)=${child_id} AND id(m)<>${root_id}`+
+            ` RETURN n,m ORDER BY  m.${sortProperty}  ${orderBy}`;
+    
+          children_filters = changeObjectKeyName(children_filters);
+          relation_filters = changeObjectKeyName(relation_filters, "2");
+          const parameters = {
+            ...root_filters,
+            ...children_filters,
+            ...relation_filters,
+          };
+          const result = await this.read(cypher, parameters);
+          return result["records"];
+        } catch (error) {
+          if (error.response?.code) {
+            throw new HttpException(
+              { message: error.response?.message, code: error.response?.code },
+              error.status
+            );
+          } else {
+            throw new HttpException(error, 500);
+          }
+        }
+      }
 }
 
 
