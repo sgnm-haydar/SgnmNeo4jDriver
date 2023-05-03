@@ -6259,6 +6259,61 @@ export class Neo4jService implements OnApplicationShutdown {
           }
         }
       }
+
+      async getWintegrationHistoryV2(
+        root_id:string,
+        root_labels: string[] = [],
+        root_filters: object = {},
+        child_id:string,
+        children_labels: string[] = [],
+        children_filters: object = {},
+        excluted_relation_name:string,
+        relation_filters: object = {},
+        sortProperty:'createdAt' | 'updatedAt' = 'createdAt',
+        orderBy: 'DESC' | 'ASC' = 'DESC'
+      ) {
+        try {
+          const rootLabelsWithoutEmptyString =
+            filterArrayForEmptyString(root_labels);
+          const childrenLabelsWithoutEmptyString =
+            filterArrayForEmptyString(children_labels);
+    
+          const cypher =
+            `MATCH p=(n` +
+            dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdder(children_filters) +
+            `<-[:PARENT_OF` +
+            dynamicFilterPropertiesAdderAndAddParameterKey(
+              relation_filters,
+              FilterPropertiesType.RELATION,
+              "2"
+            ) +
+            `]-(m` +
+            dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+            dynamicFilterPropertiesAdderAndAddParameterKey(root_filters) +
+            `WHERE  id(n)=${child_id}`+
+            ` RETURN m ORDER BY  m.${sortProperty}  ${orderBy}`;
+    
+          children_filters = changeObjectKeyName(children_filters);
+          relation_filters = changeObjectKeyName(relation_filters, "2");
+          const parameters = {
+            ...root_filters,
+            ...children_filters,
+            ...relation_filters,
+          };
+          const result = await this.read(cypher, parameters);
+          return result["records"];
+        } catch (error) {
+          if (error.response?.code) {
+            throw new HttpException(
+              { message: error.response?.message, code: error.response?.code },
+              error.status
+            );
+          } else {
+            throw new HttpException(error, 500);
+          }
+        }
+      }
 }
 
 
