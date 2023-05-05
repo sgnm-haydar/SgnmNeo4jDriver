@@ -327,3 +327,52 @@ export function dynamicOrderByColumnAdder(
   }
   return optionalLabels;
 }
+export function dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+  filterProperties,
+  filterPropertiesType: FilterPropertiesType = FilterPropertiesType.NODE,
+  parameterKey = "1"
+) {
+  if (
+    (!filterProperties || Object.keys(filterProperties).length === 0) &&
+    filterPropertiesType === FilterPropertiesType.NODE
+  ) {
+    return ")";
+  }
+  let dynamicQueryParameter = "";
+
+  Object.entries(filterProperties).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException("undefined_value_recieved", 400);
+    }
+    if (index === 0) {
+      if (typeof element[1] != 'object') {
+        dynamicQueryParameter +=
+        ` { ${element[0]}` + `: $` + `${element[0]}` + parameterKey;
+       }
+      else {
+        Object.entries(element[1]).forEach((param, index) => {
+        dynamicQueryParameter += ` { ${param[0]} :${param[1]}`;
+       });
+      }  
+    } else {
+      if (typeof element[1] != 'object') {
+        dynamicQueryParameter +=
+          `,${element[0]}` + `: $` + `${element[0]}` + parameterKey;
+       }
+       else {
+        Object.entries(element[1]).forEach((param, index) => {
+          dynamicQueryParameter += ` ,${param[0]} :${param[1]}`;
+         });
+       }   
+    }
+    if (Object.keys(filterProperties).length === index + 1) {
+      if (filterPropertiesType === FilterPropertiesType.NODE) {
+        dynamicQueryParameter += ` })`;
+      } else {
+        dynamicQueryParameter += ` }`;
+      }
+    }
+  });
+  
+  return dynamicQueryParameter;
+}
