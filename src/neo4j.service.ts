@@ -7070,6 +7070,1048 @@ export class Neo4jService implements OnApplicationShutdown {
           }
         }
       }     
+
+
+////////////////////////////////////////////////////// 17-05-2023 sonrası ////////////////////////////////////////////// 
+async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria(
+  root_labels: string[] = [""],
+  root_filters: object = {},
+  root_exculuded_labels: string[] = [""],
+  children_labels: Array<string> = [],
+  children_filters: object = {},
+  children_exculuded_labels: string[] = [""],
+  children_children_labels: Array<string> = [],
+  children_children_filters: object = {},
+  children_children_exculuded_labels: string[] = [""],
+  relation_name: string,
+  relation_filters: object = {},
+  relation_depth: number | "",
+  relation_name_child: string,
+  relation_filters_child: object = {},
+  relation_depth_child: number | "",
+  queryObject: queryObjectType,
+  databaseOrTransaction?: string
+) {
+  try {
+    if (!relation_name) {
+      throw new HttpException("required_fields_must_entered", 404);
+    }
+    const rootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_labels);
+    const childrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_labels);  
+    const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+      root_exculuded_labels
+    );
+    const childrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_exculuded_labels);
+    const childrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_exculuded_labels);  
+    let parameters = {  ...queryObject };
+    parameters.skip = int(+queryObject.skip) as unknown as number;
+    parameters.limit = int(+queryObject.limit) as unknown as number;
+
+     let cypher;
+     let response;
+
+     let relation_filters_child_parametric = {};
+
+     Object.entries(relation_filters_child).forEach((element, index) => {
+     
+      if (typeof element[1] != 'object') {
+          relation_filters_child_parametric[element[0]] = element[1];
+      }
+     });
+
+
+    cypher =
+      `MATCH p=(n` +
+      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters) +
+      `-[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters,
+        FilterPropertiesType.RELATION,
+        "2"
+      ) +
+      ` ]->(m` +
+      dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_filters,
+        FilterPropertiesType.NODE,
+        "3"
+      )+
+      `-[t:${relation_name_child}*1..${relation_depth_child}` + 
+      //child_child_filter +
+
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child,
+        FilterPropertiesType.RELATION,
+        "4"
+      )+
+      ` ]->(k` +
+      dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_filters,
+        FilterPropertiesType.NODE,
+        "5"
+      )
+    if (
+      rootExcludedLabelsWithoutEmptyString &&
+      rootExcludedLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
+    }
+    if (
+      childrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children `;
+    // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+    //   cypher =
+    //     cypher +
+    //     dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+    //     ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+    // } else {
+    //   cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    // }
+
+    relation_filters = changeObjectKeyName(relation_filters, "2");
+    children_filters = changeObjectKeyName(children_filters, "3");
+    relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
+    children_children_filters = changeObjectKeyName(children_children_filters, "5");
+
+    parameters = {
+      ...parameters,
+      ...children_children_filters,
+      ...relation_filters_child,
+      ...children_filters,
+      ...relation_filters,
+      ...root_filters,
+    };
+    // eslint-disable-next-line prefer-const
+    response = await this.read(cypher, parameters, databaseOrTransaction);
+    return response["records"];
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, 500);
+    }
+  }
+}
+async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria4(
+  root_labels: string[] = [""],
+  root_filters: object = {},
+  root_exculuded_labels: string[] = [""],
+  children_labels: Array<string> = [],
+  children_filters: object = {},
+  children_exculuded_labels: string[] = [""],
+  children_children_labels: Array<string> = [],
+  children_children_filters: object = {},
+  children_children_exculuded_labels: string[] = [""],
+  children_children_children_labels: Array<string> = [],
+  children_children_children_filters: object = {},
+  children_children_children_exculuded_labels: string[] = [""],
+  relation_name: string,
+  relation_filters: object = {},
+  relation_depth: number | "",
+  relation_name_child: string,
+  relation_filters_child: object = {},
+  relation_depth_child: number | "",
+  relation_name_child_child: string,
+  relation_filters_child_child: object = {},
+  relation_depth_child_child: number | "",
+  queryObject: queryObjectType,
+  databaseOrTransaction?: string
+) {
+  try {
+    if (!relation_name) {
+      throw new HttpException("required_fields_must_entered", 404);
+    }
+    const rootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_labels);
+    const childrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_labels);  
+    const childrenChildrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_children_labels);
+
+    const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+      root_exculuded_labels
+    );
+    const childrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_exculuded_labels);
+    const childrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_exculuded_labels);  
+    const childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_children_exculuded_labels);  
+    let parameters = {  ...queryObject };
+    parameters.skip = int(+queryObject.skip) as unknown as number;
+    parameters.limit = int(+queryObject.limit) as unknown as number;
+
+     let cypher;
+     let response;
+
+     let relation_filters_child_parametric = {};
+
+     Object.entries(relation_filters_child).forEach((element, index) => {
+     
+      if (typeof element[1] != 'object') {
+          relation_filters_child_parametric[element[0]] = element[1];
+      }
+     });
+
+
+    cypher =
+      `MATCH p=(n` +
+      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters) +
+      `-[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters,
+        FilterPropertiesType.RELATION,
+        "2"
+      ) +
+      ` ]->(m` +
+      dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_filters,
+        FilterPropertiesType.NODE,
+        "3"
+      )+
+      `-[t:${relation_name_child}*1..${relation_depth_child}` + 
+      //child_child_filter +
+
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child,
+        FilterPropertiesType.RELATION,
+        "4"
+      )+
+      ` ]->(k` +
+      dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_filters,
+        FilterPropertiesType.NODE,
+        "5"
+      )
+      +
+      `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` + 
+      
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child_child,
+        FilterPropertiesType.RELATION,
+        "6"
+      )+
+      ` ]->(c` +
+      dynamicLabelAdder(childrenChildrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_children_filters,
+        FilterPropertiesType.NODE,
+        "7"
+      )
+    if (
+      rootExcludedLabelsWithoutEmptyString &&
+      rootExcludedLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
+    }
+    if (
+      childrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "k",
+          childrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "c",
+          childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
+                                   c as children_children_children, u as relation_children_children `;
+    // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+    //   cypher =
+    //     cypher +
+    //     dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+    //     ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+    // } else {
+    //   cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    // }
+
+    relation_filters = changeObjectKeyName(relation_filters, "2");
+    children_filters = changeObjectKeyName(children_filters, "3");
+    relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
+    children_children_filters = changeObjectKeyName(children_children_filters, "5");
+    relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
+    children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+
+    parameters = {
+      ...parameters,
+      ...children_children_children_filters,
+      ...relation_filters_child_child,
+      ...children_children_filters,
+      ...relation_filters_child,
+      ...children_filters,
+      ...relation_filters,
+      ...root_filters,
+    };
+    // eslint-disable-next-line prefer-const
+    response = await this.read(cypher, parameters, databaseOrTransaction);
+    return response["records"];
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, 500);
+    }
+  }
+}
+
+// .......
+async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria4(
+  root_id: string,
+  root_labels: string[] = [""],
+  root_filters: object = {},
+  root_exculuded_labels: string[] = [""],
+  children_labels: Array<string> = [],
+  children_filters: object = {},
+  children_exculuded_labels: string[] = [""],
+  children_children_labels: Array<string> = [],
+  children_children_filters: object = {},
+  children_children_exculuded_labels: string[] = [""],
+  children_children_children_labels: Array<string> = [],
+  children_children_children_filters: object = {},
+  children_children_children_exculuded_labels: string[] = [""],
+  relation_name: string,
+  relation_filters: object = {},
+  relation_depth: number | "",
+  relation_name_child: string,
+  relation_filters_child: object = {},
+  relation_depth_child: number | "",
+  relation_name_child_child: string,
+  relation_filters_child_child: object = {},
+  relation_depth_child_child: number | "",
+  queryObject: queryObjectType,
+  databaseOrTransaction?: string
+) {
+  try {
+    if (!relation_name) {
+      throw new HttpException("required_fields_must_entered", 404);
+    }
+    const rootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_labels);
+    const childrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_labels);  
+    const childrenChildrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_children_labels);
+
+    const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+      root_exculuded_labels
+    );
+    const childrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_exculuded_labels);
+    const childrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_exculuded_labels);  
+    const childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_children_exculuded_labels);  
+    let parameters = {  ...queryObject, root_id};
+    parameters.skip = int(+queryObject.skip) as unknown as number;
+    parameters.limit = int(+queryObject.limit) as unknown as number;
+
+     let cypher;
+     let response;
+
+     let relation_filters_child_parametric = {};
+
+     Object.entries(relation_filters_child).forEach((element, index) => {
+     
+      if (typeof element[1] != 'object') {
+          relation_filters_child_parametric[element[0]] = element[1];
+      }
+     });
+
+
+    cypher =
+      `MATCH p=(n` +
+      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters) +
+      `-[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters,
+        FilterPropertiesType.RELATION,
+        "2"
+      ) +
+      ` ]->(m` +
+      dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_filters,
+        FilterPropertiesType.NODE,
+        "3"
+      )+
+      `-[t:${relation_name_child}*1..${relation_depth_child}` + 
+      //child_child_filter +
+
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child,
+        FilterPropertiesType.RELATION,
+        "4"
+      )+
+      ` ]->(k` +
+      dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_filters,
+        FilterPropertiesType.NODE,
+        "5"
+      )
+      +
+      `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` + 
+      
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child_child,
+        FilterPropertiesType.RELATION,
+        "6"
+      )+
+      ` ]->(c` +
+      dynamicLabelAdder(childrenChildrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_children_filters,
+        FilterPropertiesType.NODE,
+        "7"
+      )
+    if (
+      rootExcludedLabelsWithoutEmptyString &&
+      rootExcludedLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
+    }
+    if (
+      childrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "k",
+          childrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "c",
+          childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    cypher = cypher + ` where id(n) = $root_id `;
+    cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
+                                   c as children_children_children, u as relation_children_children `;
+
+
+    // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+    //   cypher =
+    //     cypher +
+    //     dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+    //     ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+    // } else {
+    //   cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    // }
+
+    relation_filters = changeObjectKeyName(relation_filters, "2");
+    children_filters = changeObjectKeyName(children_filters, "3");
+    relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
+    children_children_filters = changeObjectKeyName(children_children_filters, "5");
+    relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
+    children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+
+    parameters = {
+      ...parameters,
+      ...children_children_children_filters,
+      ...relation_filters_child_child,
+      ...children_children_filters,
+      ...relation_filters_child,
+      ...children_filters,
+      ...relation_filters,
+      ...root_filters,
+    };
+    // eslint-disable-next-line prefer-const
+    response = await this.read(cypher, parameters, databaseOrTransaction);
+    return response["records"];
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, 500);
+    }
+  }
+}
+
+// .......
+
+async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria5(
+  main_root_id: string,
+  main_root_labels: string[] = [""],
+  main_root_filters: object = {},
+  main_relation_name: string,
+  main_relation_filters: object = {},
+  main_relation_depth: number | "",
+  root_labels: string[] = [""],
+  root_filters: object = {},
+  root_exculuded_labels: string[] = [""],
+  children_labels: Array<string> = [],
+  children_filters: object = {},
+  children_exculuded_labels: string[] = [""],
+  children_children_labels: Array<string> = [],
+  children_children_filters: object = {},
+  children_children_exculuded_labels: string[] = [""],
+  children_children_children_labels: Array<string> = [],
+  children_children_children_filters: object = {},
+  children_children_children_exculuded_labels: string[] = [""],
+  relation_name: string,
+  relation_filters: object = {},
+  relation_depth: number | "",
+  relation_name_child: string,
+  relation_filters_child: object = {},
+  relation_depth_child: number | "",
+  relation_name_child_child: string,
+  relation_filters_child_child: object = {},
+  relation_depth_child_child: number | "",
+  queryObject: queryObjectType,
+  databaseOrTransaction?: string
+) {
+  try {
+    if (!relation_name) {
+      throw new HttpException("required_fields_must_entered", 404);
+    }
+    const mainRootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(main_root_labels);
+    const rootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_labels);
+    const childrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_labels);  
+    const childrenChildrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_children_labels); 
+
+    const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+      root_exculuded_labels
+    );
+    const childrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_exculuded_labels);
+    const childrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_exculuded_labels);  
+    const childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_children_exculuded_labels);  
+
+    let parameters = {  ...queryObject };
+    parameters.skip = int(+queryObject.skip) as unknown as number;
+    parameters.limit = int(+queryObject.limit) as unknown as number;
+
+     let cypher;
+     let response;
+
+     let relation_filters_child_parametric = {};
+
+     Object.entries(relation_filters_child).forEach((element, index) => {
+     
+      if (typeof element[1] != 'object') {
+          relation_filters_child_parametric[element[0]] = element[1];
+      }
+     });
+
+
+    cypher =
+    `MATCH p=(w` +
+    dynamicLabelAdder(mainRootLabelsWithoutEmptyString) +
+    dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+      main_root_filters,
+      FilterPropertiesType.NODE,
+      "9"
+    )+
+    `-[h:${main_relation_name}*1..${main_relation_depth} ` +
+    dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+      main_relation_filters,
+      FilterPropertiesType.RELATION,
+      "8"
+    ) +
+      ` ]->(n` +
+      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters) +
+      `-[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters,
+        FilterPropertiesType.RELATION,
+        "2"
+      ) +
+      ` ]->(m` +
+      dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_filters,
+        FilterPropertiesType.NODE,
+        "3"
+      )+
+      `-[t:${relation_name_child}*1..${relation_depth_child}` + 
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child,
+        FilterPropertiesType.RELATION,
+        "4"
+      )+
+      ` ]->(k` +
+      dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_filters,
+        FilterPropertiesType.NODE,
+        "5"
+      )+
+      `-[p1:${relation_name_child_child}*1..${relation_depth_child_child}` + 
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child_child,
+        FilterPropertiesType.RELATION,
+        "6"
+      )+
+      ` ]->(usr` +
+      dynamicLabelAdder(childrenChildrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_children_filters,
+        FilterPropertiesType.NODE,
+        "7"
+      )
+    if (
+      rootExcludedLabelsWithoutEmptyString &&
+      rootExcludedLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
+    }
+    if (
+      childrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "k",
+          childrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "usr",
+          childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children,
+                                                               usr as children_children_children, p1 as relation_children_children  `;
+    // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+    //   cypher =
+    //     cypher +
+    //     dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+    //     ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+    // } else {
+    //   cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    // }
+
+    relation_filters = changeObjectKeyName(relation_filters, "2");
+    children_filters = changeObjectKeyName(children_filters, "3");
+    relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
+    children_children_filters = changeObjectKeyName(children_children_filters, "5");
+    main_root_filters = changeObjectKeyName(main_root_filters, "9");
+    main_relation_filters= changeObjectKeyName(main_relation_filters, "8");
+    relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
+    children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+
+    parameters = {
+      ...parameters,
+      ...children_children_children_filters,
+      ...relation_filters_child_child,
+      ...children_children_filters,
+      ...relation_filters_child,
+      ...children_filters,
+      ...relation_filters,
+      ...root_filters,
+      ...main_root_filters,
+      ...main_relation_filters
+    };
+    // eslint-disable-next-line prefer-const
+    response = await this.read(cypher, parameters, databaseOrTransaction);
+    return response["records"];
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, 500);
+    }
+  }
+}     
+
+
+
+
+async findChildrensByIdAndByChildrenIdAndFilters(
+  root_id: number,
+  root_labels: string[] = [""],
+  root_filters: object = {},
+  children_labels: string[] = [],
+  children_filters: object = {},
+  relation_name: string,
+  relation_filters: object = {},
+  relation_depth: number | "",
+  children_id:string,
+  databaseOrTransaction?: string
+) {
+  try {
+    if (!relation_name) {
+      throw new HttpException(required_fields_must_entered, 404);
+    }
+    const rootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_labels);
+
+    let parameters = { root_id, children_id, ...root_filters };
+    let cypher;
+    let response;
+
+    cypher =
+      `MATCH p=(n` +
+      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters) +
+      `-[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKey(
+        relation_filters,
+        FilterPropertiesType.RELATION,
+        "2"
+      ) +
+      ` ]->(m` +
+      dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKey(
+        children_filters,
+        FilterPropertiesType.NODE,
+        "3"
+      ) +
+      `  WHERE  id(n) = $root_id `;
+
+      if (children_id && children_id != null && children_id != undefined && children_id != "") {
+        cypher = cypher + ` and id(m) =  $children_id `;
+      }
+
+      cypher = cypher + `  RETURN n as parent,m as children, r as relation`;
+       
+
+    relation_filters = changeObjectKeyName(relation_filters, "2");
+    children_filters = changeObjectKeyName(children_filters, "3");
+    parameters = { ...parameters, ...children_filters, ...relation_filters };
+
+     
+       
+
+    response = await this.read(cypher, parameters, databaseOrTransaction);
+
+    return response["records"];
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, 500);
+    }
+  }
+}
+
+
+
+async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria(
+  main_root_id: string,
+  main_root_labels: string[] = [""],
+  main_root_filters: object = {},
+  main_relation_name: string,
+  main_relation_filters: object = {},
+  main_relation_depth: number | "",
+  root_labels: string[] = [""],
+  root_filters: object = {},
+  root_exculuded_labels: string[] = [""],
+  children_labels: Array<string> = [],
+  children_filters: object = {},
+  children_exculuded_labels: string[] = [""],
+  children_children_labels: Array<string> = [],
+  children_children_filters: object = {},
+  children_children_exculuded_labels: string[] = [""],
+  relation_name: string,
+  relation_filters: object = {},
+  relation_depth: number | "",
+  relation_name_child: string,
+  relation_filters_child: object = {},
+  relation_depth_child: number | "",
+  queryObject: queryObjectType,
+  databaseOrTransaction?: string
+) {
+  try {
+    if (!relation_name) {
+      throw new HttpException("required_fields_must_entered", 404);
+    }
+    const mainRootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(main_root_labels);
+    const rootLabelsWithoutEmptyString =
+      filterArrayForEmptyString(root_labels);
+    const childrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_labels);
+    const childrenChildrenLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_labels);  
+    const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
+      root_exculuded_labels
+    );
+    const childrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_exculuded_labels);
+    const childrenChildrenExcludedLabelsLabelsWithoutEmptyString =
+      filterArrayForEmptyString(children_children_exculuded_labels);  
+    let parameters = {  ...queryObject };
+    parameters.skip = int(+queryObject.skip) as unknown as number;
+    parameters.limit = int(+queryObject.limit) as unknown as number;
+
+     let cypher;
+     let response;
+
+     let relation_filters_child_parametric = {};
+
+     Object.entries(relation_filters_child).forEach((element, index) => {
+     
+      if (typeof element[1] != 'object') {
+          relation_filters_child_parametric[element[0]] = element[1];
+      }
+     });
+
+
+    cypher =
+    `MATCH p=(w` +
+    dynamicLabelAdder(mainRootLabelsWithoutEmptyString) +
+    dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+      main_root_filters,
+      FilterPropertiesType.NODE,
+      "9"
+    )+
+    `-[h:${main_relation_name}*1..${main_relation_depth} ` +
+    dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+      main_relation_filters,
+      FilterPropertiesType.RELATION,
+      "8"
+    ) +
+      ` ]->(n` +
+      dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdder(root_filters) +
+      `-[r:${relation_name}*1..${relation_depth}` +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters,
+        FilterPropertiesType.RELATION,
+        "2"
+      ) +
+      ` ]->(m` +
+      dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_filters,
+        FilterPropertiesType.NODE,
+        "3"
+      )+
+      `-[t:${relation_name_child}*1..${relation_depth_child}` + 
+      //child_child_filter +
+
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        relation_filters_child,
+        FilterPropertiesType.RELATION,
+        "4"
+      )+
+      ` ]->(k` +
+      dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
+      dynamicFilterPropertiesAdderAndAddParameterKeyNew(
+        children_children_filters,
+        FilterPropertiesType.NODE,
+        "5"
+      )
+    if (
+      rootExcludedLabelsWithoutEmptyString &&
+      rootExcludedLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder("n", rootExcludedLabelsWithoutEmptyString);
+    }
+    if (
+      childrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    if (
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
+      childrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+    ) {
+      cypher =
+        cypher +
+        " and " +
+        dynamicNotLabelAdder(
+          "m",
+          childrenChildrenExcludedLabelsLabelsWithoutEmptyString
+        );
+    }
+    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children `;
+    // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+    //   cypher =
+    //     cypher +
+    //     dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+    //     ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+    // } else {
+    //   cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    // }
+
+    relation_filters = changeObjectKeyName(relation_filters, "2");
+    children_filters = changeObjectKeyName(children_filters, "3");
+    relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
+    children_children_filters = changeObjectKeyName(children_children_filters, "5");
+    main_root_filters = changeObjectKeyName(main_root_filters, "9");
+    main_relation_filters= changeObjectKeyName(main_relation_filters, "8");
+
+    parameters = {
+      ...parameters,
+      ...children_children_filters,
+      ...relation_filters_child,
+      ...children_filters,
+      ...relation_filters,
+      ...root_filters,
+      ...main_root_filters,
+      ...main_relation_filters
+    };
+    // eslint-disable-next-line prefer-const
+    response = await this.read(cypher, parameters, databaseOrTransaction);
+    return response["records"];
+  } catch (error) {
+    if (error.response?.code) {
+      throw new HttpException(
+        { message: error.response?.message, code: error.response?.code },
+        error.status
+      );
+    } else {
+      throw new HttpException(error, 500);
+    }
+  }
+}     
 }
 
 
