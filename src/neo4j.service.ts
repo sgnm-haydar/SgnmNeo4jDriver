@@ -7877,8 +7877,8 @@ async findChildrensByIdAndByChildrenIdAndFilters(
       filterArrayForEmptyString(root_labels);
     const childrenLabelsWithoutEmptyString =
       filterArrayForEmptyString(children_labels);
-
-    let parameters = { root_id, children_id, ...root_filters };
+      let chId = +children_id;
+      let parameters = { root_id, children_id:chId, ...root_filters };
     let cypher;
     let response;
 
