@@ -3093,7 +3093,7 @@ export class Neo4jService implements OnApplicationShutdown {
           FilterPropertiesType.NODE,
           "2"
         )} WHERE`+
-       `${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)} AND id(n) = $root_id and `;
+        `(${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)}) AND id(n) = $root_id and `;
       if (childrenExcludedLabelsLabelsWithoutEmptyString.length > 0) {
         cypher =
           cypher +
