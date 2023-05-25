@@ -3135,6 +3135,95 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(error, 500);
       }
     }
+  } 
+  
+  async getPathAndChildrenByIdOrFiltersWithPaginationAndSearchString(
+    root_id: number,
+    root_labels: string[],
+    root_filters: object = {},
+    children_labels: string[],
+    children_filters: object = {},
+    children_exculuded_labels: string[],
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    queryObject: queryObjectType,
+    searchString: string,
+    databaseOrTransaction?: string
+  ) {
+    try {
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const childrenExcludedLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_exculuded_labels);
+
+      let parameters = { root_id, ...queryObject, ...root_filters };
+
+      parameters["searchString"] = `(?i).*${searchString}.*`;
+      parameters.skip = this.int(+queryObject.skip) as unknown as number;
+      parameters.limit = this.int(+queryObject.limit) as unknown as number;
+
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION
+        ) +
+        `]->(m${dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "2"
+        )} WHERE`+
+        `(${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)}) AND id(n) = $root_id and `;
+      if (childrenExcludedLabelsLabelsWithoutEmptyString.length > 0) {
+        cypher =
+          cypher +
+          dynamicNotLabelAdder(
+            "m",
+            childrenExcludedLabelsLabelsWithoutEmptyString
+          ) +
+          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)` +
+          `RETURN n as parent,m as children,r as relation `;
+      } else {
+        cypher =
+          cypher +
+          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag) ` +
+          `RETURN nodes(p) AS nodes, relationships(p) AS relationships `;
+      }
+      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        cypher =
+          cypher +
+          dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+          ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+      } else {
+        cypher = cypher + `SKIP $skip LIMIT $limit `;
+      }
+      relation_filters = changeObjectKeyName(relation_filters);
+      children_filters = changeObjectKeyName(children_filters, "2");
+      parameters = { ...parameters, ...children_filters, ...relation_filters };
+
+      // eslint-disable-next-line prefer-const
+      response = await this.read(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
   }
 
   async findChildrensByIdAndFiltersWithPaginationAndSearcString(
