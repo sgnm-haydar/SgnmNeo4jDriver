@@ -6503,6 +6503,7 @@ export class Neo4jService implements OnApplicationShutdown {
         relation_filters_child: object = {},
         relation_depth_child: number | "",
         queryObject: queryObjectType,
+        isCount: boolean = false,
         databaseOrTransaction?: string
       ) {
         try {
@@ -6619,15 +6620,24 @@ export class Neo4jService implements OnApplicationShutdown {
                 childrenChildrenExcludedLabelsLabelsWithoutEmptyString
               );
           }
-          cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
-          if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-            cypher =
-              cypher +
-              dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
-              ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-          } else {
-            cypher = cypher + ` SKIP $skip LIMIT $limit `;
+          if (isCount) {
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
           }
+          else {
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
+          }
+          
+          if (!isCount) {
+            if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+              cypher =
+                cypher +
+                dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
+                ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+            } else {
+              cypher = cypher + ` SKIP $skip LIMIT $limit `;
+            } 
+          }
+          
       
           relation_filters = changeObjectKeyName(relation_filters, "2");
           children_filters = changeObjectKeyName(children_filters, "3");
@@ -6677,6 +6687,7 @@ export class Neo4jService implements OnApplicationShutdown {
         relation_filters_child: object = {},
         relation_depth_child: number | "",
         queryObject: queryObjectType,
+        isCount: boolean = false,
         databaseOrTransaction?: string
       ) {
         try {
@@ -6778,15 +6789,24 @@ export class Neo4jService implements OnApplicationShutdown {
                 childrenChildrenExcludedLabelsLabelsWithoutEmptyString
               );
           }
-          cypher = cypher + ` RETURN n as parent,m as children, r as relation `;
-          if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-            cypher =
-              cypher +
-              dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
-              ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-          } else {
-            cypher = cypher + ` SKIP $skip LIMIT $limit `;
+          if (isCount) {
+            cypher = cypher + ` RETURN count(m) as totalCount `;
           }
+          else {
+            cypher = cypher + ` RETURN n as parent,m as children, r as relation `;
+          }
+          if (!isCount) {
+            if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+              cypher =
+                cypher +
+                dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
+                ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+            } else {
+              cypher = cypher + ` SKIP $skip LIMIT $limit `;
+            }
+          }
+
+         
       
           relation_filters = changeObjectKeyName(relation_filters, "2");
           children_filters = changeObjectKeyName(children_filters, "3");
@@ -6839,6 +6859,7 @@ export class Neo4jService implements OnApplicationShutdown {
         relation_filters_child_child: object = {},
         relation_depth_child_child: number | "",
         queryObject: queryObjectType,
+        isCount: boolean = false,
         databaseOrTransaction?: string
       ) {
         try {
@@ -6972,16 +6993,22 @@ export class Neo4jService implements OnApplicationShutdown {
                 childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
               );
           }
-          cypher = cypher + ` RETURN n as parent,m as children, r as relation `;
+          if (isCount) {
+            cypher = cypher + ` RETURN count(m) as totalCount `;
+          }
+          else {
+            cypher = cypher + ` RETURN n as parent,m as children, r as relation `;
+          }
+          if (!isCount) {
           if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
             cypher =
               cypher +
-              dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+              dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
               ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
           } else {
             cypher = cypher + ` SKIP $skip LIMIT $limit `;
+           }
           }
-      
           relation_filters = changeObjectKeyName(relation_filters, "2");
           children_filters = changeObjectKeyName(children_filters, "3");
           relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
@@ -7044,6 +7071,7 @@ export class Neo4jService implements OnApplicationShutdown {
         relation_filters_child_child: object = {},
         relation_depth_child_child: number | "",
         queryObject: queryObjectType,
+        isCount :  boolean =false,
         databaseOrTransaction?: string
       ) {
         try {
@@ -7189,16 +7217,22 @@ export class Neo4jService implements OnApplicationShutdown {
                 childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
               );
           }
-          cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
+          if (isCount) {
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
+          }
+          else {
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
+          }
+         if (!isCount) {
           if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
             cypher =
               cypher +
-              dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
+              dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
               ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
           } else {
             cypher = cypher + ` SKIP $skip LIMIT $limit `;
           }
-      
+        }
           relation_filters = changeObjectKeyName(relation_filters, "2");
           children_filters = changeObjectKeyName(children_filters, "3");
           relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
