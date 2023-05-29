@@ -3137,7 +3137,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   } 
   
-  async getPathAndChildrenByIdOrFiltersWithPaginationAndSearchString(
+  async getTreeStructureOfChildrenWithOrFilterBySearchString(
     root_id: number,
     root_labels: string[],
     root_filters: object = {},
@@ -3191,21 +3191,14 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
           ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)` +
-          `RETURN n as parent,m as children,r as relation `;
-      } else {
+          `WITH COLLECT(p) AS ps CALL apoc.convert.toTree(ps) yield value  RETURN value `;
+        } else {
         cypher =
           cypher +
           `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag) ` +
-          `RETURN nodes(p) AS nodes, relationships(p) AS relationships `;
-      }
-      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-        cypher =
-          cypher +
-          dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
-          ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-      } else {
-        cypher = cypher + `SKIP $skip LIMIT $limit `;
-      }
+          `WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value `;
+        }
+      cypher = cypher + `SKIP $skip LIMIT $limit `;
       relation_filters = changeObjectKeyName(relation_filters);
       children_filters = changeObjectKeyName(children_filters, "2");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
@@ -4372,15 +4365,7 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher +
         orChidrenLabelcondition +
         ` RETURN n as parent,m as children,r as relation `;
-
-      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-        cypher =
-          cypher +
-          dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
-          ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-      } else {
-        cypher = cypher + `SKIP $skip LIMIT $limit `;
-      }
+      cypher = cypher + `SKIP $skip LIMIT $limit `;
       relation_filters = changeObjectKeyName(relation_filters);
       children_filters = changeObjectKeyName(children_filters, "2");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
