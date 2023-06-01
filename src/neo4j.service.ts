@@ -3181,8 +3181,8 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "2"
-        )} WHERE`+
-        `(${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)}) AND id(n) = $root_id and `;
+        )} WHERE `+
+        `(${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)}) AND id(n) = $root_id AND `;
       if (childrenExcludedLabelsLabelsWithoutEmptyString.length > 0) {
         cypher =
           cypher +
@@ -3190,12 +3190,12 @@ export class Neo4jService implements OnApplicationShutdown {
             "m",
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
-          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)` +
+          `m.name =~ $searchString ` +
           `WITH COLLECT(p) AS ps CALL apoc.convert.toTree(ps) yield value  RETURN value `;
         } else {
         cypher =
           cypher +
-          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag) ` +
+          `m.name =~ $searchString ` +
           `WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value `;
         }
       cypher = cypher + `SKIP $skip LIMIT $limit `;
