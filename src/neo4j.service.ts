@@ -3198,7 +3198,7 @@ export class Neo4jService implements OnApplicationShutdown {
           `m.name =~ $searchString ` +
           `WITH COLLECT(p) AS ps  CALL apoc.convert.toTree(ps) yield value  RETURN value `;
         }
-      cypher = cypher + `SKIP $skip LIMIT $limit `;
+      // cypher = cypher + `SKIP $skip LIMIT $limit `;
       relation_filters = changeObjectKeyName(relation_filters);
       children_filters = changeObjectKeyName(children_filters, "2");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
