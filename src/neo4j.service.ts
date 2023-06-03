@@ -6997,7 +6997,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` RETURN n as parent,m as children, r as relation , k as children_children`;
+            cypher = cypher + ` RETURN n as parent,m as children, r as relation , k as children_children `;
           }
           if (!isCount) {
           if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
