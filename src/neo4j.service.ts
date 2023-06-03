@@ -7222,6 +7222,8 @@ export class Neo4jService implements OnApplicationShutdown {
           }
           else {
             cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
+
+            
           }
          if (!isCount) {
           if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
