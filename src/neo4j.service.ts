@@ -6997,7 +6997,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` RETURN n as parent,m as children, r as relation  `;
+            cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as totalCount  `;
           }
           if (!isCount) {
           if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
@@ -7221,7 +7221,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation,  count(n) as totalCount `;
 
             
           }
