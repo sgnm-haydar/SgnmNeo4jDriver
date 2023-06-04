@@ -6624,7 +6624,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation `;
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation , count(n) as count `;
           }
           
           if (!isCount) {
@@ -6793,7 +6793,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` RETURN n as parent,m as children, r as relation `;
+            cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as count `;
           }
           if (!isCount) {
             if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
@@ -6997,7 +6997,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as totalCount  `;
+            cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as count `;
           }
           if (!isCount) {
           if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
@@ -7221,7 +7221,7 @@ export class Neo4jService implements OnApplicationShutdown {
             cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
           }
           else {
-            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation,  count(n) as totalCount `;
+            cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation,  count(n) as count `;
 
             
           }
@@ -7391,7 +7391,7 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria(
           childrenChildrenExcludedLabelsLabelsWithoutEmptyString
         );
     }
-    cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children `;
+    cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children , count(n) as count `;
     // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
     //   cypher =
     //     cypher +
@@ -7585,7 +7585,7 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria4(
         );
     }
     cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
-                                   c as children_children_children, u as relation_children_children `;
+                                   c as children_children_children, u as relation_children_children , count(n) as count `;
     // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
     //   cypher =
     //     cypher +
@@ -7787,7 +7787,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria4(
     }
     cypher = cypher + ` where id(n) = $root_id `;
     cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
-                                   c as children_children_children, u as relation_children_children `;
+                                   c as children_children_children, u as relation_children_children , count(n) as count `;
 
 
     // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
@@ -8008,7 +8008,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria5(
         );
     }
     cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children,
-                                                               usr as children_children_children, p1 as relation_children_children  `;
+                                                               usr as children_children_children, p1 as relation_children_children , count(n) as count `;
     // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
     //   cypher =
     //     cypher +
@@ -8279,7 +8279,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria(
           childrenChildrenExcludedLabelsLabelsWithoutEmptyString
         );
     }
-    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children `;
+    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children , count(n) as count `;
     // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
     //   cypher =
     //     cypher +
@@ -8531,7 +8531,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3Criteria(
         );
     }
 
-    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children `;
+    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children , count(n) as count `;
 
     relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
     children_filters = changeObjectKeyName(children_filters, "3");
@@ -8646,7 +8646,7 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3Criteria(
         );
     }
 
-    cypher = cypher + `  RETURN n as parent,  m as children, r as relation `;
+    cypher = cypher + `  RETURN n as parent,  m as children, r as relation, count(n) as count `;
    
     relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
     children_filters = changeObjectKeyName(children_filters, "3");
@@ -8782,7 +8782,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3CriteriaPagination(
         );
     }
 
-    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation `;
+    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation , count(n) as count `;
     if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       cypher =
         cypher +
@@ -8906,7 +8906,7 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3CriteriaPagination(
         );
     }
 
-    cypher = cypher + `  RETURN n as parent,  m as children, r as relation `;
+    cypher = cypher + `  RETURN n as parent,  m as children, r as relation , count(n) as count `;
     if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       cypher =
         cypher +
