@@ -8800,15 +8800,17 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3CriteriaPagination(
     else {
       cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation , count(n) as count `;
     }
-    
-    if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-      cypher =
-        cypher +
-        dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
-        ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-    } else {
-      cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    if (!isCount) {
+      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        cypher =
+          cypher +
+          dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
+          ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+      } else {
+        cypher = cypher + ` SKIP $skip LIMIT $limit `;
+      }
     }
+    
     relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
     children_filters = changeObjectKeyName(children_filters, "3");
     main_root_filters = changeObjectKeyName(main_root_filters, "9");
@@ -8930,15 +8932,17 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3CriteriaPagination(
     else {
       cypher = cypher + `  RETURN n as parent,  m as children, r as relation , count(n) as count `;
     }
-    
-    if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-      cypher =
-        cypher +
-        dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
-        ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-    } else {
-      cypher = cypher + ` SKIP $skip LIMIT $limit `;
+    if (!isCount) {
+      if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        cypher =
+          cypher +
+          dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
+          ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
+      } else {
+        cypher = cypher + ` SKIP $skip LIMIT $limit `;
+      }
     }
+   
     relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
     children_filters = changeObjectKeyName(children_filters, "3");
    
