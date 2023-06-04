@@ -8443,6 +8443,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3Criteria(
   relation_name: string,
   relation_filters: object = {},
   relation_depth: number | "",
+  isCount: boolean = false,
   databaseOrTransaction?: string
 ) {
   try {
@@ -8530,8 +8531,13 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3Criteria(
           childrenExcludedLabelsLabelsWithoutEmptyString
         );
     }
-
-    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children , count(n) as count `;
+    if (isCount) {
+      cypher = cypher + ` where id(w) = ${main_root_id}  RETURN  count(n) as totalCount `;
+    }
+    else {
+      cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children , count(n) as count `;
+    }
+    
 
     relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
     children_filters = changeObjectKeyName(children_filters, "3");
@@ -8573,6 +8579,7 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3Criteria(
   relation_name: string,
   relation_filters: object = {},
   relation_depth: number | "",
+  isCount: boolean=false,
   databaseOrTransaction?: string
 ) {
   try {
@@ -8645,8 +8652,13 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3Criteria(
           childrenExcludedLabelsLabelsWithoutEmptyString
         );
     }
-
-    cypher = cypher + `  RETURN n as parent,  m as children, r as relation, count(n) as count `;
+    if (isCount) {
+      cypher = cypher + `  RETURN count(n)  as totalCount `;
+    }
+    else {
+      cypher = cypher + `  RETURN n as parent,  m as children, r as relation, count(n) as count `;
+    }
+   
    
     relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
     children_filters = changeObjectKeyName(children_filters, "3");
@@ -8692,6 +8704,7 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3CriteriaPagination(
   relation_filters: object = {},
   relation_depth: number | "",
   queryObject: queryObjectType,
+  isCount:boolean = false,
   databaseOrTransaction?: string
 ) {
   try {
@@ -8781,8 +8794,13 @@ async findChildrensByIdAndFiltersWithChildrenOfChildrens3CriteriaPagination(
           childrenExcludedLabelsLabelsWithoutEmptyString
         );
     }
-
-    cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation , count(n) as count `;
+    if (isCount) {
+      cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(n) as totalCount `;
+    }
+    else {
+      cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation , count(n) as count `;
+    }
+    
     if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       cypher =
         cypher +
@@ -8831,6 +8849,7 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3CriteriaPagination(
   relation_filters: object = {},
   relation_depth: number | "",
   queryObject: queryObjectType,
+  isCount: boolean = false,
   databaseOrTransaction?: string
 ) {
   try {
@@ -8905,8 +8924,13 @@ async findChildrensByLabelAndFiltersWithChildrenOfChildrens3CriteriaPagination(
           childrenExcludedLabelsLabelsWithoutEmptyString
         );
     }
-
-    cypher = cypher + `  RETURN n as parent,  m as children, r as relation , count(n) as count `;
+    if (isCount) {
+      cypher = cypher + `  RETURN count(n) as totalCount `;
+    }
+    else {
+      cypher = cypher + `  RETURN n as parent,  m as children, r as relation , count(n) as count `;
+    }
+    
     if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       cypher =
         cypher +
