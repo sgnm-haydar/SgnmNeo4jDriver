@@ -8077,8 +8077,16 @@ async findChildrensByIdAndByChildrenIdAndFilters(
       filterArrayForEmptyString(root_labels);
     const childrenLabelsWithoutEmptyString =
       filterArrayForEmptyString(children_labels);
-      let chId = +children_id;
-      let parameters = { root_id, children_id:chId, ...root_filters };
+      let chId;
+      let parameters;
+      if (children_id && children_id != '') {
+        chId = +children_id;
+      }
+      else {
+        chId = -1;
+      }
+      parameters = { root_id, children_id:chId, ...root_filters };
+
     let cypher;
     let response;
 
@@ -8099,11 +8107,12 @@ async findChildrensByIdAndByChildrenIdAndFilters(
         FilterPropertiesType.NODE,
         "3"
       ) +
-      `  WHERE  id(n) = $root_id `;
+      `  WHERE  id(n) = $root_id  and id(m) =  $children_id `;
 
-      if (children_id && children_id != null && children_id != undefined && children_id != "") {
-        cypher = cypher + ` and id(m) =  $children_id `;
-      }
+      // if (children_id && children_id != null && children_id != undefined && children_id != "") {
+      //   cypher = cypher + ` and id(m) =  $children_id `;
+      // }
+     
 
       cypher = cypher + `  RETURN n as parent,m as children, r as relation`;
        
