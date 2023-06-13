@@ -3368,7 +3368,7 @@ export class Neo4jService implements OnApplicationShutdown {
             "m",
             childrenExcludedLabelsLabelsWithoutEmptyString
           ) +
-          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) ` +
+          ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key' and prop <> 'url' ))) ` +
           `RETURN n as parent,m as children,r as relation, count(m) as totalCount `;
         
       
@@ -3376,7 +3376,7 @@ export class Neo4jService implements OnApplicationShutdown {
   
           cypher =
           cypher +
-          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key')))  ` +
+          `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key' and prop <> 'url' )))  ` +
           `RETURN n as parent,m as children,r as relation, count(m) as totalCount `;
         
        
