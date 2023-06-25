@@ -8417,8 +8417,11 @@ async updateRelationByIdWithRelationNameAndWithNoRelationCreationFilters(
 
     const res = await this.write(cyper, parameters, databaseOrTransaction);
 
+    // if (!res) {
+    //   throw new HttpException("something goes wrong", 400);
+    // }
     if (!res) {
-      throw new HttpException("something goes wrong", 400);
+      return 'relation not found'
     }
     return res;
   } catch (error) {
