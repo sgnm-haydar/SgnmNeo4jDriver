@@ -1570,7 +1570,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
-    reverseRelation?: boolean = false,
+    reverseRelation: boolean = false,
     databaseOrTransaction?: string | Transaction
   ) {
     try {
