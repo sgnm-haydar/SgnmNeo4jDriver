@@ -1818,6 +1818,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
+    reverseRelationDirection: boolean = false,
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -1830,13 +1831,13 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `-[r:${relation_name}*1..${relation_depth}` +
+        `${reverseRelationDirection ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]->(m` +
+        ` ]-${reverseRelationDirection ? '' : '>'}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` RETURN n as parent,m as children,r as relation`;
