@@ -2614,9 +2614,9 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     children_labels: Array<string> = [],
     children_filters: object = {},
+    relation_or_names: Array<string> = [],
     relation_filters: object = {},
     relation_depth: number | "",
-    relation_or_names: Array<string> = [],
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -2641,7 +2641,7 @@ export class Neo4jService implements OnApplicationShutdown {
         `]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
-        ` RETURN n as parent,m as children`;
+        ` RETURN n as parent,m as children,r as relation`;
 
       children_filters = changeObjectKeyName(children_filters);
       relation_filters = changeObjectKeyName(relation_filters, "3");
@@ -2650,7 +2650,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...children_filters,
         ...relation_filters,
       };
-      response = await this.write(cypher, parameters, databaseOrTransaction);
+      response = await this.read(cypher, parameters, databaseOrTransaction);
 
       return response["records"];
     } catch (error) {
