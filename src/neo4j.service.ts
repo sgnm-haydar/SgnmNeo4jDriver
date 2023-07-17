@@ -2609,6 +2609,62 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  async findRelationByLabelAndNodeLabels(
+    root_labels: Array<string> = [],
+    root_filters: object = {},
+    children_labels: Array<string> = [],
+    children_filters: object = {},
+    relation_filters: object = {},
+    relation_depth: number | "",
+    relation_or_names: Array<string> = [],
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n ` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `-[r:${await this.relationArray(relation_or_names)}*1..${relation_depth} ` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "3"
+        ) +
+        `]->(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` RETURN n as parent,m as children`;
+
+      children_filters = changeObjectKeyName(children_filters);
+      relation_filters = changeObjectKeyName(relation_filters, "3");
+      const parameters = {
+        ...root_filters,
+        ...children_filters,
+        ...relation_filters,
+      };
+      response = await this.write(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
   async findChildrensByLabelsAndNotLabelsAsTree(
     root_labels: Array<string> = [],
     root_not_labels: Array<string> = [],
