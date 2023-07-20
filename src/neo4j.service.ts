@@ -4676,6 +4676,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | '',
+    isReverseDirection: boolean = false,
     databaseOrTransaction?: string | Transaction,
   ) {
     try {
@@ -4707,11 +4708,13 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       cypher=cypher+' match(n)' +
 
-        `-[r:${relation_name}*1..${relation_depth} ` +
+        `${isReverseDirection ? '<': ''}-[r:${relation_name}*1..${relation_depth} ` +
         dynamicFilterPropertiesAdderAndAddParameterKey(relation_filters, FilterPropertiesType.RELATION, '2') +
-        `]->(m)`;
+        `]-${isReverseDirection ? '': '>'}(m)`;
 
-      cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+     if(isReverseDirection) cypher = cypher + ` RETURN n as children,m as parent, r as relation`;
+     else cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
+     
       relation_filters = changeObjectKeyName(relation_filters, '2');
       children_filters = changeObjectKeyName(children_filters, '3');
       parameters = { ...parameters, ...children_filters, ...relation_filters };
