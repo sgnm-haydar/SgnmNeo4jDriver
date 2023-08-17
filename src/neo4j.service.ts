@@ -19,6 +19,8 @@ import { newError } from "neo4j-driver-core";
 import {
   changeObjectKeyName,
   createDynamicCyperCreateQuery,
+  createDynamicCypherCreateWithDatesQuery,
+  dateFilterGenerator,
   dynamicFilterPropertiesAdder,
   dynamicFilterPropertiesAdderAndAddParameterKey,
   dynamicFilterPropertiesAdderAndAddParameterKeyNew,
@@ -1413,6 +1415,53 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
+  async createNodeWithDateAttributes(
+    params: object,
+    dateParamKeys: string[] = [],
+    dateTimesParamKeys: string[] = [],
+    labels?: string[],
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!params || Object.keys(params).length === 0) {
+        throw new HttpException(create_node__must_entered_error, 400);
+      }
+
+      let cyperQuery;
+      let labelsWithoutEmptyString;
+      if (labels) {
+        labelsWithoutEmptyString = filterArrayForEmptyString(labels);
+        cyperQuery = createDynamicCypherCreateWithDatesQuery(
+          params,
+          dateParamKeys,
+          dateTimesParamKeys,
+          labelsWithoutEmptyString
+        );
+      } else {
+        cyperQuery = createDynamicCypherCreateWithDatesQuery(
+          params,
+          dateParamKeys,
+          dateTimesParamKeys,);
+      }
+
+      const res = await this.write(cyperQuery, params, databaseOrTransaction);
+      if (!res["records"][0].length) {
+        throw new HttpException(create_node__node_not_created_error, 400);
+      }
+      return res["records"][0]["_fields"][0];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw newError(error, "500");
+      }
+    }
+  }
+
+
   async deleteRelationByIdAndRelationNameWithFilters(
     first_node_id: number,
     first_node_labels: string[] = [""],
@@ -1562,6 +1611,71 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
   async findChildrensByIdAndFilters(
+    root_id: number,
+    root_labels: string[] = [""],
+    root_filters: object = {},
+    children_labels: string[] = [],
+    children_filters: object = {},
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    reverseRelation: boolean = false,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      if (!relation_name) {
+        throw new HttpException(required_fields_must_entered, 404);
+      }
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      let parameters = { root_id, ...root_filters };
+      let cypher;
+      let response;
+
+      cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `${reverseRelation ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        ` ]-${reverseRelation ? '' : '>'}(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+        `  WHERE  id(n) = $root_id  RETURN n as parent,m as children, r as relation`;
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      children_filters = changeObjectKeyName(children_filters, "3");
+      parameters = { ...parameters, ...children_filters, ...relation_filters };
+
+       
+         
+
+      response = await this.read(cypher, parameters, databaseOrTransaction);
+
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+
+   async findChildrensByIdAndDateFilters(
     root_id: number,
     root_labels: string[] = [""],
     root_filters: object = {},
@@ -1840,6 +1954,74 @@ export class Neo4jService implements OnApplicationShutdown {
         ` ]-${reverseRelationDirection ? '' : '>'}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        ` RETURN n as parent,m as children,r as relation`;
+
+      children_filters = changeObjectKeyName(children_filters);
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      const parameters = {
+        ...root_filters,
+        ...children_filters,
+        ...relation_filters,
+      };
+      const result = await this.read(cypher, parameters, databaseOrTransaction);
+      return result["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
+    }
+  }
+  async findChildrensByLabelsAndDateFilters(
+    root_labels: string[] = [],
+    root_filters: object = {},
+    root_date_filters: {
+      [key : string] : {
+        value: any
+        comparisonOperator: string
+      }
+    },
+    children_labels: string[] = [],
+    children_filters: object,
+    children_date_filters: {
+      [key : string] : {
+        value: any
+        comparisonOperator: string
+      }
+    },
+    relation_name: string,
+    relation_filters: object = {},
+    relation_depth: number | "",
+    reverseRelationDirection: boolean = false,
+    databaseOrTransaction?: string | Transaction
+  ) {
+    try {
+      const rootDateFiltersQuery = dateFilterGenerator('n',root_date_filters)
+      const childrenDateFiltersQuery = dateFilterGenerator('m',children_date_filters)
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
+
+      const cypher =
+        `MATCH p=(n` +
+        dynamicLabelAdder(rootLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdder(root_filters) +
+        `${reverseRelationDirection ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        ` ]-${reverseRelationDirection ? '' : '>'}(m` +
+        dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
+        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
+        rootDateFiltersQuery + `${!!rootDateFiltersQuery.length ? 'AND' : ''}` +
+        childrenDateFiltersQuery +
         ` RETURN n as parent,m as children,r as relation`;
 
       children_filters = changeObjectKeyName(children_filters);

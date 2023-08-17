@@ -57,6 +57,48 @@ export function createDynamicCyperCreateQuery(
   return dynamicQueryParameter;
 }
 
+export function createDynamicCypherCreateWithDatesQuery(
+  entity: object,
+  dateParamKeys: string[] = [],
+  dateTimesParamKeys: string[] = [],
+  labels?: Array<string>
+) {
+  let uniqueLabels = [...new Set(labels)];
+  let optionalLabels = "";
+
+  if (uniqueLabels && uniqueLabels.length > 0) {
+    uniqueLabels.map((item) => {
+      if (item.trim() === "") {
+        optionalLabels = optionalLabels;
+      } else {
+        optionalLabels = optionalLabels + ":" + item;
+      }
+    });
+  }
+
+  let dynamicQueryParameter = `CREATE (node${optionalLabels} {`;
+  const getVariableValue =(key) =>{
+    if(dateParamKeys.includes(key)) return `date($${key})`
+    if(dateTimesParamKeys.includes(key)) return `datetime($${key})`
+    return `$${key}`
+  }
+  Object.entries(entity).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException(undefined_value_recieved, 400);
+    }
+    if (index === 0) {
+      dynamicQueryParameter += ` ${element[0]}` + `: ` + `${getVariableValue(element[0])}`;
+    } else {
+      dynamicQueryParameter += `,${element[0]}` + `: ` + `${getVariableValue(element[0])}`;
+    }
+    if (Object.keys(entity).length === index + 1) {
+      dynamicQueryParameter += ` }) return node`;
+    }
+  });
+
+  return dynamicQueryParameter;
+}
+
 export function createDynamicCyperObject(entity) {
   const dynamicObject = {};
   Object.entries(entity).forEach((element) => {
@@ -175,6 +217,35 @@ export function dynamicFilterPropertiesAdder(
       } else {
         dynamicQueryParameter += ` }`;
       }
+    }
+  });
+  return dynamicQueryParameter;
+}
+
+export function dateFilterGenerator(
+  nodeVariable:string,filterProperties:{
+    [key : string] : {
+      value: any
+      comparisonOperator: string
+    }
+  }
+) {
+  if (!filterProperties || Object.keys(filterProperties).length === 0) 
+   {
+    return "";
+  }
+  let dynamicQueryParameter = "";
+
+  Object.entries(filterProperties).forEach((element, index) => {
+    if (element[1] === null || element[1] === undefined) {
+      throw new HttpException("undefined_value_recieved", 400);
+    }
+    if (index === 0) {
+      dynamicQueryParameter += ` WHERE datetime(${nodeVariable}.$${element[0]})` +  element[1].comparisonOperator
+       +`: datetime($` + `${element[1].value})`;
+    } else {
+      dynamicQueryParameter += `AND datetime(${nodeVariable}.$${element[0]})` +  element[1].comparisonOperator
+      +`: datetime($` + `${element[1].value})`;
     }
   });
   return dynamicQueryParameter;
