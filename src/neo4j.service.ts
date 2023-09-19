@@ -7457,7 +7457,7 @@ export class Neo4jService implements OnApplicationShutdown {
         }
         if (hasNodeFilter) params.push(changeObjectKeyName(node.filters, `${nodeVariable}_${index}`));
         if (hasRelationsFilter) params.push(changeObjectKeyName(node.relationWithNextNode.filters, `${relationVariable}_${index}`));
-        if (isLastNode) cypher = cypher + ') '
+        // if (isLastNode) cypher = cypher + ') '
         returnItems.push({
           nodeVariable,
           nodeAs: nodeLabelsArr.join('_') + '_node',
