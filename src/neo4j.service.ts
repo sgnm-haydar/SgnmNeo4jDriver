@@ -53,6 +53,7 @@ import { queryObjectType } from "./dtos/dtos";
 import { SearchType } from "./constant/pagination.enum";
 import { otherNodesObjProps } from "./constant/pagination.object.type";
 import { FilterPropertiesType } from "./constant/filter.properties.type.enum";
+import { IFindMultipleNodesWithFiltersAndId } from './index'
 @Injectable()
 export class Neo4jService implements OnApplicationShutdown {
   private readonly driver: Driver;
