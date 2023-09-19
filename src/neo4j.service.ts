@@ -7411,22 +7411,7 @@ export class Neo4jService implements OnApplicationShutdown {
    * records.get(LABEL1_LABEL2_relation) -> relationWithNextNode
    * @returns 
    */
-  async findMultipleNodesWithFiltersAndId(nodes:
-    {
-      id: number,
-      labels: string[],
-      filters?: { [key: string]: any },
-      relationWithNextNode?: {
-        id?: number,
-        depth?: string,
-        direction?: string,
-        name: string,
-        filters?:
-        {
-          [key: string]: any,
-        }
-      }
-    }[]) {
+  async findMultipleNodesWithFiltersAndId(nodes: IFindMultipleNodesWithFiltersAndId[]) {
     const alphabet = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.fromCharCode(x));
     let cypher = `MATCH`
     let params = []
