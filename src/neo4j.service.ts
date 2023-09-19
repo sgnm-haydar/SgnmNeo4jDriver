@@ -7410,57 +7410,89 @@ export class Neo4jService implements OnApplicationShutdown {
    * records.get(LABEL1_node)
    * records.get(LABEL1_LABEL2_node)
    * records.get(LABEL1_LABEL2_relation) -> relationWithNextNode
+   * 
+   * use one of andLabels or orLabels in a single query
    * @returns 
    */
   async findMultipleNodesWithFiltersAndId(nodes: IFindMultipleNodesWithFiltersAndId[]) {
-    const alphabet = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.fromCharCode(x));
-    let cypher = `MATCH`
-    let params = []
-    let idsHashMap = {}
-    let returnItems = []
-    nodes.map((node, index) => {
-      const isLastNode = nodes.length - 1 === index
-      const nodeVariable = alphabet[index]
-      const relationVariable = `relation_${alphabet[index]}`
-      const hasNodeId = !!node?.id
-      const hasRelationId = !!node.relationWithNextNode?.id
-      const hasNodeFilter = !!node?.filters
-      const hasRelationsFilter = !!node.relationWithNextNode?.filters
-      const labelsString = dynamicLabelAdder(filterArrayForEmptyString(node.labels))
-      if (hasNodeId) idsHashMap[nodeVariable] = node.id
-      if (hasRelationId) idsHashMap[relationVariable] = node.relationWithNextNode.id
-      const propertiesString = hasNodeFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node?.filters, FilterPropertiesType.NODE, `${nodeVariable}_${index}`) : ''
-      const relationProperties = hasRelationsFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node.relationWithNextNode?.filters, FilterPropertiesType.RELATION, `${relationVariable}_${index}`) : ''
+    try {
+      const alphabet = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.fromCharCode(x));
+      let cypher = `MATCH`
+      let whereOperatorIncluded = false
+      let orLabelAdded = false
+      let params = []
+      let nodesWithOrLabel = []
+      let idsHashMap = {}
+      let returnItems = []
+      nodes.map((node, index) => {
+
+        const isLastNode = nodes.length - 1 === index
+        const nodeVariable = alphabet[index]
+        const relationVariable = `relation_${alphabet[index]}`
+        const hasNodeId = !!node?.id
+        const nodeHasAndLabels = !!node?.andLabels
+        const nodeHasOrLabels = !!node?.orLabels
+        const hasRelationId = !!node.relationWithNextNode?.id
+        const hasNodeFilter = !!node?.filters
+        const hasRelationsFilter = !!node.relationWithNextNode?.filters
+        const nodeLabelsArr = nodeHasAndLabels ?
+          node?.andLabels :
+          node?.orLabels
+
+        const labelsString = nodeHasAndLabels ?
+          dynamicLabelAdder(filterArrayForEmptyString(node?.andLabels)) :
+          dynamicOrLabelAdder(nodeVariable, filterArrayForEmptyString(node?.orLabels))
+
+        if (hasNodeId) idsHashMap[nodeVariable] = node.id
+        if (hasRelationId) idsHashMap[relationVariable] = node.relationWithNextNode.id
+        const propertiesString = hasNodeFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node?.filters, FilterPropertiesType.NODE, `${nodeVariable}_${index}`) : ''
+        const relationProperties = hasRelationsFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node.relationWithNextNode?.filters, FilterPropertiesType.RELATION, `${relationVariable}_${index}`) : ''
 
 
-      cypher = cypher + '(' + nodeVariable + labelsString + propertiesString
-      if (!!node?.relationWithNextNode) {
-        cypher = cypher + `${node.relationWithNextNode.direction === 'IN' ? '<' : ''}` +
-          `-[${relationVariable}:${node.relationWithNextNode.name}*1` +
-          `..${node.relationWithNextNode?.depth ?? ''}${relationProperties}]-${node.relationWithNextNode.direction === 'OUT' ? '>' : ''}`
-      }
-      if (hasNodeFilter) params.push(changeObjectKeyName(node.filters, `${nodeVariable}_${index}`));
-      if (hasRelationsFilter) params.push(changeObjectKeyName(node.relationWithNextNode.filters, `${relationVariable}_${index}`));
-      if (isLastNode) cypher = cypher + ') '
-      returnItems.push({
-        nodeVariable,
-        nodeAs: node.labels.join('_') + '_node',
-        ...(!!node?.relationWithNextNode && { relationAs: node.labels.join('_') + '_relation' }),
-        ...(!!node?.relationWithNextNode && { relationVariable })
-      });
-    })
-    cypher = cypher + ' '
-    if (Object.keys(idsHashMap).length > 0) {
-      cypher = cypher + 'WHERE ('
+        cypher = cypher + '(' + nodeVariable + (nodeHasAndLabels ? labelsString : '') + propertiesString
+        if (!!node?.relationWithNextNode) {
+          cypher = cypher + `${node.relationWithNextNode.direction === 'IN' ? '<' : ''}` +
+            `-[${relationVariable}:${node.relationWithNextNode.name}*1` +
+            `..${node.relationWithNextNode?.depth ?? ''}${relationProperties}]-${node.relationWithNextNode.direction === 'OUT' ? '>' : ''}`
+        }
+        if (hasNodeFilter) params.push(changeObjectKeyName(node.filters, `${nodeVariable}_${index}`));
+        if (hasRelationsFilter) params.push(changeObjectKeyName(node.relationWithNextNode.filters, `${relationVariable}_${index}`));
+        if (isLastNode) cypher = cypher + ') '
+        returnItems.push({
+          nodeVariable,
+          nodeAs: nodeLabelsArr.join('_') + '_node',
+          ...(!!node?.relationWithNextNode && { relationAs: nodeLabelsArr.join('_') + '_relation' }),
+          ...(!!node?.relationWithNextNode && { relationVariable })
+        });
 
-      let IDConditions = '';
-      Object.keys(idsHashMap).map((variable, index) => {
-        const isLast = index === Object.keys(idsHashMap).length - 1
-        IDConditions = IDConditions + `id(${variable}) = ${idsHashMap[variable]}`
-        if (!isLast) IDConditions = IDConditions + ' AND '
+        if (nodeHasOrLabels) nodesWithOrLabel.push(labelsString)
       })
-      cypher = cypher + IDConditions + ')'
+      cypher = cypher + ' '
+      if (Object.keys(idsHashMap).length > 0) {
+        cypher = cypher + 'WHERE ('
+        whereOperatorIncluded = true
+        let IDConditions = '';
+        Object.keys(idsHashMap).map((variable, index) => {
+          const isLast = index === Object.keys(idsHashMap).length - 1
+          IDConditions = IDConditions + `id(${variable}) = ${idsHashMap[variable]}`
+          if (!isLast) IDConditions = IDConditions + ' AND '
+        })
+        cypher = cypher + IDConditions + ')'
+      }
 
+      if (nodesWithOrLabel.length > 0) {
+        nodesWithOrLabel.map((labels, index) => {
+          if (!whereOperatorIncluded) {
+            cypher = cypher + ' WHERE'
+          }
+          if (whereOperatorIncluded || index > 0) {
+            cypher = cypher + 'AND '
+          }
+          console.log(labels)
+          cypher = cypher + ' (' + labels + ') '
+        })
+
+      }
       cypher = cypher + ' Return ' + returnItems.map((item, index) => {
         let returnValue = ''
         returnValue = returnValue + item.nodeVariable + ' As ' + item.nodeAs
@@ -7469,10 +7501,19 @@ export class Neo4jService implements OnApplicationShutdown {
         return returnValue
       }).join(' ')
 
-    }
-    return {
-      params: Object.assign({}, ...params),
-      cypher
+
+
+      const response = await this.read(cypher, Object.assign({}, ...params));
+      return response["records"];
+    } catch (error) {
+      if (error.response?.code) {
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
+      } else {
+        throw new HttpException(error, 500);
+      }
     }
   }
 
