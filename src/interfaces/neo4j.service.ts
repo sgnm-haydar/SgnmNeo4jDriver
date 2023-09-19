@@ -1,4 +1,4 @@
-interface IFindMultipleNodesWithFiltersAndId {
+export interface IFindMultipleNodesWithFiltersAndId {
     id: number,
     labels: string[],
     filters?: { [key: string]: any },
