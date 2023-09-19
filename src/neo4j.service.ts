@@ -7401,7 +7401,16 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
+  /**
+   * 
+   * @param nodes 
+   *  Query a chain of nodes
+   * get The nodes from record like this example
+   * records.get(LABEL1_node)
+   * records.get(LABEL1_LABEL2_node)
+   * records.get(LABEL1_LABEL2_relation) -> relationWithNextNode
+   * @returns 
+   */
   async findMultipleNodesWithFiltersAndId(nodes:
     {
       id: number,
@@ -7422,34 +7431,58 @@ export class Neo4jService implements OnApplicationShutdown {
     let cypher = `MATCH`
     let params = []
     let idsHashMap = {}
+    let returnItems = []
     nodes.map((node, index) => {
+      const isLastNode = nodes.length - 1 === index
       const nodeVariable = alphabet[index]
-      const relationVariable = `r${alphabet[index]}`
-      const hasNodeId = !!node.id
-      const hasRelationId = !!node.relationWithNextNode.id
+      const relationVariable = `relation_${alphabet[index]}`
+      const hasNodeId = !!node?.id
+      const hasRelationId = !!node.relationWithNextNode?.id
+      const hasNodeFilter = !!node?.filters
+      const hasRelationsFilter = !!node.relationWithNextNode?.filters
       const labelsString = dynamicLabelAdder(filterArrayForEmptyString(node.labels))
-      const propertiesString = dynamicFilterPropertiesAdderAndAddParameterKey(node.filters, FilterPropertiesType.NODE, `${nodeVariable}${index}`)
-      const relationProperties = dynamicFilterPropertiesAdderAndAddParameterKey(node.relationWithNextNode.filters, FilterPropertiesType.RELATION, `${relationVariable}${index}`)
       if (hasNodeId) idsHashMap[nodeVariable] = node.id
       if (hasRelationId) idsHashMap[relationVariable] = node.relationWithNextNode.id
+      const propertiesString = hasNodeFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node?.filters, FilterPropertiesType.NODE, `${nodeVariable}_${index}`) : ''
+      const relationProperties = hasRelationsFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node.relationWithNextNode?.filters, FilterPropertiesType.RELATION, `${relationVariable}_${index}`) : ''
+
 
       cypher = cypher + '(' + nodeVariable + labelsString + propertiesString
-      if (!!node.relationWithNextNode) {
-        cypher = cypher + `${node.relationWithNextNode.direction === 'IN' ? '' : '<'}-` +
+      if (!!node?.relationWithNextNode) {
+        cypher = cypher + `${node.relationWithNextNode.direction === 'IN' ? '<' : ''}` +
           `-[${relationVariable}:${node.relationWithNextNode.name}*1` +
-          `..${node.relationWithNextNode.depth}${relationProperties}]-${node.relationWithNextNode.direction === 'OUT' ? '>' : ''}`
+          `..${node.relationWithNextNode?.depth ?? ''}${relationProperties}]-${node.relationWithNextNode.direction === 'OUT' ? '>' : ''}`
       }
-      params.push(changeObjectKeyName(node.filters, `${nodeVariable}${index}`));
-      params.push(changeObjectKeyName(node.relationWithNextNode.filters, `${relationVariable}${index}`));
+      if (hasNodeFilter) params.push(changeObjectKeyName(node.filters, `${nodeVariable}_${index}`));
+      if (hasRelationsFilter) params.push(changeObjectKeyName(node.relationWithNextNode.filters, `${relationVariable}_${index}`));
+      if (isLastNode) cypher = cypher + ') '
+      returnItems.push({
+        nodeVariable,
+        nodeAs: node.labels.join('_') + '_node',
+        ...(!!node?.relationWithNextNode && { relationAs: node.labels.join('_') + '_relation' }),
+        ...(!!node?.relationWithNextNode && { relationVariable })
+      });
     })
+    cypher = cypher + ' '
     if (Object.keys(idsHashMap).length > 0) {
+      cypher = cypher + 'WHERE ('
+
       let IDConditions = '';
       Object.keys(idsHashMap).map((variable, index) => {
         const isLast = index === Object.keys(idsHashMap).length - 1
-        IDConditions = IDConditions + `ID(${variable}) = ${idsHashMap[variable]}`
-        if (!isLast) IDConditions = IDConditions + 'AND '
+        IDConditions = IDConditions + `id(${variable}) = ${idsHashMap[variable]}`
+        if (!isLast) IDConditions = IDConditions + ' AND '
       })
-      cypher = cypher + 'WHERE' + IDConditions
+      cypher = cypher + IDConditions + ')'
+
+      cypher = cypher + ' Return ' + returnItems.map((item, index) => {
+        let returnValue = ''
+        returnValue = returnValue + item.nodeVariable + ' As ' + item.nodeAs
+        if (!!item.relationVariable) returnValue = returnValue + ', ' + item.relationVariable + ' As ' + item.relationAs
+        returnValue = returnValue + (returnItems.length - 1 === index ? '' : ', ')
+        return returnValue
+      }).join(' ')
+
     }
     return {
       params: Object.assign({}, ...params),
