@@ -1,5 +1,5 @@
 export interface IFindMultipleNodesWithFiltersAndId {
-    id: number,
+    id?: number,
     labels: string[],
     filters?: { [key: string]: any },
     relationWithNextNode?: {
