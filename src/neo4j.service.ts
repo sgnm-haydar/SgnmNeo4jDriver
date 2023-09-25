@@ -9559,6 +9559,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
 
   async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria4_v2(
+    neo4jService: any,
     root_labels: string[] = [""],
     root_filters: object = {},
     root_exculuded_labels: string[] = [""],
@@ -9574,14 +9575,17 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
+    reverseRelation: boolean = false,
     relation_name_child: string,
     relation_filters_child: object = {},
     relation_depth_child: number | "",
+    reverseRelation_child: boolean = false,
     relation_name_child_child: string,
     relation_filters_child_child: object = {},
     relation_depth_child_child: number | "",
+    reverseRelation_child_child: boolean = false,
     databaseOrTransaction?: string
-  ) {
+  )  {
     try {
       if (!relation_name) {
         throw new HttpException("required_fields_must_entered", 404);
@@ -9617,6 +9621,16 @@ export class Neo4jService implements OnApplicationShutdown {
         if (typeof element[1] != 'object') {
             relation_filters_child_parametric[element[0]] = element[1];
         }
+        else {
+         
+          Object.entries(element[1]).forEach((item, index) => {
+  
+    
+          relation_filters_child_child_parametric[item[0]] = item[1];
+  
+          }) ;
+          
+        }
        });
        
        let relation_filters_child_child_parametric = {};
@@ -9626,26 +9640,36 @@ export class Neo4jService implements OnApplicationShutdown {
         if (typeof element[1] != 'object') {
             relation_filters_child_child_parametric[element[0]] = element[1];
         }
+        else {
+         
+          Object.entries(element[1]).forEach((item, index) => {
+  
+    
+          relation_filters_child_child_parametric[item[0]] = item[1];
+  
+          }) ;
+          
+        }
        });
   
       cypher =
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `-[r:${relation_name}*1..${relation_depth}` +
+        `${reverseRelation ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]->(m` +
+        ` ]-${reverseRelation ? '' : '>'}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_filters,
           FilterPropertiesType.NODE,
           "3"
         )+
-        `-[t:${relation_name_child}*1..${relation_depth_child}` + 
+        `${reverseRelation_child ? '<' : ''}-[t:${relation_name_child}*1..${relation_depth_child}` + 
         //child_child_filter +
   
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
@@ -9653,7 +9677,7 @@ export class Neo4jService implements OnApplicationShutdown {
           FilterPropertiesType.RELATION,
           "4"
         )+
-        ` ]->(k` +
+        ` ]-${reverseRelation_child ? '' : '>'}(k` +
         dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_children_filters,
@@ -9661,14 +9685,14 @@ export class Neo4jService implements OnApplicationShutdown {
           "5"
         )
         +
-        `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` + 
+        `${reverseRelation_child_child ? '<' : ''}-[u:${relation_name_child_child}*1..${relation_depth_child_child}` + 
         
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
           "6"
         )+
-        ` ]->(c` +
+        ` ]-${reverseRelation_child_child ? '' : '>'}(c` +
         dynamicLabelAdder(childrenChildrenChildrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_children_children_filters,
@@ -9722,14 +9746,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
                                      c as children_children_children, u as relation_children_children , count(n) as count `;
-      // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
-      //   cypher =
-      //     cypher +
-      //     dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
-      //     ` ${queryObject.orderBy} SKIP $skip LIMIT $limit  `;
-      // } else {
-      //   cypher = cypher + ` SKIP $skip LIMIT $limit `;
-      // }
   
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
