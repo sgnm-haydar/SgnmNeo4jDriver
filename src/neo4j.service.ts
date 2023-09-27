@@ -413,7 +413,12 @@ export class Neo4jService implements OnApplicationShutdown {
       filter_properties,
       databaseOrTransaction
     );
-    return node.records;
+    if (node) {
+      return node.records;
+    }
+    else {
+      return [];
+    }
   }
 
   async findByIdAndOrLabelsAndFilters(
