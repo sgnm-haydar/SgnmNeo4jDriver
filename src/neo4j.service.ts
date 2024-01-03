@@ -4,6 +4,7 @@ import {
   OnApplicationShutdown,
   HttpException,
   HttpStatus,
+  OnModuleInit,
 } from "@nestjs/common";
 import neo4j, {
   Driver,
@@ -11,6 +12,7 @@ import neo4j, {
   int,
   Transaction,
   QueryResult,
+  RecordShape,
 } from "neo4j-driver";
 import { Neo4jConfig } from "./interfaces/neo4j-config.interface";
 import { NEO4J_OPTIONS, NEO4J_DRIVER } from "./neo4j.constants";
@@ -53,11 +55,12 @@ import { queryObjectType } from "./dtos/dtos";
 import { SearchType } from "./constant/pagination.enum";
 import { otherNodesObjProps } from "./constant/pagination.object.type";
 import { FilterPropertiesType } from "./constant/filter.properties.type.enum";
-import { IFindMultipleNodesWithFiltersAndId } from './index'
+import { IFindMultipleNodesWithFiltersAndId } from "./index";
 @Injectable()
-export class Neo4jService implements OnApplicationShutdown {
+export class Neo4jService implements OnApplicationShutdown, OnModuleInit {
   private readonly driver: Driver;
   private readonly config: Neo4jConfig;
+  protected serverTimezone: QueryResult<RecordShape>;
   constructor(
     @Inject(NEO4J_OPTIONS) config: Neo4jConfig,
     @Inject(NEO4J_DRIVER) driver: Driver
@@ -145,14 +148,14 @@ export class Neo4jService implements OnApplicationShutdown {
                   "children"
                 ] =
                   node["root"]["children"][i]["children"][j]["children"][k][
-                  "parent_of"
+                    "parent_of"
                   ];
                 delete node["root"]["children"][i]["children"][j]["children"][
                   k
                 ]["parent_of"];
                 if (
                   node["root"]["children"][i]["children"][j]["children"][k][
-                  "children"
+                    "children"
                   ]
                 ) {
                   for (
@@ -167,14 +170,14 @@ export class Neo4jService implements OnApplicationShutdown {
                       "children"
                     ][l]["children"] =
                       node["root"]["children"][i]["children"][j]["children"][k][
-                      "children"
+                        "children"
                       ][l]["parent_of"];
                     delete node["root"]["children"][i]["children"][j][
                       "children"
                     ][k]["children"][l]["parent_of"];
                     if (
                       node["root"]["children"][i]["children"][j]["children"][k][
-                      "children"
+                        "children"
                       ][l]["children"]
                     ) {
                       for (
@@ -189,14 +192,14 @@ export class Neo4jService implements OnApplicationShutdown {
                           k
                         ]["children"][l]["children"][m]["children"] =
                           node["root"]["children"][i]["children"][j][
-                          "children"
+                            "children"
                           ][k]["children"][l]["children"][m]["parent_of"];
                         delete node["root"]["children"][i]["children"][j][
                           "children"
                         ][k]["children"][l]["children"][m]["parent_of"];
                         if (
                           node["root"]["children"][i]["children"][j][
-                          "children"
+                            "children"
                           ][k]["children"][l]["children"][m]["children"]
                         ) {
                           for (
@@ -214,9 +217,9 @@ export class Neo4jService implements OnApplicationShutdown {
                               "children"
                             ] =
                               node["root"]["children"][i]["children"][j][
-                              "children"
+                                "children"
                               ][k]["children"][l]["children"][m]["children"][n][
-                              "parent_of"
+                                "parent_of"
                               ];
                             delete node["root"]["children"][i]["children"][j][
                               "children"
@@ -225,9 +228,9 @@ export class Neo4jService implements OnApplicationShutdown {
                             ];
                             if (
                               node["root"]["children"][i]["children"][j][
-                              "children"
+                                "children"
                               ][k]["children"][l]["children"][m]["children"][n][
-                              "children"
+                                "children"
                               ]
                             ) {
                               for (
@@ -246,9 +249,9 @@ export class Neo4jService implements OnApplicationShutdown {
                                   n
                                 ]["children"][o]["children"] =
                                   node["root"]["children"][i]["children"][j][
-                                  "children"
+                                    "children"
                                   ][k]["children"][l]["children"][m][
-                                  "children"
+                                    "children"
                                   ][n]["children"][o]["parent_of"];
                                 delete node["root"]["children"][i]["children"][
                                   j
@@ -257,9 +260,9 @@ export class Neo4jService implements OnApplicationShutdown {
                                 ][n]["children"][o]["parent_of"];
                                 if (
                                   node["root"]["children"][i]["children"][j][
-                                  "children"
+                                    "children"
                                   ][k]["children"][l]["children"][m][
-                                  "children"
+                                    "children"
                                   ][n]["children"][o]["children"]
                                 ) {
                                   for (
@@ -280,11 +283,11 @@ export class Neo4jService implements OnApplicationShutdown {
                                       "children"
                                     ] =
                                       node["root"]["children"][i]["children"][
-                                      j
+                                        j
                                       ]["children"][k]["children"][l][
-                                      "children"
+                                        "children"
                                       ][m]["children"][n]["children"][o][
-                                      "children"
+                                        "children"
                                       ][p]["parent_of"];
                                     delete node["root"]["children"][i][
                                       "children"
@@ -415,8 +418,7 @@ export class Neo4jService implements OnApplicationShutdown {
     );
     if (node) {
       return node.records;
-    }
-    else {
+    } else {
       return [];
     }
   }
@@ -1447,7 +1449,8 @@ export class Neo4jService implements OnApplicationShutdown {
         cyperQuery = createDynamicCypherCreateWithDatesQuery(
           params,
           dateParamKeys,
-          dateTimesParamKeys,);
+          dateTimesParamKeys
+        );
       }
 
       const res = await this.write(cyperQuery, params, databaseOrTransaction);
@@ -1466,7 +1469,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 
   async deleteRelationByIdAndRelationNameWithFilters(
     first_node_id: number,
@@ -1546,10 +1548,10 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.RIGHT:
           res = await this.write(
             `MATCH (n` +
-            dynamicLabelAdder(first_node_labels) +
-            `) where id(n)= $first_node_id MATCH (m` +
-            dynamicLabelAdder(second_node_labels) +
-            ` ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(n)= $first_node_id MATCH (m` +
+              dynamicLabelAdder(second_node_labels) +
+              ` ) where id(m)= $second_node_id match (n)-[R:${relation_name}]-> (m) delete R return n as parent,m as children`,
             parameters,
             databaseOrTransaction
           );
@@ -1557,10 +1559,10 @@ export class Neo4jService implements OnApplicationShutdown {
         case RelationDirection.LEFT:
           res = await this.write(
             `MATCH (m` +
-            dynamicLabelAdder(first_node_labels) +
-            `) where id(m)= $first_node_id MATCH (n` +
-            dynamicLabelAdder(second_node_labels) +
-            `) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
+              dynamicLabelAdder(first_node_labels) +
+              `) where id(m)= $first_node_id MATCH (n` +
+              dynamicLabelAdder(second_node_labels) +
+              `) where id(n)= $second_node_id match (m)<-[R:${relation_name}]- (n) delete R return n as parent,m as children`,
             parameters,
             databaseOrTransaction
           );
@@ -1645,13 +1647,15 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `${reverseRelation ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        `${
+          reverseRelation ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]-${reverseRelation ? '' : '>'}(m` +
+        ` ]-${reverseRelation ? "" : ">"}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           children_filters,
@@ -1662,9 +1666,6 @@ export class Neo4jService implements OnApplicationShutdown {
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-
-
-
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -1710,13 +1711,15 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `${reverseRelation ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        `${
+          reverseRelation ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]-${reverseRelation ? '' : '>'}(m` +
+        ` ]-${reverseRelation ? "" : ">"}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           children_filters,
@@ -1727,9 +1730,6 @@ export class Neo4jService implements OnApplicationShutdown {
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-
-
-
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -1790,9 +1790,6 @@ export class Neo4jService implements OnApplicationShutdown {
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-
-
-
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -1951,13 +1948,15 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `${reverseRelationDirection ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        `${
+          reverseRelationDirection ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]-${reverseRelationDirection ? '' : '>'}(m` +
+        ` ]-${reverseRelationDirection ? "" : ">"}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
         ` RETURN n as parent,m as children,r as relation`;
@@ -1987,17 +1986,17 @@ export class Neo4jService implements OnApplicationShutdown {
     root_filters: object = {},
     root_date_filters: {
       [key: string]: {
-        value: any
-        comparisonOperator: string
-      }
+        value: any;
+        comparisonOperator: string;
+      };
     },
     children_labels: string[] = [],
     children_filters: object,
     children_date_filters: {
       [key: string]: {
-        value: any
-        comparisonOperator: string
-      }
+        value: any;
+        comparisonOperator: string;
+      };
     },
     relation_name: string,
     relation_filters: object = {},
@@ -2006,8 +2005,11 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string | Transaction
   ) {
     try {
-      const rootDateFiltersQuery = dateFilterGenerator('n', root_date_filters)
-      const childrenDateFiltersQuery = dateFilterGenerator('m', children_date_filters)
+      const rootDateFiltersQuery = dateFilterGenerator("n", root_date_filters);
+      const childrenDateFiltersQuery = dateFilterGenerator(
+        "m",
+        children_date_filters
+      );
       const rootLabelsWithoutEmptyString =
         filterArrayForEmptyString(root_labels);
       const childrenLabelsWithoutEmptyString =
@@ -2017,16 +2019,19 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `${reverseRelationDirection ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        `${
+          reverseRelationDirection ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]-${reverseRelationDirection ? '' : '>'}(m` +
+        ` ]-${reverseRelationDirection ? "" : ">"}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
-        rootDateFiltersQuery + `${!!rootDateFiltersQuery.length ? 'AND' : ''}` +
+        rootDateFiltersQuery +
+        `${!!rootDateFiltersQuery.length ? "AND" : ""}` +
         childrenDateFiltersQuery +
         ` RETURN n as parent,m as children,r as relation`;
 
@@ -2820,7 +2825,9 @@ export class Neo4jService implements OnApplicationShutdown {
         `MATCH p=(n ` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `-[r:${await this.relationArray(relation_or_names)}*1..${relation_depth} ` +
+        `-[r:${await this.relationArray(
+          relation_or_names
+        )}*1..${relation_depth} ` +
         dynamicFilterPropertiesAdderAndAddParameterKey(
           relation_filters,
           FilterPropertiesType.RELATION,
@@ -3339,7 +3346,10 @@ export class Neo4jService implements OnApplicationShutdown {
           FilterPropertiesType.NODE,
           "2"
         )} WHERE` +
-        `(${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)}) AND id(n) = $root_id and `;
+        `(${dynamicOrLabelAdder(
+          "m",
+          childrenLabelsWithoutEmptyString
+        )}) AND id(n) = $root_id and `;
       if (childrenExcludedLabelsLabelsWithoutEmptyString.length > 0) {
         cypher =
           cypher +
@@ -3428,7 +3438,10 @@ export class Neo4jService implements OnApplicationShutdown {
           FilterPropertiesType.NODE,
           "2"
         )} WHERE ` +
-        `(${dynamicOrLabelAdder("m", childrenLabelsWithoutEmptyString)}) AND id(n) = $root_id AND `;
+        `(${dynamicOrLabelAdder(
+          "m",
+          childrenLabelsWithoutEmptyString
+        )}) AND id(n) = $root_id AND `;
       if (childrenExcludedLabelsLabelsWithoutEmptyString.length > 0) {
         cypher =
           cypher +
@@ -3606,8 +3619,6 @@ export class Neo4jService implements OnApplicationShutdown {
         ) +
         `  WHERE  id(n) = $root_id and `;
       if (childrenExcludedLabelsLabelsWithoutEmptyString.length > 0) {
-
-
         cypher =
           cypher +
           dynamicNotLabelAdder(
@@ -3616,42 +3627,39 @@ export class Neo4jService implements OnApplicationShutdown {
           ) +
           ` and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key' and prop <> 'url' ))) ` +
           `RETURN n as parent,m as children,r as relation, count(m) as totalCount `;
-
-
       } else {
-
         cypher =
           cypher +
           `(any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key' and prop <> 'url' )))  ` +
           `RETURN n as parent,m as children,r as relation, count(m) as totalCount `;
-
-
       }
 
       if (isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
             ` ${queryObject.orderBy} `;
         } else {
-          if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+          if (
+            queryObject.orderByColumn &&
+            queryObject.orderByColumn.length >= 1
+          ) {
             cypher =
               cypher +
               dynamicOrderByColumnAdder("m", queryObject.orderByColumn) +
               ` ${queryObject.orderBy} `;
           }
-
         }
-      }
-      else {
+      } else {
         if (isCount) {
-          cypher
-        }
-        else {
+          cypher;
+        } else {
           cypher = cypher + `SKIP $skip LIMIT $limit `;
         }
-
       }
       relation_filters = changeObjectKeyName(relation_filters);
       children_filters = changeObjectKeyName(children_filters, "2");
@@ -4355,7 +4363,7 @@ export class Neo4jService implements OnApplicationShutdown {
     mainNodeLabels: string[],
     mainNodeFilters: object,
     otherNodesProps: otherNodesObjProps[],
-    databaseOrTransaction?,
+    databaseOrTransaction?
   ) {
     try {
       let cypher =
@@ -4364,32 +4372,43 @@ export class Neo4jService implements OnApplicationShutdown {
         dynamicFilterPropertiesAdder(rootFilters) +
         `MATCH (n` +
         dynamicLabelAdder(mainNodeLabels) +
-        dynamicFilterPropertiesAdderAndAddParameterKey(mainNodeFilters, FilterPropertiesType.NODE, 'n') +
-        'match(n)<-[*]-(m)';
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          mainNodeFilters,
+          FilterPropertiesType.NODE,
+          "n"
+        ) +
+        "match(n)<-[*]-(m)";
 
       let parameters = { ...mainNodeFilters };
       otherNodesProps.forEach((nodes, index) => {
-        if (nodes.labels.includes('Virtual')) {
-          nodes.filters['referenceId'] = nodes.filters['id'];
-          delete nodes.filters['id'];
+        if (nodes.labels.includes("Virtual")) {
+          nodes.filters["referenceId"] = nodes.filters["id"];
+          delete nodes.filters["id"];
         }
-        const cyperNodeName = 'n' + index;
+        const cyperNodeName = "n" + index;
         cypher =
           cypher +
           ` match (${cyperNodeName}` +
           dynamicLabelAdder(nodes.labels) +
-          dynamicFilterPropertiesAdderAndAddParameterKey(nodes.filters, FilterPropertiesType.NODE, cyperNodeName) +
+          dynamicFilterPropertiesAdderAndAddParameterKey(
+            nodes.filters,
+            FilterPropertiesType.NODE,
+            cyperNodeName
+          ) +
           ` match (n)-[:${nodes.relationName}]-(${cyperNodeName})`;
-        const children_filters = changeObjectKeyName(nodes.filters, cyperNodeName);
+        const children_filters = changeObjectKeyName(
+          nodes.filters,
+          cyperNodeName
+        );
         parameters = { ...parameters, ...children_filters };
       });
-      cypher = cypher + ' return count(n) as count';
+      cypher = cypher + " return count(n) as count";
 
-      const main_node_filters = changeObjectKeyName(mainNodeFilters, 'n');
+      const main_node_filters = changeObjectKeyName(mainNodeFilters, "n");
 
       parameters = { ...parameters, ...main_node_filters, ...rootFilters };
       const result = await this.read(cypher, parameters, databaseOrTransaction);
-      return result['records'];
+      return result["records"];
     } catch (error) {
       throw new HttpException(error, 500);
     }
@@ -4440,7 +4459,6 @@ export class Neo4jService implements OnApplicationShutdown {
     RETURN collect({count: rCount, relationName: type, node: {source: startLabel, target: endLabel}}) as relationships`;
     children_filters = changeObjectKeyName(children_filters);
     const parameters = { ...root_filters, ...children_filters };
-
 
     const node = await this.read(query, parameters);
     return node.records;
@@ -4508,7 +4526,6 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters);
       const parameters = { id, ...parent_filters, ...relation_filters };
-
 
       const res = await this.read(query, parameters, databaseOrTransaction);
       if (!res || !res["records"] || res["records"].length == 0) {
@@ -4857,24 +4874,27 @@ export class Neo4jService implements OnApplicationShutdown {
 
   async findChildrensByIdAndChildrenOrLabels(
     root_id: number,
-    root_labels: string[] = [''],
+    root_labels: string[] = [""],
     root_filters: object = {},
-    children_labels: Array<string> = [''],
+    children_labels: Array<string> = [""],
     children_filters: object = {},
-    children_or_labels: string[] = [''],
+    children_or_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | '',
+    relation_depth: number | "",
     isReverseDirection: boolean = false,
-    databaseOrTransaction?: string | Transaction,
+    databaseOrTransaction?: string | Transaction
   ) {
     try {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const childrenOrLabelsLabelsWithoutEmptyString = filterArrayForEmptyString(children_or_labels);
-      const rootLabelsWithoutEmptyString = filterArrayForEmptyString(root_labels);
-      const childrenLabelsWithoutEmptyString = filterArrayForEmptyString(children_labels);
+      const childrenOrLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_or_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
       let parameters = { root_id, ...root_filters };
       let cypher;
@@ -4890,30 +4910,50 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher +
         `MATCH (m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters, FilterPropertiesType.NODE, '3') +
-        ` WHERE `
-      if (childrenOrLabelsLabelsWithoutEmptyString && childrenOrLabelsLabelsWithoutEmptyString.length > 0) {
-        cypher = cypher + dynamicOrLabelAdder('m', childrenOrLabelsLabelsWithoutEmptyString);
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+        ` WHERE `;
+      if (
+        childrenOrLabelsLabelsWithoutEmptyString &&
+        childrenOrLabelsLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          dynamicOrLabelAdder("m", childrenOrLabelsLabelsWithoutEmptyString);
       }
-      cypher = cypher + ' match(n)' +
+      cypher =
+        cypher +
+        " match(n)" +
+        `${
+          isReverseDirection ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth} ` +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
+        `]-${isReverseDirection ? "" : ">"}(m)`;
 
-        `${isReverseDirection ? '<' : ''}-[r:${relation_name}*1..${relation_depth} ` +
-        dynamicFilterPropertiesAdderAndAddParameterKey(relation_filters, FilterPropertiesType.RELATION, '2') +
-        `]-${isReverseDirection ? '' : '>'}(m)`;
-
-      if (isReverseDirection) cypher = cypher + ` RETURN n as children,m as parent, r as relation`;
+      if (isReverseDirection)
+        cypher = cypher + ` RETURN n as children,m as parent, r as relation`;
       else cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
 
-      relation_filters = changeObjectKeyName(relation_filters, '2');
-      children_filters = changeObjectKeyName(children_filters, '3');
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
-      return response['records'];
+      return response["records"];
     } catch (error) {
       if (error.response?.code) {
-        throw new HttpException({ message: error.response?.message, code: error.response?.code }, error.status);
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
       } else {
         throw new HttpException(error, 500);
       }
@@ -4988,10 +5028,7 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-  async delete(
-    id: number,
-    databaseOrTransaction?: string | Transaction
-  ) {
+  async delete(id: number, databaseOrTransaction?: string | Transaction) {
     try {
       const firstNode = await this.findByIdAndFilters(id, [], {});
 
@@ -4999,7 +5036,7 @@ export class Neo4jService implements OnApplicationShutdown {
 
       cyper = `MATCH (n) where id(n)= $id detach delete n`;
       const parameters = {
-        id
+        id,
       };
       const res = await this.write(cyper, parameters, databaseOrTransaction);
 
@@ -5042,15 +5079,13 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenExcludedLabelsLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_exculuded_labels);
 
-
       let idCondition = " (id(n) = " + root_ids[0];
       root_ids.forEach((item) => {
         if (item != root_ids[0]) {
-          idCondition = idCondition + ' or id(n)=' + item;
+          idCondition = idCondition + " or id(n)=" + item;
         }
-
       });
-      idCondition = idCondition + ') ';
+      idCondition = idCondition + ") ";
 
       let parameters = { ...root_filters, ...queryObject };
 
@@ -5133,7 +5168,6 @@ export class Neo4jService implements OnApplicationShutdown {
     databaseOrTransaction?: string
   ) {
     try {
-
       const parentLabelsWithoutEmptyString =
         filterArrayForEmptyString(parent_labels);
       const parentExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
@@ -5144,16 +5178,18 @@ export class Neo4jService implements OnApplicationShutdown {
       //   node_labels,
       //   node_filters
       // );
-      let idLabelCondition = ` ((id(n) = ${idsLabels[0]['identifier']} and  n:${idsLabels[0]['label']}) `;
+      let idLabelCondition = ` ((id(n) = ${idsLabels[0]["identifier"]} and  n:${idsLabels[0]["label"]}) `;
       idsLabels.forEach((item) => {
-        if (item['identifier'] != idsLabels[0]['identifier']) {
-          idLabelCondition = idLabelCondition + ` or (id(n) = ${item['identifier']} and n:${item['label']}) `;
+        if (item["identifier"] != idsLabels[0]["identifier"]) {
+          idLabelCondition =
+            idLabelCondition +
+            ` or (id(n) = ${item["identifier"]} and n:${item["label"]}) `;
         }
-
       });
-      idLabelCondition = idLabelCondition + ') ';
+      idLabelCondition = idLabelCondition + ") ";
       let query =
-        `MATCH (n ` + dynamicFilterPropertiesAdder(node_filters) +
+        `MATCH (n ` +
+        dynamicFilterPropertiesAdder(node_filters) +
         ` where ${idLabelCondition} ` +
         ` match(m` +
         dynamicLabelAdder(parentLabelsWithoutEmptyString) +
@@ -5179,8 +5215,11 @@ export class Neo4jService implements OnApplicationShutdown {
       }
 
       relation_filters = changeObjectKeyName(relation_filters);
-      const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
-
+      const parameters = {
+        ...node_filters,
+        ...parent_filters,
+        ...relation_filters,
+      };
 
       const res = await this.read(query, parameters, databaseOrTransaction);
       if (!res || !res["records"] || res["records"].length == 0) {
@@ -5271,18 +5310,16 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
 
-
-
-      let idLabelCondition = ` and ((id(m) = ${idsLabels[0]['identifier']} and  m:${idsLabels[0]['label']}) `;
+      let idLabelCondition = ` and ((id(m) = ${idsLabels[0]["identifier"]} and  m:${idsLabels[0]["label"]}) `;
       idsLabels.forEach((item) => {
-        if (item['identifier'] != idsLabels[0]['identifier']) {
-          idLabelCondition = idLabelCondition + ` or (id(m) = ${item['identifier']} and m:${item['label']}) `;
+        if (item["identifier"] != idsLabels[0]["identifier"]) {
+          idLabelCondition =
+            idLabelCondition +
+            ` or (id(m) = ${item["identifier"]} and m:${item["label"]}) `;
         }
-
       });
-      idLabelCondition = idLabelCondition + ') ';
+      idLabelCondition = idLabelCondition + ") ";
       cypher = cypher + idLabelCondition;
-
 
       cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
       relation_filters = changeObjectKeyName(relation_filters, "2");
@@ -5334,8 +5371,7 @@ export class Neo4jService implements OnApplicationShutdown {
   //         idLabelCondition = idLabelCondition + ` or (id(n) = ${item['identifier']} and n:${item['label']}) `    ;
   //       }
   //     });
-  //     idLabelCondition = idLabelCondition + ') ';   
-
+  //     idLabelCondition = idLabelCondition + ') ';
 
   //     let parentIdsCondition = "";
   //     if (parentIds.length > 0) {
@@ -5345,14 +5381,8 @@ export class Neo4jService implements OnApplicationShutdown {
   //           parentIdsCondition = parentIdsCondition + ` or (id(n) = ${item} ) `    ;
   //         }
   //       });
-  //       parentIdsCondition = parentIdsCondition + ') ';  
+  //       parentIdsCondition = parentIdsCondition + ') ';
   //     }
-
-
-
-
-
-
 
   //     let query =
   //     `MATCH (n ` + dynamicFilterPropertiesAdder(node_filters) +
@@ -5367,8 +5397,6 @@ export class Neo4jService implements OnApplicationShutdown {
   //       FilterPropertiesType.RELATION
   //     ) +
   //     `]->(n)`;
-
-
 
   //     if (
   //       parentExcludedLabelsWithoutEmptyString &&
@@ -5385,7 +5413,6 @@ export class Neo4jService implements OnApplicationShutdown {
 
   //     relation_filters = changeObjectKeyName(relation_filters);
   //     const parameters = { ...node_filters, ...parent_filters, ...relation_filters };
-
 
   //     const res = await this.read(query, parameters, databaseOrTransaction);
   //     if (!res || !res["records"] || res["records"].length == 0) {
@@ -5487,16 +5514,13 @@ export class Neo4jService implements OnApplicationShutdown {
         let childrenIdsCondition = ` and (id(m) = ${childrenIdsWithoutEmptyString[0]} `;
         childrenIdsWithoutEmptyString.forEach((item) => {
           if (item != childrenIdsWithoutEmptyString[0]) {
-            childrenIdsCondition = childrenIdsCondition + ` or id(m) = ${item} `;
+            childrenIdsCondition =
+              childrenIdsCondition + ` or id(m) = ${item} `;
           }
         });
-        childrenIdsCondition = childrenIdsCondition + ') ';
-        cypher =
-          cypher + childrenIdsCondition;
+        childrenIdsCondition = childrenIdsCondition + ") ";
+        cypher = cypher + childrenIdsCondition;
       }
-
-
-
 
       cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
       relation_filters = changeObjectKeyName(relation_filters, "2");
@@ -5517,7 +5541,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 
   async findChildOfParentByParentIdAndChildIdWithFilters(
     root_id: number,
@@ -5565,9 +5588,6 @@ export class Neo4jService implements OnApplicationShutdown {
       relation_filters = changeObjectKeyName(relation_filters, "2");
       child_filters = changeObjectKeyName(child_filters, "3");
       parameters = { ...parameters, ...child_filters, ...relation_filters };
-
-
-
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -5631,9 +5651,6 @@ export class Neo4jService implements OnApplicationShutdown {
       child_filters = changeObjectKeyName(child_filters, "3");
       parameters = { ...parameters, ...child_filters, ...relation_filters };
 
-
-
-
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
       return response["records"];
@@ -5658,10 +5675,10 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
-    sortProperty: 'createdAt' | 'updatedAt' = 'createdAt',
+    sortProperty: "createdAt" | "updatedAt" = "createdAt",
     afterThisDate: string,
     beforeThisDate?: string,
-    orderBy: 'DESC' | 'ASC' = 'DESC',
+    orderBy: "DESC" | "ASC" = "DESC",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -5694,14 +5711,15 @@ export class Neo4jService implements OnApplicationShutdown {
           FilterPropertiesType.NODE,
           "3"
         ) +
-
-
-        `  WHERE  id(n) = $root_id and ${await this.sortCondition(sortProperty, beforeThisDate, afterThisDate)}  RETURN n as parent,m as children, r as relation ORDER BY  m.${sortProperty}  ${orderBy}`
+        `  WHERE  id(n) = $root_id and ${await this.sortCondition(
+          sortProperty,
+          beforeThisDate,
+          afterThisDate
+        )}  RETURN n as parent,m as children, r as relation ORDER BY  m.${sortProperty}  ${orderBy}`;
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -5718,7 +5736,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
   async sortByParentFiltersAndChildrenFiltersWithCreatedAtOrUpdatedAt(
     root_labels: string[] = [],
     root_filters: object = {},
@@ -5727,10 +5744,10 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_name: string,
     relation_filters: object = {},
     relation_depth: number | "",
-    sortProperty: 'createdAt' | 'updatedAt' = 'createdAt',
+    sortProperty: "createdAt" | "updatedAt" = "createdAt",
     afterThisDate: string,
     beforeThisDate?: string,
-    orderBy: 'DESC' | 'ASC' = 'DESC',
+    orderBy: "DESC" | "ASC" = "DESC",
     databaseOrTransaction?: string | Transaction
   ) {
     try {
@@ -5752,7 +5769,11 @@ export class Neo4jService implements OnApplicationShutdown {
         ` ]->(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKey(children_filters) +
-        ` WHERE ${await this.sortCondition(sortProperty, beforeThisDate, afterThisDate)}` +
+        ` WHERE ${await this.sortCondition(
+          sortProperty,
+          beforeThisDate,
+          afterThisDate
+        )}` +
         ` RETURN n as parent,m as children,r as relation ORDER BY  m.${sortProperty}  ${orderBy}`;
 
       children_filters = changeObjectKeyName(children_filters);
@@ -5776,40 +5797,29 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
-  async sortCondition(sortProperty: 'createdAt' | 'updatedAt',
+  async sortCondition(
+    sortProperty: "createdAt" | "updatedAt",
     beforeThisDate?: string,
-    afterThisDate?: string) {
-
-    if (sortProperty == 'createdAt') {
-
+    afterThisDate?: string
+  ) {
+    if (sortProperty == "createdAt") {
       if (!beforeThisDate && afterThisDate) {
-
-        return `'${afterThisDate}' < m.${sortProperty}`
+        return `'${afterThisDate}' < m.${sortProperty}`;
+      } else if (beforeThisDate && !afterThisDate) {
+        return `m.${sortProperty} < '${beforeThisDate}'`;
+      } else if (afterThisDate && beforeThisDate) {
+        return `'${afterThisDate}' < m.${sortProperty} < '${beforeThisDate}'`;
       }
-      else if (beforeThisDate && !afterThisDate) {
-        return `m.${sortProperty} < '${beforeThisDate}'`
-      }
-      else if (afterThisDate && beforeThisDate) {
-        return `'${afterThisDate}' < m.${sortProperty} < '${beforeThisDate}'`
-      }
-
-    }
-    else if (sortProperty == 'updatedAt') {
+    } else if (sortProperty == "updatedAt") {
       if (!beforeThisDate && afterThisDate) {
-
-        return `'${afterThisDate}' < m.${sortProperty}`
+        return `'${afterThisDate}' < m.${sortProperty}`;
+      } else if (beforeThisDate && !afterThisDate) {
+        return `m.${sortProperty} < '${beforeThisDate}'`;
+      } else if (afterThisDate && beforeThisDate) {
+        return `'${afterThisDate}' < m.${sortProperty} < '${beforeThisDate}'`;
       }
-      else if (beforeThisDate && !afterThisDate) {
-        return `m.${sortProperty} < '${beforeThisDate}'`
-      }
-      else if (afterThisDate && beforeThisDate) {
-        return `'${afterThisDate}' < m.${sortProperty} < '${beforeThisDate}'`
-      }
-
     }
   }
-
 
   async getCountOfNodesByLabelsAndFilters(
     root_labels: string[] = [],
@@ -5889,14 +5899,17 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(children_labels);
       let childrenLabelsCondition = "";
       if (childrenLabelsWithoutEmptyString.length > 0) {
-        childrenLabelsCondition = childrenLabelsCondition + ` and ( m:${childrenLabelsWithoutEmptyString[0]} `;
+        childrenLabelsCondition =
+          childrenLabelsCondition +
+          ` and ( m:${childrenLabelsWithoutEmptyString[0]} `;
 
         childrenLabelsWithoutEmptyString.map((item) => {
           if (item != childrenLabelsWithoutEmptyString[0]) {
-            childrenLabelsCondition = childrenLabelsCondition + ` or m:${item} `;
+            childrenLabelsCondition =
+              childrenLabelsCondition + ` or m:${item} `;
           }
         });
-        childrenLabelsCondition = childrenLabelsCondition + ') ';
+        childrenLabelsCondition = childrenLabelsCondition + ") ";
       }
       let parameters = { root_id, ...root_filters };
       let cypher;
@@ -5913,7 +5926,6 @@ export class Neo4jService implements OnApplicationShutdown {
           "2"
         ) +
         `]->(m` +
-
         dynamicFilterPropertiesAdderAndAddParameterKey(
           children_filters,
           FilterPropertiesType.NODE,
@@ -6011,7 +6023,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -6066,7 +6078,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
   async findParentsOfChildrenByIdAndFilters(
     root_filters: object = {},
     children_id: string,
@@ -6079,7 +6090,7 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const parentsId = []
+      const parentsId = [];
 
       let parameters = { ...root_filters };
       const childrenLabelsWithoutEmptyString =
@@ -6096,23 +6107,22 @@ export class Neo4jService implements OnApplicationShutdown {
         relation_filters,
         FilterPropertiesType.RELATION,
         "2"
-      )}]-(x ${dynamicFilterPropertiesAdder(root_filters)} | x] as parents where id(n)=${children_id} RETURN  parents;`
-
+      )}]-(x ${dynamicFilterPropertiesAdder(
+        root_filters
+      )} | x] as parents where id(n)=${children_id} RETURN  parents;`;
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
       response = await this.read(cypher, parameters);
 
-      const parents = response["records"][0]['_fields'][0]
+      const parents = response["records"][0]["_fields"][0];
 
       for (let index = 0; index < parents.length; index++) {
-
-        if (parents[index]['labels'] != 'Root') {
+        if (parents[index]["labels"] != "Root") {
           let value = parents[index].identity.low.toString();
           parentsId.push(value);
         }
-
       }
 
       return parentsId;
@@ -6221,7 +6231,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
   async findChildrensByIdWithLimitedChilderenIdsAndFiltersWithPaginationAndSearcString(
     root_id: number,
     root_labels: string[],
@@ -6299,7 +6308,7 @@ export class Neo4jService implements OnApplicationShutdown {
       parameters = { ...parameters, ...children_filters, ...relation_filters };
 
       // eslint-disable-next-line prefer-const
-      console.log('cyper', cypher);
+      console.log("cyper", cypher);
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -6480,14 +6489,14 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async findChildrensByIdAndChildOrLabelWithLimitedChilderenIdsAndFiltersWithPaginationAndSearcString(
     root_id: number,
-    root_labels: string[] = [''],
+    root_labels: string[] = [""],
     root_filters: object = {},
-    children_labels: Array<string> = [''],
+    children_labels: Array<string> = [""],
     children_filters: object = {},
-    children_or_labels: string[] = [''],
+    children_or_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | '',
+    relation_depth: number | "",
     queryObject: queryObjectType,
     searchString: string,
     idArray: number[],
@@ -6497,9 +6506,12 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const childrenOrLabelsLabelsWithoutEmptyString = filterArrayForEmptyString(children_or_labels);
-      const rootLabelsWithoutEmptyString = filterArrayForEmptyString(root_labels);
-      const childrenLabelsWithoutEmptyString = filterArrayForEmptyString(children_labels);
+      const childrenOrLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_or_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
       let parameters = { root_id, ...queryObject, ...root_filters };
 
@@ -6519,16 +6531,32 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher +
         `MATCH (m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters, FilterPropertiesType.NODE, '3') +
-        ` WHERE id(m) in [${idArray}] and (`
-      if (childrenOrLabelsLabelsWithoutEmptyString && childrenOrLabelsLabelsWithoutEmptyString.length > 0) {
-        cypher = cypher + dynamicOrLabelAdder('m', childrenOrLabelsLabelsWithoutEmptyString);
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+        ` WHERE id(m) in [${idArray}] and (`;
+      if (
+        childrenOrLabelsLabelsWithoutEmptyString &&
+        childrenOrLabelsLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          dynamicOrLabelAdder("m", childrenOrLabelsLabelsWithoutEmptyString);
       }
-      cypher = cypher + `) and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)`
-      cypher = cypher + ' match(n)' +
-
+      cypher =
+        cypher +
+        `) and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)`;
+      cypher =
+        cypher +
+        " match(n)" +
         `-[r:${relation_name}*1..${relation_depth} ` +
-        dynamicFilterPropertiesAdderAndAddParameterKey(relation_filters, FilterPropertiesType.RELATION, '2') +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
         `]->(m)`;
 
       cypher = cypher + ` RETURN n as parent,m as children, r as relation`;
@@ -6540,17 +6568,20 @@ export class Neo4jService implements OnApplicationShutdown {
       } else {
         cypher = cypher + ` SKIP $skip LIMIT $limit `;
       }
-      relation_filters = changeObjectKeyName(relation_filters, '2');
-      children_filters = changeObjectKeyName(children_filters, '3');
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-      console.log('cypher', cypher);
+      console.log("cypher", cypher);
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
-      return response['records'];
+      return response["records"];
     } catch (error) {
       if (error.response?.code) {
-        throw new HttpException({ message: error.response?.message, code: error.response?.code }, error.status);
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
       } else {
         throw new HttpException(error, 500);
       }
@@ -6558,14 +6589,14 @@ export class Neo4jService implements OnApplicationShutdown {
   }
   async findChildrensByIdAndChildOrLabelWithLimitedChilderenIdsAndFiltersWithPaginationAndSearcStringTotalCount(
     root_id: number,
-    root_labels: string[] = [''],
+    root_labels: string[] = [""],
     root_filters: object = {},
-    children_labels: Array<string> = [''],
+    children_labels: Array<string> = [""],
     children_filters: object = {},
-    children_or_labels: string[] = [''],
+    children_or_labels: string[] = [""],
     relation_name: string,
     relation_filters: object = {},
-    relation_depth: number | '',
+    relation_depth: number | "",
     searchString: string,
     idArray: number[],
     databaseOrTransaction?: string
@@ -6574,9 +6605,12 @@ export class Neo4jService implements OnApplicationShutdown {
       if (!relation_name) {
         throw new HttpException(required_fields_must_entered, 404);
       }
-      const childrenOrLabelsLabelsWithoutEmptyString = filterArrayForEmptyString(children_or_labels);
-      const rootLabelsWithoutEmptyString = filterArrayForEmptyString(root_labels);
-      const childrenLabelsWithoutEmptyString = filterArrayForEmptyString(children_labels);
+      const childrenOrLabelsLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_or_labels);
+      const rootLabelsWithoutEmptyString =
+        filterArrayForEmptyString(root_labels);
+      const childrenLabelsWithoutEmptyString =
+        filterArrayForEmptyString(children_labels);
 
       let parameters = { root_id, ...root_filters };
 
@@ -6595,30 +6629,49 @@ export class Neo4jService implements OnApplicationShutdown {
         cypher +
         `MATCH (m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
-        dynamicFilterPropertiesAdderAndAddParameterKey(children_filters, FilterPropertiesType.NODE, '3') +
-        ` WHERE id(m) in [${idArray}] and (`
-      if (childrenOrLabelsLabelsWithoutEmptyString && childrenOrLabelsLabelsWithoutEmptyString.length > 0) {
-        cypher = cypher + dynamicOrLabelAdder('m', childrenOrLabelsLabelsWithoutEmptyString);
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          children_filters,
+          FilterPropertiesType.NODE,
+          "3"
+        ) +
+        ` WHERE id(m) in [${idArray}] and (`;
+      if (
+        childrenOrLabelsLabelsWithoutEmptyString &&
+        childrenOrLabelsLabelsWithoutEmptyString.length > 0
+      ) {
+        cypher =
+          cypher +
+          dynamicOrLabelAdder("m", childrenOrLabelsLabelsWithoutEmptyString);
       }
-      cypher = cypher + `) and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)`
-      cypher = cypher + ' match(n)' +
-
+      cypher =
+        cypher +
+        `) and (any(prop in keys(m) where (m[prop]=~ $searchString and prop <> 'key'))) or ('${searchString}' IN m.tag)`;
+      cypher =
+        cypher +
+        " match(n)" +
         `-[r:${relation_name}*1..${relation_depth} ` +
-        dynamicFilterPropertiesAdderAndAddParameterKey(relation_filters, FilterPropertiesType.RELATION, '2') +
+        dynamicFilterPropertiesAdderAndAddParameterKey(
+          relation_filters,
+          FilterPropertiesType.RELATION,
+          "2"
+        ) +
         `]->(m)`;
 
       cypher = cypher + ` RETURN count(m) as count`;
 
-      relation_filters = changeObjectKeyName(relation_filters, '2');
-      children_filters = changeObjectKeyName(children_filters, '3');
+      relation_filters = changeObjectKeyName(relation_filters, "2");
+      children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
-      return response['records'];
+      return response["records"];
     } catch (error) {
       if (error.response?.code) {
-        throw new HttpException({ message: error.response?.message, code: error.response?.code }, error.status);
+        throw new HttpException(
+          { message: error.response?.message, code: error.response?.code },
+          error.status
+        );
       } else {
         throw new HttpException(error, 500);
       }
@@ -6685,8 +6738,6 @@ export class Neo4jService implements OnApplicationShutdown {
   //     }
   //     const parentsId=[]
 
-
-
   //     let parameters = { ...root_filters };
   //   const childrenLabelsWithoutEmptyString =
   //     filterArrayForEmptyString(children_labels);
@@ -6703,7 +6754,6 @@ export class Neo4jService implements OnApplicationShutdown {
   //       FilterPropertiesType.RELATION,
   //       "2"
   //     )}]-(x ${dynamicFilterPropertiesAdder(root_filters)} | x] as parents where id(n)=${children_id} and NONE(rel in r Where type(rel)=${excluted_relation_name} ) RETURN  parents;`
-
 
   //     relation_filters = changeObjectKeyName(relation_filters, "2");
   //       children_filters = changeObjectKeyName(children_filters, "3");
@@ -6734,7 +6784,6 @@ export class Neo4jService implements OnApplicationShutdown {
   //   }
   //   }
 
-
   async getWintegrationHistory(
     root_id: string,
     root_labels: string[] = [],
@@ -6744,8 +6793,8 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     excluted_relation_name: string,
     relation_filters: object = {},
-    sortProperty: 'createdAt' | 'updatedAt' = 'createdAt',
-    orderBy: 'DESC' | 'ASC' = 'DESC'
+    sortProperty: "createdAt" | "updatedAt" = "createdAt",
+    orderBy: "DESC" | "ASC" = "DESC"
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -6800,8 +6849,8 @@ export class Neo4jService implements OnApplicationShutdown {
     children_filters: object = {},
     excluted_relation_name: string,
     relation_filters: object = {},
-    sortProperty: 'createdAt' | 'updatedAt' = 'createdAt',
-    orderBy: 'DESC' | 'ASC' = 'DESC'
+    sortProperty: "createdAt" | "updatedAt" = "createdAt",
+    orderBy: "DESC" | "ASC" = "DESC"
   ) {
     try {
       const rootLabelsWithoutEmptyString =
@@ -6901,12 +6950,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(w` +
@@ -6952,7 +6999,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -6987,14 +7034,20 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
       if (isCount) {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
-      }
-      else {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation , count(n) as count `;
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
+      } else {
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation , count(n) as count `;
       }
 
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
@@ -7004,11 +7057,16 @@ export class Neo4jService implements OnApplicationShutdown {
         }
       }
 
-
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
       main_root_filters = changeObjectKeyName(main_root_filters, "9");
       main_relation_filters = changeObjectKeyName(main_relation_filters, "8");
 
@@ -7020,7 +7078,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -7083,12 +7141,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(n` +
@@ -7121,7 +7177,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -7157,12 +7213,16 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (isCount) {
         cypher = cypher + ` RETURN count(m) as totalCount `;
-      }
-      else {
-        cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as count `;
+      } else {
+        cypher =
+          cypher +
+          ` RETURN n as parent,m as children, r as relation, count(n) as count `;
       }
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
@@ -7172,12 +7232,16 @@ export class Neo4jService implements OnApplicationShutdown {
         }
       }
 
-
-
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
 
       parameters = {
         ...parameters,
@@ -7260,12 +7324,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(n` +
@@ -7298,10 +7360,8 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
-        +
+        ) +
         `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` +
-
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
@@ -7313,7 +7373,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -7349,7 +7409,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -7361,12 +7422,16 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (isCount) {
         cypher = cypher + ` RETURN count(m) as totalCount `;
-      }
-      else {
-        cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as count `;
+      } else {
+        cypher =
+          cypher +
+          ` RETURN n as parent,m as children, r as relation, count(n) as count `;
       }
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
@@ -7377,10 +7442,22 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
 
       parameters = {
         ...parameters,
@@ -7408,105 +7485,156 @@ export class Neo4jService implements OnApplicationShutdown {
   }
 
   /**
-   * 
-   * @param nodes 
+   *
+   * @param nodes
    *  Query a chain of nodes
    * get The nodes from record like this example
    * records.get(LABEL1_node)
    * records.get(LABEL1_LABEL2_node)
    * records.get(LABEL1_LABEL2_relation) -> relationWithNextNode
-   * 
+   *
    * use one of andLabels or orLabels in a single query
-   * @returns 
+   * @returns
    */
-  async findMultipleNodesWithFiltersAndId(nodes: IFindMultipleNodesWithFiltersAndId[]) {
+  async findMultipleNodesWithFiltersAndId(
+    nodes: IFindMultipleNodesWithFiltersAndId[]
+  ) {
     try {
-      const alphabet = Array.from(Array(26)).map((e, i) => i + 65).map((x) => String.fromCharCode(x));
-      let cypher = `MATCH`
-      let whereOperatorIncluded = false
-      let orLabelAdded = false
-      let params = []
-      let nodesWithOrLabel = []
-      let idsHashMap = {}
-      let returnItems = []
+      const alphabet = Array.from(Array(26))
+        .map((e, i) => i + 65)
+        .map((x) => String.fromCharCode(x));
+      let cypher = `MATCH`;
+      let whereOperatorIncluded = false;
+      let orLabelAdded = false;
+      let params = [];
+      let nodesWithOrLabel = [];
+      let idsHashMap = {};
+      let returnItems = [];
       nodes.map((node, index) => {
+        const isLastNode = nodes.length - 1 === index;
+        const nodeVariable = alphabet[index];
+        const relationVariable = `relation_${alphabet[index]}`;
+        const hasNodeId = !!node?.id;
+        const nodeHasAndLabels = !!node?.andLabels;
+        const nodeHasOrLabels = !!node?.orLabels;
+        const hasRelationId = !!node.relationWithNextNode?.id;
+        const hasNodeFilter = !!node?.filters;
+        const hasRelationsFilter = !!node.relationWithNextNode?.filters;
+        const nodeLabelsArr = nodeHasAndLabels
+          ? node?.andLabels
+          : node?.orLabels;
 
-        const isLastNode = nodes.length - 1 === index
-        const nodeVariable = alphabet[index]
-        const relationVariable = `relation_${alphabet[index]}`
-        const hasNodeId = !!node?.id
-        const nodeHasAndLabels = !!node?.andLabels
-        const nodeHasOrLabels = !!node?.orLabels
-        const hasRelationId = !!node.relationWithNextNode?.id
-        const hasNodeFilter = !!node?.filters
-        const hasRelationsFilter = !!node.relationWithNextNode?.filters
-        const nodeLabelsArr = nodeHasAndLabels ?
-          node?.andLabels :
-          node?.orLabels
+        const labelsString = nodeHasAndLabels
+          ? dynamicLabelAdder(filterArrayForEmptyString(node?.andLabels))
+          : dynamicOrLabelAdder(
+              nodeVariable,
+              filterArrayForEmptyString(node?.orLabels)
+            );
 
-        const labelsString = nodeHasAndLabels ?
-          dynamicLabelAdder(filterArrayForEmptyString(node?.andLabels)) :
-          dynamicOrLabelAdder(nodeVariable, filterArrayForEmptyString(node?.orLabels))
+        if (hasNodeId) idsHashMap[nodeVariable] = node.id;
+        if (hasRelationId)
+          idsHashMap[relationVariable] = node.relationWithNextNode.id;
+        const propertiesString = hasNodeFilter
+          ? dynamicFilterPropertiesAdderAndAddParameterKey(
+              node?.filters,
+              FilterPropertiesType.NODE,
+              `${nodeVariable}_${index}`
+            )
+          : "";
+        const relationProperties = hasRelationsFilter
+          ? dynamicFilterPropertiesAdderAndAddParameterKey(
+              node.relationWithNextNode?.filters,
+              FilterPropertiesType.RELATION,
+              `${relationVariable}_${index}`
+            )
+          : "";
 
-        if (hasNodeId) idsHashMap[nodeVariable] = node.id
-        if (hasRelationId) idsHashMap[relationVariable] = node.relationWithNextNode.id
-        const propertiesString = hasNodeFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node?.filters, FilterPropertiesType.NODE, `${nodeVariable}_${index}`) : ''
-        const relationProperties = hasRelationsFilter ? dynamicFilterPropertiesAdderAndAddParameterKey(node.relationWithNextNode?.filters, FilterPropertiesType.RELATION, `${relationVariable}_${index}`) : ''
-
-
-        cypher = cypher + '(' + nodeVariable + (nodeHasAndLabels ? labelsString : '') + propertiesString
+        cypher =
+          cypher +
+          "(" +
+          nodeVariable +
+          (nodeHasAndLabels ? labelsString : "") +
+          propertiesString;
         if (!!node?.relationWithNextNode) {
-          cypher = cypher + `${node.relationWithNextNode.direction === 'IN' ? '<' : ''}` +
+          cypher =
+            cypher +
+            `${node.relationWithNextNode.direction === "IN" ? "<" : ""}` +
             `-[${relationVariable}:${node.relationWithNextNode.name}*1` +
-            `..${node.relationWithNextNode?.depth ?? ''}${relationProperties}]-${node.relationWithNextNode.direction === 'OUT' ? '>' : ''}`
+            `..${
+              node.relationWithNextNode?.depth ?? ""
+            }${relationProperties}]-${
+              node.relationWithNextNode.direction === "OUT" ? ">" : ""
+            }`;
         }
-        if (hasNodeFilter) params.push(changeObjectKeyName(node.filters, `${nodeVariable}_${index}`));
-        if (hasRelationsFilter) params.push(changeObjectKeyName(node.relationWithNextNode.filters, `${relationVariable}_${index}`));
+        if (hasNodeFilter)
+          params.push(
+            changeObjectKeyName(node.filters, `${nodeVariable}_${index}`)
+          );
+        if (hasRelationsFilter)
+          params.push(
+            changeObjectKeyName(
+              node.relationWithNextNode.filters,
+              `${relationVariable}_${index}`
+            )
+          );
         // if (isLastNode) cypher = cypher + ') '
         returnItems.push({
           nodeVariable,
-          nodeAs: nodeLabelsArr.join('_') + '_node',
-          ...(!!node?.relationWithNextNode && { relationAs: nodeLabelsArr.join('_') + '_relation' }),
-          ...(!!node?.relationWithNextNode && { relationVariable })
+          nodeAs: nodeLabelsArr.join("_") + "_node",
+          ...(!!node?.relationWithNextNode && {
+            relationAs: nodeLabelsArr.join("_") + "_relation",
+          }),
+          ...(!!node?.relationWithNextNode && { relationVariable }),
         });
 
-        if (nodeHasOrLabels) nodesWithOrLabel.push(labelsString)
-      })
-      cypher = cypher + ' '
+        if (nodeHasOrLabels) nodesWithOrLabel.push(labelsString);
+      });
+      cypher = cypher + " ";
       if (Object.keys(idsHashMap).length > 0) {
-        cypher = cypher + 'WHERE ('
-        whereOperatorIncluded = true
-        let IDConditions = '';
+        cypher = cypher + "WHERE (";
+        whereOperatorIncluded = true;
+        let IDConditions = "";
         Object.keys(idsHashMap).map((variable, index) => {
-          const isLast = index === Object.keys(idsHashMap).length - 1
-          IDConditions = IDConditions + `id(${variable}) = ${idsHashMap[variable]}`
-          if (!isLast) IDConditions = IDConditions + ' AND '
-        })
-        cypher = cypher + IDConditions + ')'
+          const isLast = index === Object.keys(idsHashMap).length - 1;
+          IDConditions =
+            IDConditions + `id(${variable}) = ${idsHashMap[variable]}`;
+          if (!isLast) IDConditions = IDConditions + " AND ";
+        });
+        cypher = cypher + IDConditions + ")";
       }
 
       if (nodesWithOrLabel.length > 0) {
         nodesWithOrLabel.map((labels, index) => {
           if (!whereOperatorIncluded) {
-            cypher = cypher + ' WHERE'
+            cypher = cypher + " WHERE";
           }
           if (whereOperatorIncluded || index > 0) {
-            cypher = cypher + 'AND '
+            cypher = cypher + "AND ";
           }
-          console.log(labels)
-          cypher = cypher + ' (' + labels + ') '
-        })
-
+          console.log(labels);
+          cypher = cypher + " (" + labels + ") ";
+        });
       }
-      cypher = cypher + ' Return ' + returnItems.map((item, index) => {
-        let returnValue = ''
-        returnValue = returnValue + item.nodeVariable + ' As ' + item.nodeAs
-        if (!!item.relationVariable) returnValue = returnValue + ', ' + item.relationVariable + ' As ' + item.relationAs
-        returnValue = returnValue + (returnItems.length - 1 === index ? '' : ', ')
-        return returnValue
-      }).join(' ')
-
-
+      cypher =
+        cypher +
+        " Return " +
+        returnItems
+          .map((item, index) => {
+            let returnValue = "";
+            returnValue =
+              returnValue + item.nodeVariable + " As " + item.nodeAs;
+            if (!!item.relationVariable)
+              returnValue =
+                returnValue +
+                ", " +
+                item.relationVariable +
+                " As " +
+                item.relationAs;
+            returnValue =
+              returnValue + (returnItems.length - 1 === index ? "" : ", ");
+            return returnValue;
+          })
+          .join(" ");
 
       const response = await this.read(cypher, Object.assign({}, ...params));
       return response["records"];
@@ -7589,12 +7717,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(w` +
@@ -7651,7 +7777,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -7687,7 +7813,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -7698,15 +7825,19 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
       if (isCount) {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
-      }
-      else {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation,  count(n) as count `;
-
-
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN count(m) as totalCount `;
+      } else {
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation,  count(n) as count `;
       }
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
@@ -7717,12 +7848,24 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
       main_root_filters = changeObjectKeyName(main_root_filters, "9");
       main_relation_filters = changeObjectKeyName(main_relation_filters, "8");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
 
       parameters = {
         ...parameters,
@@ -7734,7 +7877,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -7751,8 +7894,7 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
-  ////////////////////////////////////////////////////// 17-05-2023 sonrası ////////////////////////////////////////////// 
+  ////////////////////////////////////////////////////// 17-05-2023 sonrası //////////////////////////////////////////////
   async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria(
     root_labels: string[] = [""],
     root_filters: object = {},
@@ -7799,12 +7941,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(n` +
@@ -7837,7 +7977,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -7871,7 +8011,9 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenChildrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-      cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children , count(n) as count `;
+      cypher =
+        cypher +
+        ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children , count(n) as count `;
       // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       //   cypher =
       //     cypher +
@@ -7883,8 +8025,14 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
 
       parameters = {
         ...parameters,
@@ -7965,12 +8113,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(n` +
@@ -8003,10 +8149,8 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
-        +
+        ) +
         `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` +
-
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
@@ -8018,7 +8162,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -8054,7 +8198,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -8064,7 +8209,9 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-      cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
+      cypher =
+        cypher +
+        ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
                                    c as children_children_children, u as relation_children_children , count(n) as count `;
       // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       //   cypher =
@@ -8077,10 +8224,22 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
 
       parameters = {
         ...parameters,
@@ -8166,12 +8325,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(n` +
@@ -8204,10 +8361,8 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
-        +
+        ) +
         `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` +
-
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
@@ -8219,7 +8374,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -8255,7 +8410,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -8266,9 +8422,10 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
       cypher = cypher + ` where id(n) = $root_id `;
-      cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
+      cypher =
+        cypher +
+        ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
                                    c as children_children_children, u as relation_children_children , count(n) as count `;
-
 
       // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       //   cypher =
@@ -8281,10 +8438,22 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
 
       parameters = {
         ...parameters,
@@ -8379,12 +8548,10 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
-
 
       cypher =
         `MATCH p=(w` +
@@ -8441,7 +8608,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -8477,7 +8644,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -8487,7 +8655,9 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-      cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children,
+      cypher =
+        cypher +
+        ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children,
                                                                usr as children_children_children, p1 as relation_children_children , count(n) as count `;
       // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       //   cypher =
@@ -8500,12 +8670,24 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
       main_root_filters = changeObjectKeyName(main_root_filters, "9");
       main_relation_filters = changeObjectKeyName(main_relation_filters, "8");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
 
       parameters = {
         ...parameters,
@@ -8517,7 +8699,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -8533,9 +8715,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
-
-
 
   async findChildrensByIdAndByChildrenIdAndFilters(
     root_id: number,
@@ -8559,10 +8738,9 @@ export class Neo4jService implements OnApplicationShutdown {
         filterArrayForEmptyString(children_labels);
       let chId;
       let parameters;
-      if (children_id && children_id != '') {
+      if (children_id && children_id != "") {
         chId = +children_id;
-      }
-      else {
+      } else {
         chId = -1;
       }
       parameters = { root_id, children_id: chId, ...root_filters };
@@ -8593,16 +8771,11 @@ export class Neo4jService implements OnApplicationShutdown {
       //   cypher = cypher + ` and id(m) =  $children_id `;
       // }
 
-
       cypher = cypher + `  RETURN n as parent,m as children, r as relation`;
-
 
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       parameters = { ...parameters, ...children_filters, ...relation_filters };
-
-
-
 
       response = await this.read(cypher, parameters, databaseOrTransaction);
 
@@ -8618,7 +8791,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 
   //revised at 02-06-2022
   async findChildrensByIdAndFiltersWithChildrenOfChildrensCriteria(
@@ -8675,8 +8847,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_child_parametric = {};
 
       Object.entries(relation_filters_child).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_child_parametric[element[0]] = element[1];
         }
       });
@@ -8684,8 +8855,7 @@ export class Neo4jService implements OnApplicationShutdown {
       let relation_filters_parametric = {};
 
       Object.entries(relation_filters).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_parametric[element[0]] = element[1];
         }
       });
@@ -8734,7 +8904,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -8768,7 +8938,9 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenChildrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-      cypher = cypher + ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children , count(n) as count `;
+      cypher =
+        cypher +
+        ` where id(w) = ${main_root_id}  RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children , count(n) as count `;
       // if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
       //   cypher =
       //     cypher +
@@ -8780,8 +8952,14 @@ export class Neo4jService implements OnApplicationShutdown {
 
       relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
       main_root_filters = changeObjectKeyName(main_root_filters, "9");
       main_relation_filters = changeObjectKeyName(main_relation_filters, "8");
 
@@ -8793,7 +8971,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -8827,7 +9005,6 @@ export class Neo4jService implements OnApplicationShutdown {
       let cyper;
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-
           cyper =
             `MATCH (n` +
             dynamicLabelAdder(first_node_labels) +
@@ -8855,7 +9032,6 @@ export class Neo4jService implements OnApplicationShutdown {
 
           break;
         case RelationDirection.LEFT:
-
           cyper =
             `MATCH (m` +
             dynamicLabelAdder(first_node_labels) +
@@ -8874,7 +9050,6 @@ export class Neo4jService implements OnApplicationShutdown {
               "2"
             ) +
             `return n as parent,m as children,r as relation`;
-
 
           break;
         default:
@@ -8901,7 +9076,7 @@ export class Neo4jService implements OnApplicationShutdown {
       //   throw new HttpException("something goes wrong", 400);
       // }
       if (!res) {
-        return 'relation not found'
+        return "relation not found";
       }
       return res;
     } catch (error) {
@@ -8915,7 +9090,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
 
   ////////////////////////////////
 
@@ -8961,12 +9135,10 @@ export class Neo4jService implements OnApplicationShutdown {
 
       let relation_filters_child_parametric = {};
 
-
       let relation_filters_parametric = {};
 
       Object.entries(relation_filters).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_parametric[element[0]] = element[1];
         }
       });
@@ -9000,7 +9172,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )
+        );
 
       if (
         rootExcludedLabelsWithoutEmptyString &&
@@ -9024,12 +9196,14 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
       if (isCount) {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN  count(n) as totalCount `;
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN  count(n) as totalCount `;
+      } else {
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children , count(n) as count `;
       }
-      else {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children , count(n) as count `;
-      }
-
 
       relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
@@ -9043,7 +9217,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -9061,7 +9235,6 @@ export class Neo4jService implements OnApplicationShutdown {
   }
 
   async findChildrensByLabelAndFiltersWithChildrenOfChildrens3Criteria(
-
     root_labels: string[] = [""],
     root_filters: object = {},
     root_exculuded_labels: string[] = [""],
@@ -9094,18 +9267,15 @@ export class Neo4jService implements OnApplicationShutdown {
       let cypher;
       let response;
 
-
       let relation_filters_parametric = {};
 
       Object.entries(relation_filters).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_parametric[element[0]] = element[1];
         }
       });
 
       cypher =
-
         ` MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
@@ -9121,7 +9291,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )
+        );
 
       if (
         rootExcludedLabelsWithoutEmptyString &&
@@ -9146,21 +9316,20 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (isCount) {
         cypher = cypher + `  RETURN count(n)  as totalCount `;
+      } else {
+        cypher =
+          cypher +
+          `  RETURN n as parent,  m as children, r as relation, count(n) as count `;
       }
-      else {
-        cypher = cypher + `  RETURN n as parent,  m as children, r as relation, count(n) as count `;
-      }
-
 
       relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-
 
       parameters = {
         ...parameters,
         ...children_filters,
         ...relation_filters,
-        ...root_filters
+        ...root_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -9176,8 +9345,6 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
-
-
 
   async findChildrensByIdAndFiltersWithChildrenOfChildrens3CriteriaPagination(
     main_root_id: number,
@@ -9224,12 +9391,10 @@ export class Neo4jService implements OnApplicationShutdown {
 
       let relation_filters_child_parametric = {};
 
-
       let relation_filters_parametric = {};
 
       Object.entries(relation_filters).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_parametric[element[0]] = element[1];
         }
       });
@@ -9263,7 +9428,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )
+        );
 
       if (
         rootExcludedLabelsWithoutEmptyString &&
@@ -9287,13 +9452,19 @@ export class Neo4jService implements OnApplicationShutdown {
           );
       }
       if (isCount) {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN count(n) as totalCount `;
-      }
-      else {
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation , count(n) as count `;
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN count(n) as totalCount `;
+      } else {
+        cypher =
+          cypher +
+          ` where id(w) = ${main_root_id}  RETURN w as main_parent,n as parent, h as main_relation, m as children, r as relation , count(n) as count `;
       }
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
@@ -9315,7 +9486,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -9332,7 +9503,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
   async findChildrensByLabelAndFiltersWithChildrenOfChildrens3CriteriaPagination(
-
     root_labels: string[] = [""],
     root_filters: object = {},
     root_exculuded_labels: string[] = [""],
@@ -9368,18 +9538,15 @@ export class Neo4jService implements OnApplicationShutdown {
       let cypher;
       let response;
 
-
       let relation_filters_parametric = {};
 
       Object.entries(relation_filters).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_parametric[element[0]] = element[1];
         }
       });
 
       cypher =
-
         ` MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
@@ -9395,7 +9562,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )
+        );
 
       if (
         rootExcludedLabelsWithoutEmptyString &&
@@ -9420,12 +9587,16 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (isCount) {
         cypher = cypher + `  RETURN count(n) as totalCount `;
-      }
-      else {
-        cypher = cypher + `  RETURN n as parent,  m as children, r as relation , count(n) as count `;
+      } else {
+        cypher =
+          cypher +
+          `  RETURN n as parent,  m as children, r as relation , count(n) as count `;
       }
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("n", queryObject.orderByColumn) +
@@ -9438,12 +9609,11 @@ export class Neo4jService implements OnApplicationShutdown {
       relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
 
-
       parameters = {
         ...parameters,
         ...children_filters,
         ...relation_filters,
-        ...root_filters
+        ...root_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -9477,7 +9647,6 @@ export class Neo4jService implements OnApplicationShutdown {
       let cyper;
       switch (relation_direction) {
         case RelationDirection.RIGHT:
-
           cyper =
             `MATCH (n` +
             dynamicLabelAdder(first_node_labels) +
@@ -9505,7 +9674,6 @@ export class Neo4jService implements OnApplicationShutdown {
 
           break;
         case RelationDirection.LEFT:
-
           cyper =
             `MATCH (m` +
             dynamicLabelAdder(first_node_labels) +
@@ -9524,7 +9692,6 @@ export class Neo4jService implements OnApplicationShutdown {
               "2"
             ) +
             `return n as parent,m as children,r as relation`;
-
 
           break;
         default:
@@ -9562,7 +9729,6 @@ export class Neo4jService implements OnApplicationShutdown {
     }
   }
 
-
   async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria4_v2(
     neo4jService: any,
     root_labels: string[] = [""],
@@ -9590,7 +9756,7 @@ export class Neo4jService implements OnApplicationShutdown {
     relation_depth_child_child: number | "",
     reverseRelation_child_child: boolean = false,
     databaseOrTransaction?: string
-  )  {
+  ) {
     try {
       if (!relation_name) {
         throw new HttpException("required_fields_must_entered", 404);
@@ -9600,110 +9766,99 @@ export class Neo4jService implements OnApplicationShutdown {
       const childrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_labels);
       const childrenChildrenLabelsWithoutEmptyString =
-        filterArrayForEmptyString(children_children_labels);  
+        filterArrayForEmptyString(children_children_labels);
       const childrenChildrenChildrenLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_children_children_labels);
-  
+
       const rootExcludedLabelsWithoutEmptyString = filterArrayForEmptyString(
         root_exculuded_labels
       );
       const childrenExcludedLabelsLabelsWithoutEmptyString =
         filterArrayForEmptyString(children_exculuded_labels);
       const childrenChildrenExcludedLabelsLabelsWithoutEmptyString =
-        filterArrayForEmptyString(children_children_exculuded_labels);  
+        filterArrayForEmptyString(children_children_exculuded_labels);
       const childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString =
-        filterArrayForEmptyString(children_children_children_exculuded_labels);  
+        filterArrayForEmptyString(children_children_children_exculuded_labels);
       let parameters = {};
-     
-  
-       let cypher;
-       let response;
-  
-       let relation_filters_child_parametric = {};
-  
-       Object.entries(relation_filters_child).forEach((element, index) => {
-       
-        if (typeof element[1] != 'object') {
-            relation_filters_child_parametric[element[0]] = element[1];
-        }
-        else {
-         
+
+      let cypher;
+      let response;
+
+      let relation_filters_child_parametric = {};
+
+      Object.entries(relation_filters_child).forEach((element, index) => {
+        if (typeof element[1] != "object") {
+          relation_filters_child_parametric[element[0]] = element[1];
+        } else {
           Object.entries(element[1]).forEach((item, index) => {
-  
-    
-          relation_filters_child_parametric[item[0]] = item[1];
-  
-          }) ;
-          
+            relation_filters_child_parametric[item[0]] = item[1];
+          });
         }
-       });
-       
-       let relation_filters_child_child_parametric = {};
-  
-       Object.entries(relation_filters_child_child).forEach((element, index) => {
-       
-        if (typeof element[1] != 'object') {
-            relation_filters_child_child_parametric[element[0]] = element[1];
-        }
-        else {
-         
+      });
+
+      let relation_filters_child_child_parametric = {};
+
+      Object.entries(relation_filters_child_child).forEach((element, index) => {
+        if (typeof element[1] != "object") {
+          relation_filters_child_child_parametric[element[0]] = element[1];
+        } else {
           Object.entries(element[1]).forEach((item, index) => {
-  
-    
-          relation_filters_child_child_parametric[item[0]] = item[1];
-  
-          }) ;
-          
+            relation_filters_child_child_parametric[item[0]] = item[1];
+          });
         }
-       });
-  
+      });
+
       cypher =
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `${reverseRelation ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        `${
+          reverseRelation ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]-${reverseRelation ? '' : '>'}(m` +
+        ` ]-${reverseRelation ? "" : ">"}(m` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )+
-        `${reverseRelation_child ? '<' : ''}-[t:${relation_name_child}*1..${relation_depth_child}` + 
+        ) +
+        `${
+          reverseRelation_child ? "<" : ""
+        }-[t:${relation_name_child}*1..${relation_depth_child}` +
         //child_child_filter +
-  
+
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child,
           FilterPropertiesType.RELATION,
           "4"
-        )+
-        ` ]-${reverseRelation_child ? '' : '>'}(k` +
+        ) +
+        ` ]-${reverseRelation_child ? "" : ">"}(k` +
         dynamicLabelAdder(childrenChildrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
-        +
-        `${reverseRelation_child_child ? '<' : ''}-[u:${relation_name_child_child}*1..${relation_depth_child_child}` + 
-        
+        ) +
+        `${
+          reverseRelation_child_child ? "<" : ""
+        }-[u:${relation_name_child_child}*1..${relation_depth_child_child}` +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
           "6"
-        )+
-        ` ]-${reverseRelation_child_child ? '' : '>'}(c` +
+        ) +
+        ` ]-${reverseRelation_child_child ? "" : ">"}(c` +
         dynamicLabelAdder(childrenChildrenChildrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -9739,7 +9894,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -9749,16 +9905,30 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-      cypher = cypher + ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
+      cypher =
+        cypher +
+        ` RETURN n as parent,m as children, r as relation, k as children_children, t as relation_children, 
                                      c as children_children_children, u as relation_children_children , count(n) as count `;
-  
+
       relation_filters = changeObjectKeyName(relation_filters, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
-      relation_filters_child = changeObjectKeyName(relation_filters_child_parametric, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child_parametric, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
-  
+      relation_filters_child = changeObjectKeyName(
+        relation_filters_child_parametric,
+        "4"
+      );
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child_parametric,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
+
       parameters = {
         ...children_children_children_filters,
         ...relation_filters_child_child,
@@ -9826,18 +9996,15 @@ export class Neo4jService implements OnApplicationShutdown {
 
       let relation_filters_child_parametric = {};
 
-
       let relation_filters_parametric = {};
 
       Object.entries(relation_filters).forEach((element, index) => {
-
-        if (typeof element[1] != 'object') {
+        if (typeof element[1] != "object") {
           relation_filters_parametric[element[0]] = element[1];
-        }
-        else {
+        } else {
           Object.entries(element[1]).forEach((item, index) => {
-          relation_filters_parametric[item[0]] = item[1];
-          }) ;
+            relation_filters_parametric[item[0]] = item[1];
+          });
         }
       });
 
@@ -9849,28 +10016,32 @@ export class Neo4jService implements OnApplicationShutdown {
           FilterPropertiesType.NODE,
           "9"
         ) +
-        `${mainReverseRelation ? '<' : ''}-[h:${main_relation_name}*1..${main_relation_depth}` +
+        `${
+          mainReverseRelation ? "<" : ""
+        }-[h:${main_relation_name}*1..${main_relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           main_relation_filters,
           FilterPropertiesType.RELATION,
           "8"
         ) +
-        ` ]-${mainReverseRelation ? '' : '>'}(n` +
+        ` ]-${mainReverseRelation ? "" : ">"}(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
-        `${reverseRelation ? '<' : ''}-[r:${relation_name}*1..${relation_depth}` +
+        `${
+          reverseRelation ? "<" : ""
+        }-[r:${relation_name}*1..${relation_depth}` +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters,
           FilterPropertiesType.RELATION,
           "2"
         ) +
-        ` ]-${mainReverseRelation ? '' : '>'} (m ` +
+        ` ]-${mainReverseRelation ? "" : ">"} (m ` +
         dynamicLabelAdder(childrenLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           children_filters,
           FilterPropertiesType.NODE,
           "3"
-        )
+        );
 
       if (
         rootExcludedLabelsWithoutEmptyString &&
@@ -9893,11 +10064,10 @@ export class Neo4jService implements OnApplicationShutdown {
             childrenExcludedLabelsLabelsWithoutEmptyString
           );
       }
-     
 
-        cypher = cypher + ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children `;
-    
-
+      cypher =
+        cypher +
+        ` where id(w) = ${main_root_id}  RETURN w as parent,n as children, h as relation, m as children_children, r as relation_children `;
 
       relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
@@ -9911,7 +10081,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...relation_filters,
         ...root_filters,
         ...main_root_filters,
-        ...main_relation_filters
+        ...main_relation_filters,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -9926,8 +10096,7 @@ export class Neo4jService implements OnApplicationShutdown {
         throw new HttpException(error, 500);
       }
     }
-  }  
-
+  }
 
   async findChildrensByLabelAndFiltersWithChildrenOfChildrensCriteria4AndPaginationUnion(
     root_labels: string[] = [""],
@@ -9987,30 +10156,28 @@ export class Neo4jService implements OnApplicationShutdown {
 
       let relation_filters_parametric = {};
       Object.entries(relation_filters).forEach((element, index) => {
-        if (typeof element[1] != 'object') {
-            relation_filters_parametric[element[0]] = element[1];
-        }
-        else {
+        if (typeof element[1] != "object") {
+          relation_filters_parametric[element[0]] = element[1];
+        } else {
           Object.entries(element[1]).forEach((item, index) => {
-          relation_filters_parametric[item[0]] = item[1];
-          }) ;
+            relation_filters_parametric[item[0]] = item[1];
+          });
         }
-       });
+      });
 
-
-       let relation_filters_union_parametric = {};
-       Object.entries(relation_filters_union).forEach((element, index) => {
-         if (typeof element[1] != 'object') {
+      let relation_filters_union_parametric = {};
+      Object.entries(relation_filters_union).forEach((element, index) => {
+        if (typeof element[1] != "object") {
           relation_filters_union_parametric[element[0]] = element[1];
-         }
-         else {
+        } else {
           Object.entries(element[1]).forEach((item, index) => {
-          relation_filters_union_parametric[item[0]] = item[1];
-          }) ;
+            relation_filters_union_parametric[item[0]] = item[1];
+          });
         }
-        });
+      });
 
-      cypher = `CALL { ` +
+      cypher =
+        `CALL { ` +
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
@@ -10028,7 +10195,6 @@ export class Neo4jService implements OnApplicationShutdown {
           "3"
         ) +
         `-[t:${relation_name_child}*1..${relation_depth_child}` +
-
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child,
           FilterPropertiesType.RELATION,
@@ -10040,10 +10206,8 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
-        +
+        ) +
         `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` +
-
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
@@ -10055,7 +10219,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -10091,7 +10255,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -10103,14 +10268,17 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (isCount) {
         cypher = cypher + ` RETURN count(n) as totalCount `;
+      } else {
+        cypher =
+          cypher +
+          ` RETURN n as parent,m as children, r as relation, count(n) as count `;
       }
-      else {
-        cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as count `;
-      }
-      
+
       // UNION
 
-      cypher = cypher + ' UNION ' + 
+      cypher =
+        cypher +
+        " UNION " +
         `MATCH p=(n` +
         dynamicLabelAdder(rootLabelsWithoutEmptyString) +
         dynamicFilterPropertiesAdder(root_filters) +
@@ -10141,10 +10309,8 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_filters,
           FilterPropertiesType.NODE,
           "5"
-        )
-        +
+        ) +
         `-[u:${relation_name_child_child}*1..${relation_depth_child_child}` +
-
         dynamicFilterPropertiesAdderAndAddParameterKeyNew(
           relation_filters_child_child,
           FilterPropertiesType.RELATION,
@@ -10156,7 +10322,7 @@ export class Neo4jService implements OnApplicationShutdown {
           children_children_children_filters,
           FilterPropertiesType.NODE,
           "7"
-        )
+        );
       if (
         rootExcludedLabelsWithoutEmptyString &&
         rootExcludedLabelsWithoutEmptyString.length > 0
@@ -10192,7 +10358,8 @@ export class Neo4jService implements OnApplicationShutdown {
       }
       if (
         childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString &&
-        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length > 0
+        childrenChildrenChildrenExcludedLabelsLabelsWithoutEmptyString.length >
+          0
       ) {
         cypher =
           cypher +
@@ -10205,26 +10372,24 @@ export class Neo4jService implements OnApplicationShutdown {
 
       if (isCount) {
         cypher = cypher + ` RETURN count(n) as totalCount } `;
+      } else {
+        cypher =
+          cypher +
+          ` RETURN n as parent,m as children, r as relation, count(n) as count } `;
       }
-      else {
-        cypher = cypher + ` RETURN n as parent,m as children, r as relation, count(n) as count } `;
-      }
-
-
-
-
-
-
-
 
       if (isCount) {
         cypher = cypher + ` RETURN count(totalCount) as totalCount `;
-      }
-      else {
-        cypher = cypher + ` RETURN parent, children, relation, count(parent) as count `;
+      } else {
+        cypher =
+          cypher +
+          ` RETURN parent, children, relation, count(parent) as count `;
       }
       if (!isCount) {
-        if (queryObject.orderByColumn && queryObject.orderByColumn.length >= 1) {
+        if (
+          queryObject.orderByColumn &&
+          queryObject.orderByColumn.length >= 1
+        ) {
           cypher =
             cypher +
             dynamicOrderByColumnAdder("parent", queryObject.orderByColumn) +
@@ -10234,16 +10399,25 @@ export class Neo4jService implements OnApplicationShutdown {
         }
       }
 
-
-
-
       relation_filters = changeObjectKeyName(relation_filters_parametric, "2");
       children_filters = changeObjectKeyName(children_filters, "3");
       relation_filters_child = changeObjectKeyName(relation_filters_child, "4");
-      children_children_filters = changeObjectKeyName(children_children_filters, "5");
-      relation_filters_child_child = changeObjectKeyName(relation_filters_child_child, "6");
-      children_children_children_filters = changeObjectKeyName(children_children_children_filters, "7");
-      relation_filters_union =  changeObjectKeyName(relation_filters_union_parametric, "10");
+      children_children_filters = changeObjectKeyName(
+        children_children_filters,
+        "5"
+      );
+      relation_filters_child_child = changeObjectKeyName(
+        relation_filters_child_child,
+        "6"
+      );
+      children_children_children_filters = changeObjectKeyName(
+        children_children_children_filters,
+        "7"
+      );
+      relation_filters_union = changeObjectKeyName(
+        relation_filters_union_parametric,
+        "10"
+      );
       parameters = {
         ...parameters,
         ...children_children_children_filters,
@@ -10253,7 +10427,7 @@ export class Neo4jService implements OnApplicationShutdown {
         ...children_filters,
         ...relation_filters,
         ...root_filters,
-        ...relation_filters_union 
+        ...relation_filters_union,
       };
       // eslint-disable-next-line prefer-const
       response = await this.read(cypher, parameters, databaseOrTransaction);
@@ -10269,8 +10443,13 @@ export class Neo4jService implements OnApplicationShutdown {
       }
     }
   }
+  async onModuleInit() {
+    this.serverTimezone = await this.read(
+      "RETURN apoc.date.systemTimezone() AS timezone"
+    );
+  }
 
+  get timezone() {
+    return this.serverTimezone.records[0].get("timezone");
+  }
 }
-
-
-
